@@ -1,0 +1,184 @@
+Match-3 Game — Project Handoff Summary
+Updated: v10.5.3 session complete
+
+=============================================================================
+CURRENT STATE
+=============================================================================
+
+Latest tablet version: match3-v10.5.3-tablet.jsx / .html (in outputs folder)
+Latest 418px phone version: match3-v10.5.3-418px-phone.html (in outputs folder)
+
+All fixes through v10.5.3 are complete on both of these files.
+
+=============================================================================
+FILES NEEDING UPLOAD + PORTING
+=============================================================================
+
+The following files need to be uploaded to the project:
+
+0. match3-v10.5.3-tablet.jsx  ← REFERENCE FILE (already complete, do not port)
+   - Canonical source for all game logic
+   - Use for wholesale replacement of activateSpecialTile / activateSpecialCombination
+   - Use as line-by-line reference when applying any fix
+
+FILES NEEDING UPLOAD + PORTING:
+
+1. match3-v10-phone-341px.jsx
+   - Grid: 8×10, 40px tiles (DIFFERENT from tablet — preserve these constants)
+   - Starting version: v10 (needs v10.1 through v10.5.3 applied)
+
+2. match3-v10-desktop.jsx
+   - Grid: 10×12, 50px tiles
+   - Starting version: v10 (needs v10.1 through v10.5.3 applied)
+   - Has paid shuffle/new board power buttons — REMOVE them (keep free shuffle on no-moves dialog)
+
+3. match3-v10-desktop-timeattack.jsx
+   - Grid: 10×12, 50px tiles
+   - Starting version: v10, time attack mode logic
+   - Has paid shuffle/new board power buttons — REMOVE them (keep free shuffle on no-moves dialog)
+   - Do NOT remove or alter any time attack timer logic
+
+=============================================================================
+CHANGES TO APPLY TO EACH PORT (v10.1 → v10.5.3)
+=============================================================================
+
+Use match3-v10.5.3-418px-phone.html as the reference pattern for all ports.
+
+--- v10.1: Special tile rebalance ---
+Replace activateSpecialTile and activateSpecialCombination wholesale from
+match3-v10.5.3-tablet.jsx (lines 1506-1988). This already includes v10.5 Fix B.
+
+  Bomb:      3×3 + full row + full col, flat 750 pts, chains specials in arms
+  Supernova: 5×5 + full row + full col, flat 2000 pts, same chaining
+  Hypernova: Supernova footprint + random 50% of remaining REGULAR tiles only.
+             Specials NEVER removed. Min 30 tiles cleared. Flat 5000 pts.
+             No chainedSpecials returned.
+
+  Combos:
+    bomb+bomb:              7×7 + row + col → 1500 pts
+    bomb+line:              3 rows + 3×3 + row + col → 1200 pts
+    bomb+cross:             7×7 + row + col → 1400 pts
+    bomb/cross/line+supernova: 7×7 + row + col → 3500 pts
+    supernova+supernova:    all regular tiles cleared, specials survive → 6000 pts
+    hypernova+supernova:    all regular tiles cleared, specials survive → 8000 pts
+    hypernova+hypernova:    all regular tiles cleared, specials survive → 10000 pts
+    bomb/cross/line+hypernova: all regular tiles cleared, specials survive → 6000 pts
+    cross+cross, line+line, cross+line: unchanged
+
+  v10.5 Fix B (included in above): All "clear all regular tiles" combo branches
+  must also explicitly append { row: row1, col: col1 } and { row: row2, col: col2 }
+  to tilesToRemove — otherwise the two swapped specials remain on the board.
+
+--- v10.2: Stale closure + canvas mutation fixes ---
+- Add: const comboRef = useRef(0); synced via useEffect(() => { comboRef.current = combo; }, [combo]);
+- Add: const animStateRef = useRef({});
+- In renderCanvas: replace tile.animX/tile.animY mutation with animStateRef keyed by tile.id.
+  New tiles use _initAnimY / _initAnimX fields to set starting drop position in animStateRef.
+- In fillEmptySpaces: new tiles should NOT have animX/animY on the object.
+  Instead set _initAnimX and _initAnimY, which renderCanvas reads on first encounter.
+- In fillEmptySpaces: replace combo + comboIncrease with comboRef.current + comboIncrease
+- Remove dead constants: DROP_SPEED, MATCH_FADE_SPEED
+- handleCanvasClick: add `if (e.detail === 0) return;` at top (mobile double-tap guard)
+
+--- v10.3: Additional stale closure + order fixes ---
+- setLastCombo(combo) → setLastCombo(comboRef.current)
+- animStateRef.current = {} in restartGame
+- processedSpecials.add() in processChainedSpecial must come BEFORE the recursive forEach
+  (already correct if using the wholesale replacement above)
+- handleDragEnd: add `if (dragStart) setSelectedTile(null);` before setDragStart(null)
+- lastCombo display: add `&& gameState === 'playing'` guard to lastCombo opacity condition
+
+--- v10.4: Bonus move + remove paid power buttons ---
+- Add constant: const BONUS_MOVE_INTERVAL = 10000;
+- Add ref: const bonusMoveThresholdRef = useRef(0);
+- Add ref: const bonusMoveFlashPendingRef = useRef(0);
+- Add state: const [bonusMoveFlash, setBonusMoveFlash] = useState(0);
+- Add bonus move useEffect (after win-condition check useEffect):
+
+    useEffect(() => {
+      if (gameState !== 'playing') return;
+      if (!turnComplete) return;
+      const threshold = Math.floor(score / BONUS_MOVE_INTERVAL) * BONUS_MOVE_INTERVAL;
+      if (threshold > 0 && threshold > bonusMoveThresholdRef.current) {
+        const newMoves = Math.floor((threshold - bonusMoveThresholdRef.current) / BONUS_MOVE_INTERVAL);
+        bonusMoveThresholdRef.current = threshold;
+        setMoves(prev => prev + newMoves);
+        if (showBonusPrompt) {
+          bonusMoveFlashPendingRef.current += newMoves;
+        } else {
+          setBonusMoveFlash(prev => prev + newMoves);
+        }
+      }
+    }, [score, gameState, turnComplete, showBonusPrompt]);
+
+- Remove paid power button functions: shuffleWithMoves, shuffleWithSpecials,
+  newBoardWithMoves, newBoardWithSpecials, performNewBoard, removeRandomSpecials
+- Remove paid power button constants: SHUFFLE_MOVE_COST, SHUFFLE_SPECIAL_COST,
+  NEW_BOARD_MOVE_COST, NEW_BOARD_SPECIAL_COST
+- Keep: shuffleBoardFree, performShuffle, performShuffleOnGrid (used by no-moves dialog)
+- Remove paid power button UI elements from render
+
+--- v10.5: Bonus move timing fix + swapped specials fix ---
+Fix A — Game-end defer: inside the game-end useEffect's setTimeout, add this check
+BEFORE the specials bonus calculation:
+
+    const pendingThreshold = Math.floor(currentScore / BONUS_MOVE_INTERVAL) * BONUS_MOVE_INTERVAL;
+    if (pendingThreshold > bonusMoveThresholdRef.current) return;
+
+Fix B — Already included in the v10.1 wholesale replacement above.
+
+--- v10.5.1–v10.5.3: Bonus move burst animation ---
+- In header, wrap Moves counter in a position:relative div
+- Add animated burst span keyed by bonusMoveFlash:
+
+    {bonusMoveFlash > 0 && (
+      <span
+        key={bonusMoveFlash}
+        style={{
+          position: 'absolute', top: '-8px', left: '50%',
+          fontSize: '28px', fontWeight: '900', color: '#00C853',
+          textShadow: '0 0 12px #00C853, 0 0 24px #00C853, 1px 1px 0 #000',
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+          animation: 'bonusMoveBurst 4s ease-out forwards'
+        }}
+      >
+        +1 move 🎯
+      </span>
+    )}
+
+- Add CSS keyframe:
+    @keyframes bonusMoveBurst {
+      0%   { transform: translateX(-50%) translateY(0) scale(0.5); opacity: 0; }
+      10%  { transform: translateX(-50%) translateY(-4px) scale(1.6); opacity: 1; }
+      35%  { transform: translateX(-50%) translateY(-14px) scale(1.4); opacity: 1; }
+      70%  { transform: translateX(-50%) translateY(-26px) scale(1.2); opacity: 1; }
+      100% { transform: translateX(-50%) translateY(-38px) scale(1.0); opacity: 0; }
+    }
+
+- startBonusRound: flush bonusMoveFlashPendingRef after setShowBonusPrompt(false)
+- endLevelEarly: discard bonusMoveFlashPendingRef (set to 0) after setShowBonusPrompt(false)
+
+--- Resets to add in restartGame ---
+  animStateRef.current = {};
+  bonusMoveThresholdRef.current = 0;
+  bonusMoveFlashPendingRef.current = 0;
+  setBonusMoveFlash(0);
+
+=============================================================================
+WORKING RULES (carry forward)
+=============================================================================
+
+- Always suggest before implementing
+- Never overwrite files — increment version number
+- One platform at a time
+- Flag context window at 40%, 60%, 80%
+- Use match3-v10.5.3-tablet.jsx as the canonical reference for game logic
+- Use match3-v10.5.3-418px-phone.html as the reference pattern for how changes were applied
+
+=============================================================================
+KNOWN DEAD CODE (not fixing — per owner decision)
+=============================================================================
+
+- console.log in game-end effect
+- specialBonusMultiplier state (declared, reset, never used)
+- WIN_BONUS_PER_MOVE constant (unreachable in current game flow)
