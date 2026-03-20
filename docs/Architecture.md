@@ -11,9 +11,11 @@ m3-core/
   .github/
     workflows/
       deploy.yml     # Auto-deploy to GitHub Pages on push to main
-  core/              # Shared game logic (future extraction)
-                     # Target: match finding, scoring, specials,
-                     # cascade chains, gravity
+  core/              # Shared code used across platforms
+                     # AdminPanel.jsx — dev stats/admin panel (reads localStorage,
+                     #   no platform dependencies; import into any platform)
+                     # Future: match finding, scoring, specials, cascade chains, gravity
+                     # Note: if shared UI components multiply, consider core/components/
   platforms/
     desktop/
       archive/       # Previous versions (read-only, do not modify)
