@@ -2060,6 +2060,7 @@ const Match3Game = () => {
             group.tiles.forEach(t => claimedPositions.add(`${t.row}-${t.col}`));
           }
         }
+        }
       });
     } else {
       // Fallback to old logic if no connectedGroups (shouldn't happen)
