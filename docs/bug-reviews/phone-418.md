@@ -174,4 +174,10 @@ the condition evaluates correctly without explicit parentheses. Code style issue
 **Architecture note:** Because this file is standalone HTML with CDN React (not a Vite
 module), the v11 fixes cannot be directly ported — they need to be adapted to plain JS
 (no JSX, no import/export). Any fixes should be applied within the `<script>` tag and
-tested by opening the file directly in a browser.
+tested by opening the file directly in a browser. The render tree uses
+`React.createElement(...)` directly rather than JSX.
+
+**Derived from phone-341:** This file was adapted from match3-v10.5.4-phone-341px.jsx.
+The two critical bugs present in phone-341 were fixed in the adaptation:
+- `restartGame` closing brace is present (phone-341 Bug N1 — not present here)
+- Only one `processMatches` definition (phone-341 Bug N2 duplicate — not present here)
