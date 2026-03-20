@@ -513,16 +513,10 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
   const [currentTurnScore, setCurrentTurnScore] = useState(0);
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1');
 
-  // Campaign bonus moves — persistent across levels
+  // Campaign bonus moves (banked pool)
   const [campaignBonusMoves, setCampaignBonusMoves] = useState(
     () => parseInt(localStorage.getItem(CAMPAIGN_KEYS.bonusMoves) || '0', 10)
   );
-  // In-game bonus moves pool — earned per 10k points, separate from regular moves
-  const [bonusMovePool, setBonusMovePool] = useState(0);
-  // True after player chooses "Use extra moves" — enables "End level" button in header
-  const [usingExtraMoves, setUsingExtraMoves] = useState(false);
-  // True when regular moves=0 and pool>0, shows the two-button decision prompt
-  const [showExtraMovesPrompt, setShowExtraMovesPrompt] = useState(false);
 
   // Refs
   const dragStart = useRef(null);
@@ -598,8 +592,7 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
       const newMoves = Math.floor((threshold - bonusMoveThresholdRef.current) / CAMPAIGN_BONUS_MOVE_INTERVAL);
       bonusMoveThresholdRef.current = threshold;
       if (!IS_TIME_ATTACK) {
-        // Bonus moves go to the pool, not directly to regular moves
-        setBonusMovePool(prev => prev + newMoves);
+        setMoves(prev => prev + newMoves);
         if (showBonusPrompt) bonusMoveFlashPendingRef.current += newMoves;
         else setBonusMoveFlash(prev => prev + newMoves);
       }
@@ -612,7 +605,6 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
     if (!turnComplete || isAnimating || combo > 0 || pendingSpecials.length > 0) return;
     if (gameState !== 'playing') return;
     if (showBonusPrompt) return;
-    if (showExtraMovesPrompt) return;
 
     const checkTimer = setTimeout(() => {
       const currentScore = scoreRef.current;
@@ -639,22 +631,13 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
         setGameState('won');
         return;
       }
-      if (moves <= 0 && !hasReachedTarget && !usingExtraMoves) {
-        if (bonusMovePool > 0) {
-          setShowExtraMovesPrompt(true);
-          return;
-        }
-        setScore(prev => prev + specialsBonus);
-        setGameState('gameover');
-      }
-
-      if (moves <= 0 && !hasReachedTarget && usingExtraMoves) {
+      if (moves <= 0 && !hasReachedTarget) {
         setScore(prev => prev + specialsBonus);
         setGameState('gameover');
       }
     }, 150);
     return () => clearTimeout(checkTimer);
-  }, [moves, gameState, LEVEL_TARGET, isAnimating, combo, targetReached, pendingSpecials.length, grid, turnComplete, bonusRoundActive, showBonusPrompt, showExtraMovesPrompt, bonusMovePool, usingExtraMoves, IS_TIME_ATTACK]);
+  }, [moves, gameState, LEVEL_TARGET, isAnimating, combo, targetReached, pendingSpecials.length, grid, turnComplete, bonusRoundActive, showBonusPrompt, IS_TIME_ATTACK]);
 
   // Bonus round handlers
   const startBonusRound = () => {
@@ -675,29 +658,6 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
     const { bonus: specialsBonus } = calculateUnusedSpecialsBonus(grid);
     setScore(prev => prev + moveBonus + specialsBonus);
     setGameState('won');
-  };
-
-  // Player chose "Use extra moves" — transfer pool to regular moves counter
-  const useExtraMoves = () => {
-    setMoves(bonusMovePool);
-    setBonusMovePool(0);
-    setUsingExtraMoves(true);
-    setShowExtraMovesPrompt(false);
-  };
-
-  // Player chose "Save moves / End level" — bank pool to campaign, end level
-  const saveMovePool = () => {
-    if (bonusMovePool > 0) setCampaignBonusMoves(prev => prev + bonusMovePool);
-    setBonusMovePool(0);
-    setShowExtraMovesPrompt(false);
-    setGameState('gameover');
-  };
-
-  // "End level" button pressed mid-extra-moves — bank remaining moves to campaign, end level
-  const endLevelFromExtra = () => {
-    if (moves > 0) setCampaignBonusMoves(prev => prev + moves);
-    setMoves(0);
-    setGameState('gameover');
   };
 
   // Popup cleanup
@@ -1357,8 +1317,9 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
   const handleLevelEnd = (won) => {
     const finalScore = scoreRef.current;
     const stars = won ? calculateStars(finalScore, LEVEL_TARGET) : 0;
-    // Carry any remaining bonus pool to campaign moves (pool is 0 if already saved/used)
-    if (bonusMovePool > 0) setCampaignBonusMoves(prev => prev + bonusMovePool);
+    // Bank bonus moves earned this run
+    const bonusMovesEarned = calculateBonusMovesEarned(finalScore);
+    if (bonusMovesEarned > 0) setCampaignBonusMoves(prev => prev + bonusMovesEarned);
     onLevelComplete({ levelIndex, score: finalScore, stars, won });
   };
 
@@ -1431,35 +1392,12 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
                   fontSize: '24px', fontWeight: '900', color: '#00C853',
                   textShadow: '0 0 12px #00C853, 1px 1px 0 #000', pointerEvents: 'none',
                   whiteSpace: 'nowrap', animation: 'bonusMoveBurst 4s ease-out forwards',
-                }}>+1 🎯</span>
+                }}>+1 move 🎯</span>
               )}
             </div>
           )}
 
-          {!IS_TIME_ATTACK && bonusMovePool > 0 && (
-            <div title="Extra moves earned — use or save when regular moves run out">
-              🎯 <span style={{ color: '#00C853', fontWeight: 'bold' }}>{bonusMovePool}</span>
-            </div>
-          )}
-
-          <div title="Bonus moves banked for future levels">
-            🏦 <span style={{ color: '#667eea', fontWeight: 'bold' }}>{campaignBonusMoves}</span>
-          </div>
-
           <div>Target: <span style={{ color: '#667eea' }}>{LEVEL_TARGET}</span></div>
-
-          {usingExtraMoves && (
-            <button
-              onClick={endLevelFromExtra}
-              style={{
-                padding: '4px 12px', fontSize: '13px', background: '#667eea',
-                color: 'white', border: 'none', borderRadius: '6px',
-                cursor: 'pointer', fontWeight: 'bold',
-              }}
-            >
-              End level
-            </button>
-          )}
         </div>
 
         <div style={{ fontSize: '12px', color: '#888' }}>✨ Specials: {specialCount}</div>
@@ -1553,48 +1491,6 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
         </div>
       )}
 
-      {/* Extra Moves Prompt — shown when regular moves hit 0 and pool is non-empty */}
-      {showExtraMovesPrompt && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, minHeight: '100px',
-          background: 'linear-gradient(135deg, rgba(102,126,234,0.98) 0%, rgba(118,75,162,0.98) 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '25px', zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          padding: '10px 20px', flexWrap: 'wrap',
-        }}>
-          <div style={{ textAlign: 'center', color: 'white', minWidth: '160px' }}>
-            <div style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '4px' }}>
-              🎯 Out of moves!
-            </div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
-              You have {bonusMovePool} extra move{bonusMovePool !== 1 ? 's' : ''}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              onClick={useExtraMoves}
-              style={{
-                padding: '10px 20px', fontSize: '15px', background: '#00C853',
-                color: 'white', border: '2px solid #00C853', borderRadius: '8px',
-                cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-              }}
-            >
-              Use extra moves
-            </button>
-            <button
-              onClick={saveMovePool}
-              style={{
-                padding: '10px 20px', fontSize: '15px', background: 'white',
-                color: '#333', border: '2px solid white', borderRadius: '8px',
-                cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              }}
-            >
-              🏦 Save moves / End level
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Bonus Round Prompt */}
       {showBonusPrompt && (() => {
         const { bonus: pendingSpecialsBonus } = calculateUnusedSpecialsBonus(grid);
@@ -1638,7 +1534,7 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap }) => {
                 {gameState === 'won' ? '🗺️ Level Map' : '🔄 Try Again'}
               </button>
               {gameState === 'gameover' && (
-                <button onClick={() => { levelEndFiredRef.current = false; setGrid(initializeGrid(ROWS, COLS)); setScore(0); setMoves(INITIAL_MOVES); if (IS_TIME_ATTACK) setTimeLeft(cfg.duration); setGameState('playing'); setSelectedTile(null); setIsAnimating(false); setMatchedTiles([]); setScorePopups([]); setCombo(0); setLastCombo(0); setShowNoMoves(false); setMaxComboReached(0); setTargetReached(false); setPendingSpecials([]); setCurrentTurnScore(0); setTurnComplete(true); setShowBonusPrompt(false); setBonusRoundActive(false); setBonusRoundScore(0); setPreBonusScore(0); setLastMilestoneShown(0); setFlashingTiles([]); setGlowingTiles([]); setChainTexts([]); animStateRef.current = {}; bonusMoveThresholdRef.current = 0; bonusMoveFlashPendingRef.current = 0; setBonusMoveFlash(0); setBonusMovePool(0); setUsingExtraMoves(false); setShowExtraMovesPrompt(false); }}
+                <button onClick={() => { levelEndFiredRef.current = false; setGrid(initializeGrid(ROWS, COLS)); setScore(0); setMoves(INITIAL_MOVES); if (IS_TIME_ATTACK) setTimeLeft(cfg.duration); setGameState('playing'); setSelectedTile(null); setIsAnimating(false); setMatchedTiles([]); setScorePopups([]); setCombo(0); setLastCombo(0); setShowNoMoves(false); setMaxComboReached(0); setTargetReached(false); setPendingSpecials([]); setCurrentTurnScore(0); setTurnComplete(true); setShowBonusPrompt(false); setBonusRoundActive(false); setBonusRoundScore(0); setPreBonusScore(0); setLastMilestoneShown(0); setFlashingTiles([]); setGlowingTiles([]); setChainTexts([]); animStateRef.current = {}; bonusMoveThresholdRef.current = 0; bonusMoveFlashPendingRef.current = 0; setBonusMoveFlash(0); }}
                   style={{ padding: '8px 18px', fontSize: '13px', background: 'rgba(255,255,255,0.3)', color: 'white', border: '1px solid white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                   Retry Level
                 </button>
