@@ -869,31 +869,11 @@ const Match3Game = () => {
     }
   }, [score, levelTarget, gameState, targetReached]);
 
-  // v10.4/v10.5: Award +1 move for every 10,000 points crossed.
-  // v10.5 Fix A: Also guard on turnComplete so the end-of-game specials score flush
-  // (which can push past a threshold while moves===0) doesn't fire a spurious award
-  // before gameState transitions. The game-end effect also defers when a pending
-  // bonus move is detected (see below).
-  useEffect(() => {
-    if (gameState !== 'playing') return;
-    if (!turnComplete) return; // wait for scoring to settle
-    const threshold = Math.floor(score / BONUS_MOVE_INTERVAL) * BONUS_MOVE_INTERVAL;
-    if (threshold > 0 && threshold > bonusMoveThresholdRef.current) {
-      const newMoves = Math.floor((threshold - bonusMoveThresholdRef.current) / BONUS_MOVE_INTERVAL);
-      bonusMoveThresholdRef.current = threshold;
-      // v11.3: Bonus moves go to the pool, not directly to regular moves
-      setBonusMovePool(prev => prev + newMoves);
-      // v10.5: Trigger animated burst — queued if bonus prompt is open
-      if (showBonusPrompt) {
-        bonusMoveFlashPendingRef.current += newMoves;
-      } else {
-        setBonusMoveFlash(prev => prev + newMoves);
-      }
-    }
-  }, [score, gameState, turnComplete]);
-  
   // v8.10: Game end logic - Modified for bonus round
   // v9.8: Fixed to count unused specials toward target before deciding gameover
+  // v11.3 ordering: This effect must run BEFORE the bonus-move effect (see below) so that
+  // the bail-out check at line ~911 sees the stale bonusMoveThresholdRef and correctly
+  // defers when a new threshold is pending. React runs effects in definition order.
   useEffect(() => {
     // Don't check until turn is fully complete (all scoring settled)
     if (!turnComplete || isAnimating || combo > 0 || pendingSpecials.length > 0) return;
@@ -979,7 +959,30 @@ const Match3Game = () => {
     
     return () => clearTimeout(checkTimer);
   }, [moves, gameState, levelTarget, highScore, isAnimating, combo, targetReached, pendingSpecials.length, grid, turnComplete, bonusRoundActive, showBonusPrompt, showExtraMovesPrompt, bonusMovePool, usingExtraMoves]);
-  
+
+  // v10.4/v10.5: Award +1 move for every 10,000 points crossed.
+  // v10.5 Fix A: Also guard on turnComplete so the end-of-game specials score flush
+  // (which can push past a threshold while moves===0) doesn't fire a spurious award
+  // before gameState transitions. The game-end effect (see above) defers when a pending
+  // bonus move is detected — this works because game-end runs first and sees the stale ref.
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    if (!turnComplete) return; // wait for scoring to settle
+    const threshold = Math.floor(score / BONUS_MOVE_INTERVAL) * BONUS_MOVE_INTERVAL;
+    if (threshold > 0 && threshold > bonusMoveThresholdRef.current) {
+      const newMoves = Math.floor((threshold - bonusMoveThresholdRef.current) / BONUS_MOVE_INTERVAL);
+      bonusMoveThresholdRef.current = threshold;
+      // v11.3: Bonus moves go to the pool, not directly to regular moves
+      setBonusMovePool(prev => prev + newMoves);
+      // v10.5: Trigger animated burst — queued if bonus prompt is open
+      if (showBonusPrompt) {
+        bonusMoveFlashPendingRef.current += newMoves;
+      } else {
+        setBonusMoveFlash(prev => prev + newMoves);
+      }
+    }
+  }, [score, gameState, turnComplete]);
+
   // v8.10: Handle bonus round choice
   const startBonusRound = () => {
     setShowBonusPrompt(false);
