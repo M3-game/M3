@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Match3Campaign from '../platforms/campaign/tablet/match3-v1.5-campaign-tablet.jsx'
+import Match3Campaign from '../platforms/campaign/tablet/match3-v1.6-campaign-tablet.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
