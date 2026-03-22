@@ -1,5 +1,9 @@
 # Claude Code Instructions
 
+## Game Design
+
+For game mechanics, scoring rules, bonus moves behavior, level unlock gates, known bugs, and terminology decisions, see **`docs/DESIGN.md`**. Read it before implementing any gameplay changes.
+
 ## Context & Session Tracking
 
 Track both context limit and session limit and report when we've reached 40%, 60%, and 80% of each.
