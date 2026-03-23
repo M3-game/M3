@@ -239,6 +239,19 @@ No level has a real target score. All values in `PLACEHOLDER_TARGETS` in
 
 | Use | Avoid | Why |
 |---|---|---|
-| **bonus moves** | "banked moves" | "Banked" implies a reserve only available on failure. These are bonus moves the player earns and can spend any time regular moves run out — win or fail. The "banked" framing led directly to a design bug where the prompt only appeared on loss. |
+| **bonus moves** | "banked moves", "saved moves" | "Banked" implies a reserve only available on failure. These are bonus moves the player earns and can spend any time regular moves run out — win or fail. The "banked" framing led directly to a design bug where the prompt only appeared on loss. |
+| **victory round** | "bonus round" | "Bonus round" creates confusion with "bonus moves." "Victory round" captures the right idea: the player has already won and is playing on to score more. Rename pending — see below. |
 | **"End and carry moves forward"** | "End and save", "carry banked moves" | This is the actual button label in the code. Use it verbatim for clarity. |
 | **"Use bonus moves"** | "Use banked moves", "Use extra moves" | Consistent with the bonus-moves framing. |
+
+### Planned rename: "bonus round" → "victory round"
+
+The in-code term "bonus round" (variables: `bonusRoundActive`, `showBonusPrompt`,
+`bonusRoundScore`, `preBonusScore`, `startBonusRound`) and all UI strings that say
+"bonus round" should be renamed to "victory round" in a future dedicated session.
+
+**Why victory round:** it captures that the player has already reached the target —
+this extra phase is their victory lap, not a bonus. It is clearly distinct from
+"bonus moves," which are the earned moves the player carries between levels.
+
+Do not rename piecemeal — do it in one pass to avoid mixed terminology in the code.
