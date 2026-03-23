@@ -179,6 +179,21 @@ toward before they play the level that determines it.
 
 ## Known Bugs
 
+### Bonus move prompt does not fire after bonus round ends (campaign, unresolved)
+
+When the bonus round ends (`bonusRoundActive && moves <= 0`), the code calls
+`setGameState('won')` immediately — skipping the bonus move prompt entirely.
+
+The correct behavior per this document: if `campaignBonusMoves > 0` when the bonus
+round ends, the bonus move prompt must fire before the level resolves. The prompt
+condition is simply `moves = 0 && campaignBonusMoves > 0` — it does not matter how
+moves reached 0 or whether the target was already reached.
+
+Fix required in `match3-v1.2x-campaign-tablet.jsx`:
+- In the game end logic useEffect, the `bonusRoundActive && moves <= 0` branch must
+  check `campaignBonusMoves > 0` before calling `setGameState`. If bonus moves are
+  available, show the prompt instead of ending the level.
+
 ### Bonus move prompt never fires in normal play (campaign v1.8)
 
 The `showBankedMovesPrompt` prompt was gated on `!hasReachedTarget`, meaning it only
