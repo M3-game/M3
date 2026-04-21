@@ -52,6 +52,19 @@ touches it next.
 
 ---
 
+## Build / deploy
+
+- **Auto-copy all phone-418 versions into dist.** Today `vite.config.js` has a
+  single `phone418` rollup input pointing at one specific file. Each version
+  bump requires editing `vite.config.js` manually — forgetting that step
+  silently ships a stale version to production (this happened 2026-04-21:
+  v12.0, v12.1, v12.2 were all built locally but deploy still shipped v11,
+  causing a user-visible 404 when the index card was updated to v12.2).
+  Fix options:
+  - Move `platforms/phone-418/` (or a subset of it) into `public/` — Vite
+    copies `public/` verbatim into `dist/` without requiring rollup inputs.
+  - Or add `vite-plugin-static-copy` and glob the versioned files.
+
 ## Persistence & platform
 
 - **PWA install scaffolding** — add `manifest.json`, service worker, icon
