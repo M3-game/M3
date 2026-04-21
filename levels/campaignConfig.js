@@ -93,9 +93,11 @@ export const canAdvanceToLevel = (nextLevel, levelStars) => {
 // localStorage keys — campaign-specific (separate from arcade match3_* keys)
 // ---------------------------------------------------------------------------
 export const CAMPAIGN_KEYS = {
-  level:      'match3_campaign_level',       // integer: highest level reached
-  highScores: 'match3_campaign_highScores',  // JSON array: best score per level (index 0 = level 1)
-  stars:      'match3_campaign_stars',       // JSON array: best stars per level
-  totalScore: 'match3_campaign_totalScore',  // integer: cumulative campaign score
-  bonusMoves: 'match3_campaign_bonusMoves',  // integer: banked campaign bonus moves
+  level:        'match3_campaign_level',         // integer: highest level reached
+  highScores:   'match3_campaign_highScores',    // JSON array: best score per level (index 0 = level 1)
+  stars:        'match3_campaign_stars',         // JSON array: best stars per level
+  totalScore:   'match3_campaign_totalScore',    // integer: cumulative campaign score
+  bonusMoves:   'match3_campaign_bonusMoves',    // integer: banked campaign bonus moves
+  bestRunScore: 'match3_campaign_bestRunScore',  // integer: all-time best full 8-level run total (v1.25)
+  lastBackup:   'match3_campaign_lastBackup',    // ISO string: last stats export timestamp (v1.25)
 };

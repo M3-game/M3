@@ -1,6 +1,6 @@
 # M3 — Game Design Reference
 
-**Last updated:** 2026-03-22
+**Last updated:** 2026-04-21
 **Status:** Authoritative — read this before implementing any gameplay changes.
 
 This document records confirmed design decisions, corrections to earlier specs, and
@@ -11,6 +11,39 @@ known bugs. It supplements, and in places supersedes, the earlier docs:
   some decisions have since diverged for campaign)
 
 When this document conflicts with those, **this document wins.**
+
+---
+
+## Design Principle — Optimize for Fun
+
+These are *guiding principles, subject to revision based on gameplay data.*
+They are not rules. When a principle conflicts with actual playtest feel,
+playtest feel wins.
+
+- **Big scores come from cascades, not linear matches.** Combo multiplier
+  and cascade multiplier stack. A 5-tile match scoring in isolation is small;
+  the same match that triggers 3 more matches is an order of magnitude bigger.
+  Tuning decisions should preserve this gap — flatten it and the game loses
+  its high-skill ceiling.
+- **Specials amplify specials.** Supernova and hypernova placements, plus
+  special+special combos, should be the peaks of a session — not rare corner
+  cases. Tune placement thresholds so mid-campaign players see at least one
+  supernova-class event per level.
+- **Bonus moves extend fun.** Moves earned per 10,000 points let players
+  keep playing when they're in a cascading groove. Generosity here is the
+  success state, not an exploit. The 99 cap exists for UI sanity, not to
+  throttle the player.
+- **Visible scoring.** Score popups, multiplier callouts, cascade chain text,
+  and the bonus-move flash should make the *source* of each point legible —
+  the player should feel why they're winning, not just see the number climb.
+- **Playback for understanding.** When scoring becomes visually overwhelming
+  (long cascades, combo chains), slow-mode and step-through playback give
+  players the option to watch *how* they scored, after the fact. (Admin
+  tooling today; may surface to players later.)
+
+This principle set drives concrete decisions: supernova/hypernova placement
+thresholds, bonus-move cap, cascade multiplier table, slow-mode playback,
+and the simulation harness used for tuning.
 
 ---
 
