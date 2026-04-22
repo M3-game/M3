@@ -93,8 +93,32 @@ touches it next.
   games with a 1-ply heuristic bot (pick best swap by match length +
   cascade-potential + special-creation). Output: win rate per level,
   average score, best/worst runs. Campaign-only first.
+
+  ⚠ **Skill-gap caveat.** Skilled human play involves 5–8 move lookahead
+  to set up multi-special cascade chains (see DESIGN.md). A 1-ply bot
+  captures none of that. Interpret 1-ply results as *lower-bound casual*
+  play — **never** tune level targets down based on bot win-rate alone,
+  because the bot will always find the game harder than a skilled human
+  does. Use 1-ply for: balance floor checks ("is this level winnable at
+  all?"), spotting score distribution outliers, and comparing RELATIVE
+  difficulty across levels. Not for absolute-difficulty tuning.
+
 - **Simulation harness (v2)** — 2-ply lookahead bot; surfaces setup-for-next-
   turn patterns (e.g., placing a special adjacent to another special).
+  Still significantly below skilled human play.
+- **Simulation harness (v3 — skilled bot).** Options to narrow the skill gap:
+  - **Monte Carlo**: N random playouts from each candidate move; pick
+    highest-average-score move. Captures cascade *potential* emergently
+    without explicit deep lookahead. Probably best cost/benefit.
+  - **Deeper search**: 3–4 ply with pruning. Computationally feasible with
+    pure-logic refactor (see below), but exponentially expensive.
+  - **Pattern-based heuristic**: hand-crafted scoring that explicitly
+    rewards special-adjacency, specials-in-same-row/col, pre-special
+    groups on the board. Explicit expression of what skilled play looks
+    for.
+  - **Human replay capture**: record human moves in a file, replay to
+    produce ground-truth skilled-score distributions. Best anchor for
+    calibrating the other bots.
 - **Pure-logic refactor** — extract `initializeGrid`, `findMatches`,
   `applyGravity`, `removeMatches`, scoring, and cascade resolution into a
   framework-free module (no React, no canvas, no DOM). Enables headless
@@ -119,6 +143,119 @@ touches it next.
 - **Bonus-move cap warning popup** — beyond the header text, consider a
   one-time popup at 95 bonus moves explaining the cap. Only show once per
   run.
+
+---
+
+## Reward systems & progressive generosity
+
+Implements the "Variety through amplification" corollary in DESIGN.md.
+Sequence matters: build the simulation harness (Session E) first so the
+sandbox (Session H) can be tuned against data rather than by guess.
+
+- **Progressive special-drop lever (arcade).** Starting at level 5, after
+  a "big turn" (≥10 tiles cleared in a single event), roll once for a
+  super/hypernova to drop into the refill. Chance scales with level:
+  - Proposed defaults: +5% supernova / +3% hypernova per 5 levels.
+  - Alternative slower ramp to test: +4% / +2%.
+  - Cap at level 30 (~30% super / 18% hyper) to prevent runaway
+    compounding.
+  - Announce at level 5; reminder at every 5× level after (level 10, 15…).
+  - One roll per qualifying turn, not per match within a cascade.
+  - Drop lands in a random cleared cell during refill, giving the player
+    something to build around next turn (agency compounds).
+  - Needs playtest + simulation to tune percentages.
+
+- **Reward round — discrete special event.** Every 5 arcade wins, next
+  round enters a reward mode (reduced palette, seeded clusters, etc.).
+  Campaign equivalent: bonus levels insertable at configurable positions.
+  Announced at level 5 (same trigger as progressive lever).
+
+- **Reward-mode sandbox (Session H candidate — after simulation).**
+  Standalone tablet-arcade variant at e.g. `/rewardmode.html`, with admin
+  sliders / URL params for each lever:
+  - `TILE_TYPES_COUNT` (3–6; default 6; primary strongest lever — 4
+    colors makes 6+ matches ~7× more likely than 6 colors).
+  - `NEIGHBOR_MATCH_BIAS` (0–50%; chance each dropped tile matches a
+    neighbor's color; lower-priority lever per user prior).
+  - `CLUSTER_SEED_ON_START` (count of seeded same-color clusters at round
+    start; guarantees reachable big matches from move 1).
+  - `CLUSTER_DROP_BIAS` (0–50%; during refill, chance new tile matches
+    the tile below it; biases toward vertical runs).
+  - `SPECIAL_DROP_ON_BIG_TURN` — {% super, % hyper, tile threshold};
+    directly controls the progressive drop-lever behavior.
+  - `BIG_MATCH_POINT_MULT` (1–3×; extra points on super/hypernova fires).
+  Playtest + measure via simulation; lock in final values before
+  integrating into main arcade / campaign.
+
+- **Reward-mode integration (Session I candidate).** After sandbox values
+  lock in: integrate trigger into arcade (every-5-wins → reward round)
+  and campaign (bonus level at configurable positions). Wire announcement
+  + reminder copy.
+
+- **Layered reward levels (very deferred).** Once the base sandbox is
+  validated, allow combinations of levers per level (e.g., "seeded +
+  reduced-palette level" or "special-drop + cluster-drop level"). Gives
+  campaign pacing tool.
+
+---
+
+## Research / external context
+
+- **Match-3 literature survey — scoped multi-session research task.**
+  Goal: broadly educational dive into existing match-3 research,
+  commercial design writing, academic papers on balance/AI, and related
+  game-design wisdom. Value is partly design input for this project,
+  partly general education on how the field thinks about these problems.
+  Informative *even on topics we're explicitly not adopting* (e.g.,
+  monetization / retention / compulsion-loop research) because those
+  frameworks are foreign to the user's thinking and useful as reference.
+
+  **When to run:** end-of-day session with a full token budget, not
+  interleaved with active-work sessions. OK to run across multiple
+  sessions.
+
+  **Structure (three focused queries, ~80–100k tokens each):**
+  1. Published research on match-3 level-difficulty prediction and
+     target-score calibration (most directly actionable for
+     `levels/campaignConfig.js` target tuning).
+  2. AI / bot architectures used for match-3 game-playing and game-
+     balancing (direct input for Session E simulation scope).
+  3. Design patterns / mechanics that amplify the core fun loop rather
+     than interfere — validates or challenges our "variety through
+     amplification" framework. Include monetization / compulsion-loop
+     research as foreign-perspective reference, even though we won't
+     adopt those patterns.
+
+  **Sources to survey:**
+  - Academic: Google Scholar for `"Bejeweled" AI`, `"match-3"
+    difficulty`, `Candy Crush player modeling`. Conferences: FDG,
+    AIIDE, IEEE CIG/COG, KDD (for King's papers).
+  - Industry: King engineering blog, GDC talk transcripts/summaries,
+    Gamasutra / Game Developer postmortems.
+  - Researchers to follow: Julian Togelius (NYU), Jeppe Theiss
+    Kristensen (ITU Copenhagen), and others in game-AI.
+  - arXiv game-AI tags for unvetted but accessible papers.
+
+  **Output format:** written summary with source citations, organized
+  by the three focus queries. Include both "directly applicable" and
+  "interesting-but-not-for-us" findings.
+
+---
+
+## Long-form campaign (very deferred)
+
+- **Campaign extension beyond 8 levels.** If the campaign extends (e.g.,
+  to 16 or 24 levels), reward-based levels remain the default. A small
+  number of interference-based levels (ice, stone, jelly, locked tiles)
+  may be used sparingly as pacing contrast — the standard reward-levels
+  feel more rewarding after an interference level. Constraints:
+  - Rare (<10% of total levels).
+  - Explicitly marked *variety-through-interference* in level config.
+  - Never the default.
+  - Reward-based levels remain dominant.
+  Intended as variety / pacing contrast so reward levels feel better by
+  comparison, not as a general difficulty mechanic. See DESIGN.md
+  corollary "Variety through amplification, not interference."
 
 ---
 

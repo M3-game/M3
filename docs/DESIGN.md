@@ -33,6 +33,8 @@ playtest feel wins.
   keep playing when they're in a cascading groove. Generosity here is the
   success state, not an exploit. The 99 cap exists for UI sanity, not to
   throttle the player.
+- **Variety extends fun too, when done right.** See "Variety through
+  amplification, not interference" below.
 - **Visible scoring.** Score popups, multiplier callouts, cascade chain text,
   and the bonus-move flash should make the *source* of each point legible —
   the player should feel why they're winning, not just see the number climb.
@@ -44,6 +46,80 @@ playtest feel wins.
 This principle set drives concrete decisions: supernova/hypernova placement
 thresholds, bonus-move cap, cascade multiplier table, slow-mode playback,
 and the simulation harness used for tuning.
+
+### Corollary — Variety through amplification, not interference
+
+The Optimize-for-Fun principle implies a specific heuristic for how variety
+should be added to the game.
+
+- **Do not add variety by restricting the core fun loop.** Match-3 mechanics
+  like ice-locked tiles (must match twice), stone tiles (must break before
+  clearing), jelly layers, or locked obstacles exist because they add
+  surface-level variety. But they work by *taking the game's most rewarding
+  mechanic — matching — and making it happen less often.* That is anti-fun
+  by construction.
+
+- **Do add variety by amplifying the core loop and rewarding skilled play.**
+  Reward rounds with reduced palette, seeded clusters, special-drop
+  refills, bigger cascade multipliers, and progressive special-generation
+  all create variety by making the good parts happen more. What triggers
+  the good parts is still the player's skill — setting up cascades,
+  planning multi-move sequences to create bigger specials, swapping into a
+  prepared arrangement. Skill makes the fun happen; the game rewards that
+  with more fun.
+
+- **Skilled play is multi-move planning — often deeper than it looks.**
+  A basic 5-match into a cross or bomb typically requires 2–3 moves of
+  lookahead. Advanced play goes much deeper: setting up specials to land
+  *next to* other specials, aligning specials across rows or columns
+  so one swap triggers 4+ chained special activations, preparing 6–8 move
+  sequences that end in mega-cascade chains. This is where the 6,000–
+  8,000+ point turns come from, and it's the primary way skilled players
+  clear levels with high target scores. Game design should preserve and
+  reward this depth: stable physics so planning transfers, clear visible
+  board state so setups remain legible across moves, and visible scoring
+  so the payoff of deep planning is obvious. Anything that obscures or
+  disrupts the plan (e.g., random obstacles falling in, tile types
+  suddenly changing) breaks this reward chain.
+
+- **Challenge comes from higher targets, not from obstacles blocking
+  matches.** Raising target scores, shortening timers, reducing moves —
+  these increase challenge while keeping all fun mechanics fully
+  accessible. Skilled play is the primary way the player meets challenge.
+
+- **Reward scales with challenge.** As targets rise and moves tighten, the
+  player's tools should expand proportionally: increased chance of
+  super/hypernova drops in late levels, reward rounds every N wins,
+  bonus-move accumulation carrying forward, cascade multiplier tables
+  that reward deeper play. This mirrors the classic video-game arc — the
+  world gets harder and the player gets more powerful at the same time.
+  Without the reward scaling, the game becomes frustrating; without the
+  challenge scaling, it becomes boring.
+
+- **Narrow exception acceptable for long-form campaigns.** If the campaign
+  extends beyond the current 8 levels and needs pacing variety, a small
+  number of interference-based levels (ice, stone, jelly) may be used
+  sparingly to create contrast — standard levels feel more rewarding
+  after an interference level. Mark such levels explicitly as
+  *variety-through-interference*, keep them rare (<10% of total levels),
+  and never the default. See `docs/DEFERRED.md`.
+
+### Note — Why interference-based variety is common in commercial match-3
+
+Worth naming why most match-3 games you'll encounter use the mechanics we're
+not adopting as defaults. Ice, stone, jelly, locked tiles, and similar
+obstacles are commercially common because they *slow the player down*.
+Slower progress extends time-to-engagement, which increases session
+touch-points for in-app purchases — boosters, extra moves for a fee,
+time-skip payments, "continue playing" prompts, etc. The fun-blocker
+mechanic is literally designed to make players hit walls, feel stuck, and
+reach for wallets.
+
+The same mechanic that keeps some players engaged (and paying) reliably
+makes other players put the game down. We are not monetizing and have no
+reason to incentivize walls. The fun-blocker taxonomy is useful as a
+negative-example reference library — knowing what *not* to reach for when
+designing a difficulty bump.
 
 ---
 
