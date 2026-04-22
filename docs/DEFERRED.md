@@ -83,12 +83,23 @@ touches it next.
 
 ## Gameplay / UX additions
 
-- **Slow-mode playback** — admin toggle: play back combos and cascades at
-  ~5× slower speed, scores displayed persistently turn-by-turn. For
-  understanding how scoring breaks down.
-- **Step-through playback** — admin toggle: advance cascade phases manually
-  with a click. Scores stay on screen until next click. For in-depth
-  analysis.
+- **Step-mode platform (Session D-2).** Step-through playback deferred to
+  its own sibling platform rather than living in the main tablet file,
+  because it requires a pipeline refactor (callback-setTimeouts →
+  await-based pauses) that carries regression risk for normal play.
+  Structure when built:
+  ```
+  platforms/tablet-stepmode/match3-v1.0-tablet-stepmode.jsx
+  src/entry-stepmode.jsx
+  stepmode.html
+  ```
+  Fork of the then-current tablet version. Admin-gated card on the
+  version-select page. Use the scoring-history panel from v11.8+ plus
+  a "Next step →" button for advancing cascade phases manually. See also
+  Session D (v11.8) which shipped slow-motion and history panel; step
+  mode is the missing third mode.
+- **Slow-mode and history panel** — shipped in tablet v11.8 (Session D,
+  2026-04-22). See `docs/PROGRESS-2026-04-22.md`. Campaign port pending.
 - **Simulation harness (v1)** — in-browser admin button: run N simulated
   games with a 1-ply heuristic bot (pick best swap by match length +
   cascade-potential + special-creation). Output: win rate per level,
