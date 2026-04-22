@@ -4,6 +4,36 @@
 
 For game mechanics, scoring rules, bonus moves behavior, level unlock gates, known bugs, and terminology decisions, see **`docs/DESIGN.md`**. Read it before implementing any gameplay changes.
 
+## Session lifecycle
+
+### At session start
+
+Before taking any action on a coding or design session, read these two docs:
+
+1. The latest `docs/PROGRESS-YYYY-MM-DD.md` — highest-dated file matching that glob. Contains the current session roster, platform status, rolling priority, and any starting-brief for the session about to run.
+2. `docs/DEFERRED.md` — full roster of planned and deferred work with scope details.
+
+These are load-bearing. Don't skip them; a fresh session without them will duplicate work, miss context, or ship code inconsistent with prior decisions.
+
+### Before committing any session
+
+Update both docs as part of the same commit that ships the code:
+
+- **`docs/PROGRESS-<today>.md`** — mark the session's row shipped (move from 🚧/📋 to ✅, add the commit hash), update the platform-status table if a platform's active version changed, and add a brief addendum narrative if anything non-obvious was decided during the session that doesn't belong in DESIGN.md or DEFERRED.md.
+- **`docs/DEFERRED.md`** — move the just-shipped item out of its section (delete, or move to the "Done" section with date + session ref). Add any new deferred items surfaced during the session.
+
+Without these updates, the docs go stale and future sessions lose their map.
+
+### Day rotation for PROGRESS doc
+
+At the start of each new work day (first session on that date), rotate:
+
+1. Move the existing `docs/PROGRESS-YYYY-MM-DD.md` into `docs/archive/`.
+2. Create a new `docs/PROGRESS-<today>.md`.
+3. Carry forward the session-roster table (updated to reflect what's shipped), the current platform-status table, and still-load-bearing narrative entries. Drop narrative fully captured elsewhere (DESIGN.md / DEFERRED.md / prior handoff).
+
+Rotation happens at day boundary, not per session — multiple sessions on the same day share one PROGRESS doc.
+
 ## Context & Session Tracking
 
 Track both context limit and session limit and report when we've reached 40%, 60%, and 80% of each.
@@ -63,3 +93,5 @@ Every change — no matter how small — requires:
 - [ ] `src/main.jsx` / `src/entry-campaign.jsx` updated
 - [ ] `index.html` version label updated
 - [ ] Version comment block in new file updated
+- [ ] `docs/PROGRESS-<today>.md` updated (session row shipped, platform status, addendum if needed)
+- [ ] `docs/DEFERRED.md` updated (shipped item moved out, new deferred items added)
