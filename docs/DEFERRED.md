@@ -97,53 +97,43 @@ touches it next.
   mode is the missing third mode.
 - **Slow-mode and history panel** — shipped in tablet v11.8 (Session D,
   2026-04-22). See `docs/PROGRESS-2026-04-22.md`. Campaign port pending.
-- **Simulation harness — Session E₁ (1-ply, deferred).** In-browser admin
-  button on the tablet: run N simulated games with a 1-ply heuristic bot
-  (pick best swap by match length + cascade-potential + special-creation).
-  Output: win rate per level, average score, best/worst runs. **Uses the
-  existing game functions in the tablet file directly — no refactor.**
-  The impure parts (React state, animation timers) are bypassed by
-  driving `initializeGrid` / `findMatches` / `applyGravity` /
-  `removeMatches` synchronously in a loop with in-memory state. Slower
-  than a clean pure module would be, but practical for hundreds of games.
+- **Simulation harness — Session E-1a scaffold + 1-ply bot (SHIPPED
+  2026-04-22).** See Done section. The sibling platform
+  `platforms/tablet-sim/` and the pure `_SIM` namespace are live;
+  `window.runSimGame()` callable from DevTools.
 
-  ⚠ **Skill-gap caveat.** Skilled human play involves 5–8 move lookahead
-  to set up multi-special cascade chains (see DESIGN.md). A 1-ply bot
-  captures none of that. Interpret 1-ply results as *lower-bound casual*
-  play — **never** tune level targets down based on bot win-rate alone,
-  because the bot will always find the game harder than a skilled human
-  does. Use 1-ply for: balance floor checks ("is this level winnable at
-  all?"), spotting score distribution outliers, and comparing RELATIVE
-  difficulty across levels. Not for absolute-difficulty tuning.
+- **Simulation harness — Session E-1b (admin UI + batch + stats).**
+  Wrap `_SIM.runGame` in an admin overlay on `tablet-sim.html`:
+  preset buttons for 10 / 50 / 200 games, async-chunked run loop
+  (keep the browser responsive while batching), aggregate stats
+  (win-rate, score distribution with percentiles, stuck-rate,
+  avg specialsCreated, avg maxCombo), copy-to-clipboard raw JSON.
+  Pull this forward if reward-mode playtest surfaces questions
+  about relative difficulty across lever settings.
 
-  **Deprioritized 2026-04-22.** Reward-mode sandbox (Session H) will be
-  tuned by playtest feel instead. Pull E₁ forward if H reveals a need
-  for score-distribution data.
+  ⚠ **Skill-gap caveat** (from DESIGN.md, restated). Skilled human
+  play involves 5–8 move lookahead. A 1-ply bot captures none of
+  that. Interpret sim results as *lower-bound casual play* —
+  **never** tune level targets down based on bot win-rate alone.
+  Use for: balance floor checks ("is this level winnable at all?"),
+  relative-difficulty comparisons across levels, score-distribution
+  anomaly spotting. Not for absolute-target tuning.
 
-- **Simulation harness — Session E₂ (Monte Carlo on sibling platform,
-  deferred; after E₁).** New sibling platform at
-  `platforms/tablet-sim/`, forked from the then-current tablet file. In
-  the sim platform, the game logic (grid init, match detection, gravity,
-  cascade resolution, scoring) is extracted into a pure framework-free
-  module. **Only this sibling platform is refactored; the main tablet
-  file is never touched.** The refactor's regression risk is contained
-  to the sim platform — if the sim plays wrong, normal play is
-  unaffected.
+- **Simulation harness — Monte Carlo extension (previously E₂,
+  deferred).** Now implementable by adding a second bot to the
+  `_SIM` namespace inside the existing `tablet-sim/` sibling — no
+  new sibling needed (E-1a already built the shared scaffold).
+  MC loop: ~100 random playouts per candidate swap; pick the swap
+  with the highest average final score. Captures cascade potential
+  emergently without explicit deep lookahead.
 
-  MC loop: ~100 random playouts from each candidate swap; the swap with
-  the highest average final score is the bot's pick. Captures cascade
-  potential emergently without explicit deep lookahead.
+  **Calibration instead of verification.** Don't require bit-
+  identical equivalence between sim and main game. Check that sim
+  score distributions land in a similar range to observed human
+  play. If wildly different ranges, it has a bug; fix.
 
-  **Calibration instead of verification.** Don't require bit-identical
-  snapshot equivalence between sim and main game. Instead, check that
-  sim score distributions land in a similar range to observed human
-  play on a few levels (if you score 15-30k on level 3 and the sim says
-  12-32k, the model is faithful enough). If the sim reports wildly
-  different ranges, it has a bug and we fix it.
-
-  **Deprioritized 2026-04-22** alongside E₁. Pattern-based heuristic,
-  deeper-search, and human-replay-capture approaches remain on the
-  roadmap as E₂ alternatives if MC proves insufficient.
+  **Deprioritized 2026-04-22.** Pull forward if E-1b bot data
+  reveals blind spots the MC approach could illuminate.
 - **Animated tutorials** — mini-grid demo inline on each intro screen.
   Reuses `drawTile` / `drawSpecialIcon`. Per-level distribution:
   - L1: basic 3-match
@@ -346,6 +336,21 @@ sandbox (Session H) can be tuned against data rather than by guess.
   modified" mark) + "Reset to defaults" button (disabled at defaults).
   Levers NOT yet wired into game logic at this version — board played
   like tablet v11.11.
+- **Simulation harness scaffold + 1-ply bot (Session E-1a).**
+  2026-04-22. New sibling platform `platforms/tablet-sim/match3-v1.0-
+  tablet-sim.jsx` forked from tablet v11.11 (rather than the
+  originally-planned "on the main tablet directly" — moved to
+  sibling for risk isolation; also preempts Session E-2 which will
+  extend this sibling rather than forking its own). Pure `_SIM`
+  namespace reimplements init / match-find / specials / cascade /
+  gravity / refill / scoring as pure functions. Phase-aware 1-ply
+  heuristic scores each valid swap by match points + creation
+  bonus + proximity + line-of-effect + combo-swap bonus +
+  (desperate) bonus-move threshold. Exposed as `window.runSimGame()`
+  for DevTools verification. Verified: 60% win rate on a 10-game
+  batch, avg finalScore ~5700, maxCombo 3–8, 0 stuck games.
+  E-1b (admin UI + batch + stats) still planned.
+
 - **Reward-mode lever wiring (Session H-2).** 2026-04-22. Tablet
   rewardmode sandbox bumped `v1.0 → v1.1`. All 5 levers now affect
   gameplay. `tile_count` overrides the palette width at both random-
