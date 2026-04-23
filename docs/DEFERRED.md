@@ -34,9 +34,6 @@ touches it next.
 
 ## Cross-platform parity
 
-- **Phone-418 bonus-moves UI** — earns bonus moves but never presents the
-  prompt. File: `platforms/phone-418/match3-v12.2-418px-phone.html`. User
-  flagged 2026-04-20.
 - **Tablet hypernova behavior audit** — user suspects tablet arcade
   `activateSpecialTile` hypernova branch diverges from campaign (half-board
   clear + preserve specials + min-tiles floor). Audit both, converge on
@@ -297,4 +294,9 @@ sandbox (Session H) can be tuned against data rather than by guess.
 
 ## Done
 
-*(Nothing yet — move items here with date + session ref as they ship.)*
+- **Phone-418 bonus-moves UI — prompt never fires.** 2026-04-22, Session
+  B-2. Root cause was a JS syntax error in v12.2 (missing `)` on the
+  in-header End-and-carry button chain) preventing React from mounting,
+  not the bonus-moves logic itself. v12.3 restores the paren; v12.2's
+  campaign-parity bonus-moves logic is now reachable. Pending device
+  verification.
