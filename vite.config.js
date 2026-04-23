@@ -14,6 +14,7 @@ export default defineConfig({
         timeattack: resolve(__dirname, 'timeattack.html'),
         phone341:   resolve(__dirname, 'phone341.html'),
         campaign:   resolve(__dirname, 'campaign.html'),
+        rewardmode: resolve(__dirname, 'rewardmode.html'),
         // phone-418 is standalone CDN HTML — included so it's copied into dist.
         // IMPORTANT: bump this path every time the phone-418 file version increments.
         // See docs/DEFERRED.md for a static-copy followup that would automate this.

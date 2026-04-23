@@ -190,34 +190,30 @@ sandbox (Session H) can be tuned against data rather than by guess.
   Campaign equivalent: bonus levels insertable at configurable positions.
   Announced at level 5 (same trigger as progressive lever).
 
-- **Reward-mode sandbox (Session H).** New sibling platform at
-  `platforms/tablet-rewardmode/` forked from the then-current tablet
-  file, served at `/rewardmode.html`. Admin-gated card on the landing
-  page: the card is hidden by default and appears under a new "Admin /
-  Dev" subheader once unlocked. Two unlock paths: (a) long-press the
-  `🎮 M3` title on the landing page for 1.5s, mirroring the in-game
-  admin gesture, or (b) `index.html?admin=1` for deep-link access.
-  Unlocked state persists in `sessionStorage` for the browser session.
+- **Reward-mode sandbox (Session H) — split into H₁ + H₂.** H₁ scaffold
+  shipped 2026-04-22 (see Done section). H₂ remains:
 
-  Five sliders on the sandbox AdminPanel (plus URL-param overrides for
-  link-sharing of specific configurations):
-  - `TILE_TYPES_COUNT` (3–6; default 6). Primary strongest lever — 4
-    colors makes 6+ matches ~7× more likely than 6 colors.
-  - `NEIGHBOR_MATCH_BIAS` (0–50%; default 0%). Chance each dropped tile
-    matches a neighbor's color.
-  - `CLUSTER_SEED_ON_START` (0–4; default 0). Count of seeded same-color
-    3×3 clusters placed after `initializeGrid`, preserving the "no
-    pre-matches" rule.
-  - `CLUSTER_DROP_BIAS` (0–50%; default 0%). During refill, chance each
-    new tile matches the tile directly below it. Biases toward vertical
-    runs.
-  - `SPECIAL_DROP_ON_BIG_TURN` ({% super, % hyper, tile threshold}).
-    After a turn clears ≥threshold tiles, roll once for a super or
-    hyper drop in the refill.
+  **Session H₂ — wire the 5 levers into game logic.** The admin UI,
+  persistence, URL overrides, landing-page gate, and sibling platform
+  are all live. H₂ hooks each lever into the actual game loop:
+  - `tile_count`: override the tile-type draw at the two random-tile
+    sites (initializeGrid and applyGravity refill). Guard the no-match
+    scan on start.
+  - `neighbor_bias`: modify `applyGravity` refill — roll per new tile,
+    if hit, inherit a random neighbor's type.
+  - `cluster_seed`: after `initializeGrid`, place N 3×3 same-color
+    clusters; re-run no-match scan + reshuffle if violations.
+  - `cluster_drop_bias`: in `applyGravity` refill — roll per new tile,
+    if hit, inherit the type of the tile directly below.
+  - `big_turn_threshold` + `super_pct` + `hyper_pct`: hook the cascade-
+    end — if tiles cleared this turn ≥ threshold, roll once; on super/
+    hyper hit, replace one random cleared cell's refill with a
+    super/hyper tile.
 
-  Slider values persist to `sessionStorage`; "Reset to defaults" button
-  included. Playtest-driven tuning — Sessions E₁/E₂ are deprioritized,
-  so no simulation data will inform starting values.
+  After wiring, playtest and iterate slider ranges + defaults. Lever
+  interactions (e.g., high `cluster_seed` + high `neighbor_bias` could
+  produce near-mono-color boards) may need bounds or a variety guard;
+  evaluate after playtest.
 
   **Note:** the originally-scoped sixth lever `BIG_MATCH_POINT_MULT`
   was dropped 2026-04-22 per user call. Can be added back later if
@@ -348,3 +344,19 @@ sandbox (Session H) can be tuned against data rather than by guess.
   (v11.10 → v11.11), and campaign inline `CampaignAdmin` (v1.25 →
   v1.26). Small-text bumps: 10px uppercase labels → 11px + fontWeight
   500; 11px helper text → 12px. Borders/backgrounds unchanged.
+- **Reward-mode sandbox scaffold (Session H₁).** 2026-04-22. New sibling
+  platform `platforms/tablet-rewardmode/match3-v1.0-tablet-rewardmode.
+  jsx` forked from tablet v11.11. New `rewardmode.html` + `src/entry-
+  rewardmode.jsx` + `vite.config.js` rollup input. Landing-page admin
+  gate on `index.html`: inline `<script>` detects long-press on
+  "🎮 M3" (1.5s, 10px move tolerance) or `?admin=1`; unlock persists
+  to `sessionStorage['m3_admin_unlocked']`; reveals a hidden "Admin /
+  Dev" section containing the rewardmode card (badge-admin variant).
+  `RewardmodeAdminWrapper` adds a "Reward Mode Levers" card with 7
+  sliders (4 singles + 3 grouped under "Special drop on big turn").
+  Values persist to `sessionStorage` under `m3_rwd_*` keys; URL
+  kebab-case params override sessionStorage on load. Non-default
+  indicator (amber label + "(def N)" subtext + card-header "●
+  modified" mark) + "Reset to defaults" button (disabled at defaults).
+  **Levers are not yet wired into game logic** — board plays like
+  tablet v11.11. Session H₂ (still planned) handles lever wiring.

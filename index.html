@@ -52,6 +52,25 @@
     }
     .badge-stable  { background: #e8f5e9; color: #2e7d32; }
     .badge-wip     { background: #fff3e0; color: #e65100; }
+    .badge-admin   { background: #e3f2fd; color: #0d47a1; }
+    h1 { user-select: none; -webkit-user-select: none; cursor: default; }
+    .admin-section {
+      display: none;
+      width: 100%;
+      max-width: 780px;
+      margin-top: 36px;
+    }
+    body.admin-unlocked .admin-section { display: block; }
+    .admin-section h2 {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.25);
+    }
   </style>
 </head>
 <body>
@@ -95,5 +114,69 @@
       <span class="badge badge-wip">In Progress</span>
     </a>
   </div>
+
+  <section class="admin-section">
+    <h2>Admin / Dev</h2>
+    <div class="grid">
+      <a href="rewardmode.html">
+        <span class="label">Admin / Sandbox</span>
+        <span class="name">🧪 Reward Mode Sandbox</span>
+        <span class="desc">v1.0 · 5 tunable levers (tile count, neighbor-bias, seeded clusters, cluster-drop-bias, big-turn special drops). H₁ scaffold — sliders render + persist; levers not yet wired into game logic.</span>
+        <span class="badge badge-admin">Admin · H₁</span>
+      </a>
+    </div>
+  </section>
+
+  <script>
+    (function() {
+      const UNLOCK_KEY = 'm3_admin_unlocked';
+      const LONG_PRESS_MS = 1500;
+      const MOVE_TOLERANCE_PX = 10;
+
+      function unlock() {
+        document.body.classList.add('admin-unlocked');
+        try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch (e) {}
+      }
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('admin') === '1') unlock();
+
+      try {
+        if (sessionStorage.getItem(UNLOCK_KEY) === '1') unlock();
+      } catch (e) {}
+
+      const title = document.querySelector('h1');
+      if (title) {
+        let pressTimer = null;
+        let startX = 0, startY = 0;
+
+        title.addEventListener('pointerdown', function(e) {
+          startX = e.clientX;
+          startY = e.clientY;
+          pressTimer = setTimeout(function() {
+            unlock();
+            pressTimer = null;
+          }, LONG_PRESS_MS);
+        });
+
+        function cancelPress() {
+          if (pressTimer !== null) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+        }
+
+        title.addEventListener('pointerup', cancelPress);
+        title.addEventListener('pointercancel', cancelPress);
+        title.addEventListener('pointerleave', cancelPress);
+        title.addEventListener('pointermove', function(e) {
+          if (pressTimer === null) return;
+          const dx = Math.abs(e.clientX - startX);
+          const dy = Math.abs(e.clientY - startY);
+          if (dx > MOVE_TOLERANCE_PX || dy > MOVE_TOLERANCE_PX) cancelPress();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
