@@ -190,34 +190,20 @@ sandbox (Session H) can be tuned against data rather than by guess.
   Campaign equivalent: bonus levels insertable at configurable positions.
   Announced at level 5 (same trigger as progressive lever).
 
-- **Reward-mode sandbox (Session H) — split into H₁ + H₂.** H₁ scaffold
-  shipped 2026-04-22 (see Done section). H₂ remains:
-
-  **Session H₂ — wire the 5 levers into game logic.** The admin UI,
-  persistence, URL overrides, landing-page gate, and sibling platform
-  are all live. H₂ hooks each lever into the actual game loop:
-  - `tile_count`: override the tile-type draw at the two random-tile
-    sites (initializeGrid and applyGravity refill). Guard the no-match
-    scan on start.
-  - `neighbor_bias`: modify `applyGravity` refill — roll per new tile,
-    if hit, inherit a random neighbor's type.
-  - `cluster_seed`: after `initializeGrid`, place N 3×3 same-color
-    clusters; re-run no-match scan + reshuffle if violations.
-  - `cluster_drop_bias`: in `applyGravity` refill — roll per new tile,
-    if hit, inherit the type of the tile directly below.
-  - `big_turn_threshold` + `super_pct` + `hyper_pct`: hook the cascade-
-    end — if tiles cleared this turn ≥ threshold, roll once; on super/
-    hyper hit, replace one random cleared cell's refill with a
-    super/hyper tile.
-
-  After wiring, playtest and iterate slider ranges + defaults. Lever
-  interactions (e.g., high `cluster_seed` + high `neighbor_bias` could
-  produce near-mono-color boards) may need bounds or a variety guard;
-  evaluate after playtest.
+- **Reward-mode sandbox (Session H).** H₁ scaffold shipped 2026-04-22.
+  H-2 (levers wired) shipped 2026-04-22. Both in the Done section.
+  Playtest + lever-range tuning is ongoing work for the user (no
+  further code session scoped yet; iterate as needed on individual
+  lever ranges or defaults).
 
   **Note:** the originally-scoped sixth lever `BIG_MATCH_POINT_MULT`
   was dropped 2026-04-22 per user call. Can be added back later if
   needed.
+
+  **Interaction edge cases to watch during playtest:** high
+  `cluster_seed` + high `neighbor_bias` could produce near-mono-color
+  boards. No guards in place yet — may need bounds or a variety
+  check if it becomes an issue.
 
 - **Reward-mode integration (Session I).** After Session H values lock
   in, integrate reward-round behavior into the main games:
@@ -358,5 +344,21 @@ sandbox (Session H) can be tuned against data rather than by guess.
   kebab-case params override sessionStorage on load. Non-default
   indicator (amber label + "(def N)" subtext + card-header "●
   modified" mark) + "Reset to defaults" button (disabled at defaults).
-  **Levers are not yet wired into game logic** — board plays like
-  tablet v11.11. Session H₂ (still planned) handles lever wiring.
+  Levers NOT yet wired into game logic at this version — board played
+  like tablet v11.11.
+- **Reward-mode lever wiring (Session H-2).** 2026-04-22. Tablet
+  rewardmode sandbox bumped `v1.0 → v1.1`. All 5 levers now affect
+  gameplay. `tile_count` overrides the palette width at both random-
+  tile draw sites; `neighbor_bias` and `cluster_drop_bias` apply per-
+  new-tile in `fillEmptySpaces` (rolled in UI order; refill rewritten
+  bottom-up so `below` is always available); `cluster_seed` applies
+  4 pre-designed 3×3 density masks post-`initializeGrid` with up to 3
+  boundary-mutation passes; `big_turn` accumulates `allTilesToClear`
+  across cascades, rolls hyper% then super% at turn-settle, sets a
+  `_pendingSpecialDrop` ref consumed on the next refill, and fires a
+  top-center "💥 HUGE turn!" popup (2.5s auto-dismiss, blue gradient
+  super / purple hyper). Admin row added for dev-time lever-fire
+  console log toggle (`[rwd] <lever> ...`, off by default).
+  Mid-session bug: initial board ignored URL/sessionStorage because
+  the module-level lever mirror was initialized to defaults; fix —
+  call `loadRewardmodeLevers()` at module load time.
