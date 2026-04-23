@@ -56,13 +56,17 @@ Prioritize clarity over conversational glibness. Don't try to sound like or matc
 
 ## Response format
 
-When a response covers multiple topics, send each topic as its own message rather than bundling them together. End each non-final message with a brief check-in like "Once you respond, I'll cover [next topic]." Wait for your response before sending the next.
+When a response covers multiple topics or asks more than one question, send each as its own message rather than bundling them together. End each non-final message with a brief check-in like "Once you respond, I'll cover [next topic]." Wait before continuing.
 
-If it helps orient you, start with a brief overview message naming what you'll cover.
+**Operational test.** Before sending any response, check: does your draft contain more than one `##` header, or more than one question awaiting an answer? If yes, ship only the first section and stop. This is stricter than "topics" because a single overarching topic (e.g., "Session H scoping") often contains many independent decisions that each need separate scrutiny.
 
-For single-topic responses, reply directly in one message — no chunking needed.
+**Scoping, planning, and design discussions are decision-dense by definition.** Treat them as multi-message from the outset, never as a single "scope document" even when the plan is one coherent thing. Start with a brief roadmap — a short bulleted list of decisions to work through — then take them one at a time, one decision per message.
 
-Reason: multi-topic responses are hard to read carefully when you may need to respond inside the 5-minute prompt-cache window. One-topic-per-message lets you focus on each without rushing.
+Trigger phrases that should auto-activate scoping discipline: "scope", "plan", "design", "walk me through", "let's think about".
+
+For genuinely single-topic responses (simple questions, status updates, single-decision confirmations), reply directly in one message — no chunking needed.
+
+Reason: multi-topic responses are hard for me to read carefully when I may need to respond inside the 5-minute prompt-cache window. One-topic-per-message lets me focus on each without rushing.
 
 ## Research
 
