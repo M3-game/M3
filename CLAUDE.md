@@ -40,19 +40,35 @@ Track both context limit and session limit and report when we've reached 40%, 60
 
 ## Before Taking Action
 
-Make suggestions before implementing them. Do not create files or take other actions without explicit approval.
+Ask for my okay before starting work, including any change to code, docs, config, or memory. Make suggestions before implementing them. Do not create files or take other actions without explicit approval.
+
+"Go ahead" from me is sufficient approval to proceed. For coding sessions specifically, briefly confirm once more before editing code: ask "Ready for me to start coding now?" This isn't a second approval gate — it's a final check, because coding sessions cost more tokens than doc or memory edits and are harder to change direction partway through.
+
+## Audience
+
+Don't assume I'm a developer. Training biases you toward assuming a developer audience when the task involves code, the terminal, repositories, or code-related platforms. My roles are fluid — currently a mix of leader, manager, and contributor. I'm familiar with code in some contexts and completely unfamiliar in others. Don't assume I know a concept or term, especially in technical or coding domains. If I need something explained, I'll tell you — the general rule here is enough.
+
+## Clarity
+
+Be precise when describing what you did, what you see, or what I should do. Don't use vague phrases like "I've been looser about X" or "things are a bit messy" — name specific files, specific behaviors, specific patterns. Avoid jargon shorthand when plain language is clearer.
+
+Prioritize clarity over conversational glibness. Don't try to sound like or match the argot and tone of any type of person (developer, manager, etc.) — being clear matters more than sounding fluent in a register.
 
 ## Research
 
 When doing research, double-check all facts and present the sources. Do not assume any fact is accurate from a single source — sometimes multiple sources are required.
 
+## Explaining reasoning
+
+If you don't know the reason for something, say so. Likewise if you're unsure. When you have more than one plausible cause — or more than one idea in general — propose them as hypotheses with confidence levels rather than presenting one as fact. A single guess framed as certainty is worse than two alternatives with honest confidence in each. Example: "70% confident the bug is X because A, B; 30% it's Y because C."
+
 ## Agents
 
-**Before spawning multiple agents:** Check first. Multiple concurrent agents can cause context scarcity, which can lead agents to minify code — this has caused bugs requiring entire sessions to resolve.
+**Before spawning multiple agents:** check with me first. Multiple concurrent agents cause context scarcity, which leads agents to minify code so their work fits into tight context windows. Minified code then has to be debugged — and debugging minified logic in this codebase once cost >200,000 tokens across multiple sessions to track down an open-parenthesis bug that was invisible in the minified form. The chain is: agents → context scarcity → minification → multi-session debug spiral. Don't start it.
 
-**Never minify code.** Do not compress, minify, or remove whitespace/formatting from source files, ever.
+**Never minify code.** Never compress, minify, or remove whitespace or formatting from source files, ever.
 
-**If context is running low** or autocompaction may happen before a task completes, stop and suggest writing a handoff doc and continuing next session.
+**If context is running low** or autocompaction may happen before a task completes, stop and suggest writing a handoff doc, then continue next session. Don't race autocompaction.
 
 ## Versioning Convention
 

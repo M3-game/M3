@@ -30,6 +30,25 @@ These constants exist in code but have no UI:
 Consolidate these into a "Tunables" section in AdminPanel when someone
 touches it next.
 
+### Session L — contrast fix (next code session)
+
+Admin panel labels/slider text and the tablet scoring-history drawer
+(timestamps, per-event lines, collapsed-turn summaries) are rendered in
+off-white on a dark background at small font sizes. User flagged this
+as hard to read 2026-04-22.
+
+Scope:
+- Audit all small-text-on-dark in `core/AdminPanel.jsx` and the
+  scoring-history panel inside `platforms/tablet/match3-v11.10-tablet.jsx`.
+- Lift label/slider/timestamp text toward WCAG AA (4.5:1 contrast for
+  normal text, 3:1 for ≥18pt or ≥14pt bold). Practical moves: bump
+  `#bbb`/`#ccc` toward `#e8e8e8` or white; raise font-weight 400 → 500
+  on small labels; if any font size is ≤11px, bump to 12px.
+- Verify before/after with browser DevTools' contrast checker.
+
+Version bumps expected: tablet v11.10 → v11.11, campaign v1.25 → v1.26
+(since `core/AdminPanel.jsx` is shared).
+
 ---
 
 ## Cross-platform parity
@@ -97,10 +116,15 @@ touches it next.
   mode is the missing third mode.
 - **Slow-mode and history panel** — shipped in tablet v11.8 (Session D,
   2026-04-22). See `docs/PROGRESS-2026-04-22.md`. Campaign port pending.
-- **Simulation harness (v1)** — in-browser admin button: run N simulated
-  games with a 1-ply heuristic bot (pick best swap by match length +
-  cascade-potential + special-creation). Output: win rate per level,
-  average score, best/worst runs. Campaign-only first.
+- **Simulation harness — Session E₁ (1-ply, deferred).** In-browser admin
+  button on the tablet: run N simulated games with a 1-ply heuristic bot
+  (pick best swap by match length + cascade-potential + special-creation).
+  Output: win rate per level, average score, best/worst runs. **Uses the
+  existing game functions in the tablet file directly — no refactor.**
+  The impure parts (React state, animation timers) are bypassed by
+  driving `initializeGrid` / `findMatches` / `applyGravity` /
+  `removeMatches` synchronously in a loop with in-memory state. Slower
+  than a clean pure module would be, but practical for hundreds of games.
 
   ⚠ **Skill-gap caveat.** Skilled human play involves 5–8 move lookahead
   to set up multi-special cascade chains (see DESIGN.md). A 1-ply bot
@@ -111,27 +135,34 @@ touches it next.
   all?"), spotting score distribution outliers, and comparing RELATIVE
   difficulty across levels. Not for absolute-difficulty tuning.
 
-- **Simulation harness (v2)** — 2-ply lookahead bot; surfaces setup-for-next-
-  turn patterns (e.g., placing a special adjacent to another special).
-  Still significantly below skilled human play.
-- **Simulation harness (v3 — skilled bot).** Options to narrow the skill gap:
-  - **Monte Carlo**: N random playouts from each candidate move; pick
-    highest-average-score move. Captures cascade *potential* emergently
-    without explicit deep lookahead. Probably best cost/benefit.
-  - **Deeper search**: 3–4 ply with pruning. Computationally feasible with
-    pure-logic refactor (see below), but exponentially expensive.
-  - **Pattern-based heuristic**: hand-crafted scoring that explicitly
-    rewards special-adjacency, specials-in-same-row/col, pre-special
-    groups on the board. Explicit expression of what skilled play looks
-    for.
-  - **Human replay capture**: record human moves in a file, replay to
-    produce ground-truth skilled-score distributions. Best anchor for
-    calibrating the other bots.
-- **Pure-logic refactor** — extract `initializeGrid`, `findMatches`,
-  `applyGravity`, `removeMatches`, scoring, and cascade resolution into a
-  framework-free module (no React, no canvas, no DOM). Enables headless
-  Node simulation and makes tests cleaner. Blocks on appetite — v1
-  simulation can run in-browser without this.
+  **Deprioritized 2026-04-22.** Reward-mode sandbox (Session H) will be
+  tuned by playtest feel instead. Pull E₁ forward if H reveals a need
+  for score-distribution data.
+
+- **Simulation harness — Session E₂ (Monte Carlo on sibling platform,
+  deferred; after E₁).** New sibling platform at
+  `platforms/tablet-sim/`, forked from the then-current tablet file. In
+  the sim platform, the game logic (grid init, match detection, gravity,
+  cascade resolution, scoring) is extracted into a pure framework-free
+  module. **Only this sibling platform is refactored; the main tablet
+  file is never touched.** The refactor's regression risk is contained
+  to the sim platform — if the sim plays wrong, normal play is
+  unaffected.
+
+  MC loop: ~100 random playouts from each candidate swap; the swap with
+  the highest average final score is the bot's pick. Captures cascade
+  potential emergently without explicit deep lookahead.
+
+  **Calibration instead of verification.** Don't require bit-identical
+  snapshot equivalence between sim and main game. Instead, check that
+  sim score distributions land in a similar range to observed human
+  play on a few levels (if you score 15-30k on level 3 and the sim says
+  12-32k, the model is faithful enough). If the sim reports wildly
+  different ranges, it has a bug and we fix it.
+
+  **Deprioritized 2026-04-22** alongside E₁. Pattern-based heuristic,
+  deeper-search, and human-replay-capture approaches remain on the
+  roadmap as E₂ alternatives if MC proves insufficient.
 - **Animated tutorials** — mini-grid demo inline on each intro screen.
   Reuses `drawTile` / `drawSpecialIcon`. Per-level distribution:
   - L1: basic 3-match
@@ -178,27 +209,55 @@ sandbox (Session H) can be tuned against data rather than by guess.
   Campaign equivalent: bonus levels insertable at configurable positions.
   Announced at level 5 (same trigger as progressive lever).
 
-- **Reward-mode sandbox (Session H candidate — after simulation).**
-  Standalone tablet-arcade variant at e.g. `/rewardmode.html`, with admin
-  sliders / URL params for each lever:
-  - `TILE_TYPES_COUNT` (3–6; default 6; primary strongest lever — 4
-    colors makes 6+ matches ~7× more likely than 6 colors).
-  - `NEIGHBOR_MATCH_BIAS` (0–50%; chance each dropped tile matches a
-    neighbor's color; lower-priority lever per user prior).
-  - `CLUSTER_SEED_ON_START` (count of seeded same-color clusters at round
-    start; guarantees reachable big matches from move 1).
-  - `CLUSTER_DROP_BIAS` (0–50%; during refill, chance new tile matches
-    the tile below it; biases toward vertical runs).
-  - `SPECIAL_DROP_ON_BIG_TURN` — {% super, % hyper, tile threshold};
-    directly controls the progressive drop-lever behavior.
-  - `BIG_MATCH_POINT_MULT` (1–3×; extra points on super/hypernova fires).
-  Playtest + measure via simulation; lock in final values before
-  integrating into main arcade / campaign.
+- **Reward-mode sandbox (Session H).** New sibling platform at
+  `platforms/tablet-rewardmode/` forked from the then-current tablet
+  file, served at `/rewardmode.html`. Admin-gated card on the landing
+  page: the card is hidden by default and appears under a new "Admin /
+  Dev" subheader once unlocked. Two unlock paths: (a) long-press the
+  `🎮 M3` title on the landing page for 1.5s, mirroring the in-game
+  admin gesture, or (b) `index.html?admin=1` for deep-link access.
+  Unlocked state persists in `sessionStorage` for the browser session.
 
-- **Reward-mode integration (Session I candidate).** After sandbox values
-  lock in: integrate trigger into arcade (every-5-wins → reward round)
-  and campaign (bonus level at configurable positions). Wire announcement
-  + reminder copy.
+  Five sliders on the sandbox AdminPanel (plus URL-param overrides for
+  link-sharing of specific configurations):
+  - `TILE_TYPES_COUNT` (3–6; default 6). Primary strongest lever — 4
+    colors makes 6+ matches ~7× more likely than 6 colors.
+  - `NEIGHBOR_MATCH_BIAS` (0–50%; default 0%). Chance each dropped tile
+    matches a neighbor's color.
+  - `CLUSTER_SEED_ON_START` (0–4; default 0). Count of seeded same-color
+    3×3 clusters placed after `initializeGrid`, preserving the "no
+    pre-matches" rule.
+  - `CLUSTER_DROP_BIAS` (0–50%; default 0%). During refill, chance each
+    new tile matches the tile directly below it. Biases toward vertical
+    runs.
+  - `SPECIAL_DROP_ON_BIG_TURN` ({% super, % hyper, tile threshold}).
+    After a turn clears ≥threshold tiles, roll once for a super or
+    hyper drop in the refill.
+
+  Slider values persist to `sessionStorage`; "Reset to defaults" button
+  included. Playtest-driven tuning — Sessions E₁/E₂ are deprioritized,
+  so no simulation data will inform starting values.
+
+  **Note:** the originally-scoped sixth lever `BIG_MATCH_POINT_MULT`
+  was dropped 2026-04-22 per user call. Can be added back later if
+  needed.
+
+- **Reward-mode integration (Session I).** After Session H values lock
+  in, integrate reward-round behavior into the main games:
+  - **Tablet arcade:** every 5 consecutive wins, next round runs in
+    reward mode (reuses the existing `currentRun` state shipped in
+    v11.9 / v12.4).
+  - **Campaign:** per-level `rewardMode: true` flag in
+    `levels/campaignConfig.js`. Starting position TBD — level 3
+    suggested as a "first-reward checkpoint."
+  - **Progressive special-drop lever:** from level 5 onward, the
+    `SPECIAL_DROP_ON_BIG_TURN` chances scale up per 5 levels. Caps at
+    level 30 (~30% super / 18% hyper).
+  - **Announcements:** first-time explanation modal at arcade level 5
+    ("🎁 REWARD ROUND! Next win triggers a special round"). Subtle
+    banner reminder at each 5× level after. On reward-round entry,
+    full-screen banner with copy TBD ("🎁 REWARD ROUND — reduced
+    palette + seeded clusters!" as a starting draft).
 
 - **Layered reward levels (very deferred).** Once the base sandbox is
   validated, allow combinations of levers per level (e.g., "seeded +
