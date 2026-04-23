@@ -136,11 +136,11 @@ function AdminPanel({ onClose, constants = {} }) {
   const S = {
     panel:  { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(10,10,10,0.93)', zIndex: 9999, overflowY: 'auto', fontFamily: 'monospace', color: '#e0e0e0', padding: '20px', boxSizing: 'border-box' },
     card:   { background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: '8px', padding: '14px 16px', marginBottom: '12px' },
-    label:  { color: '#666', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '10px', display: 'block' },
+    label:  { color: '#ccc', fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '10px', display: 'block' },
     row:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #222', fontSize: '13px' },
     rowLast:{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', fontSize: '13px' },
     val:    { fontWeight: 'bold', color: '#fff' },
-    dim:    { color: '#666' },
+    dim:    { color: '#ccc' },
     btn:    { padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontFamily: 'monospace', fontWeight: 'bold' },
   };
 
@@ -153,16 +153,16 @@ function AdminPanel({ onClose, constants = {} }) {
           <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fff', marginBottom: '2px' }}>
             🔧 ADMIN — Match-3 Stats
           </div>
-          <div style={{ fontSize: '11px', color: '#555' }}>
-            Access: <span style={{ color: '#777' }}>?admin=1</span> · long-press score (1.5 s)
+          <div style={{ fontSize: '12px', color: '#ccc' }}>
+            Access: <span style={{ color: '#ccc' }}>?admin=1</span> · long-press score (1.5 s)
           </div>
         </div>
-        <button onClick={onClose} style={{ ...S.btn, background: '#2a2a2a', color: '#aaa', fontSize: '17px', lineHeight: 1, padding: '4px 11px' }}>×</button>
+        <button onClick={onClose} style={{ ...S.btn, background: '#2a2a2a', color: '#ccc', fontSize: '17px', lineHeight: 1, padding: '4px 11px' }}>×</button>
       </div>
 
       {/* ── No data ────────────────────────────────────────────────────────── */}
       {!stats && (
-        <div style={{ ...S.card, textAlign: 'center', color: '#555', padding: '32px' }}>
+        <div style={{ ...S.card, textAlign: 'center', color: '#ccc', padding: '32px' }}>
           No stats recorded yet — play some games first.
         </div>
       )}
@@ -239,7 +239,7 @@ function AdminPanel({ onClose, constants = {} }) {
               <span style={{ ...S.label, marginBottom: 0 }}>Game History — {stats.history.length} recorded</span>
               <button
                 onClick={() => setShowHistory(h => !h)}
-                style={{ ...S.btn, background: '#2a2a2a', color: '#888', padding: '4px 12px' }}
+                style={{ ...S.btn, background: '#2a2a2a', color: '#ccc', padding: '4px 12px' }}
               >
                 {showHistory ? '▲ hide' : '▼ show'}
               </button>
@@ -248,7 +248,7 @@ function AdminPanel({ onClose, constants = {} }) {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '480px' }}>
                   <thead>
-                    <tr style={{ color: '#555', textAlign: 'left', borderBottom: '1px solid #333' }}>
+                    <tr style={{ color: '#ccc', textAlign: 'left', borderBottom: '1px solid #333' }}>
                       {['#', 'Result', 'Score', 'Target', '%', 'Type', 'Combo', 'Date'].map(h => (
                         <th key={h} style={{ padding: '4px 8px', fontWeight: 'normal' }}>{h}</th>
                       ))}
@@ -259,14 +259,14 @@ function AdminPanel({ onClose, constants = {} }) {
                       const pct = g.levelTarget ? Math.round(g.finalScore / g.levelTarget * 100) : null;
                       return (
                         <tr key={g.ts ?? i} style={{ borderTop: '1px solid #1e1e1e', color: g.won ? '#81c784' : '#e57373' }}>
-                          <td style={{ padding: '3px 8px', color: '#444' }}>{stats.history.length - i}</td>
+                          <td style={{ padding: '3px 8px', color: '#ccc' }}>{stats.history.length - i}</td>
                           <td style={{ padding: '3px 8px' }}>{g.won ? '✓ won' : '✗ lost'}</td>
                           <td style={{ padding: '3px 8px' }}>{g.finalScore?.toLocaleString() ?? '—'}</td>
-                          <td style={{ padding: '3px 8px', color: '#aaa' }}>{g.levelTarget?.toLocaleString() ?? '—'}</td>
+                          <td style={{ padding: '3px 8px', color: '#ccc' }}>{g.levelTarget?.toLocaleString() ?? '—'}</td>
                           <td style={{ padding: '3px 8px' }}>{pct !== null ? `${pct}%` : '—'}</td>
-                          <td style={{ padding: '3px 8px', color: '#888' }}>{g.endType ?? '—'}</td>
+                          <td style={{ padding: '3px 8px', color: '#ccc' }}>{g.endType ?? '—'}</td>
                           <td style={{ padding: '3px 8px' }}>x{(g.maxCombo ?? 0) + 1}</td>
-                          <td style={{ padding: '3px 8px', color: '#555' }}>{g.ts ? new Date(g.ts).toLocaleDateString() : '—'}</td>
+                          <td style={{ padding: '3px 8px', color: '#ccc' }}>{g.ts ? new Date(g.ts).toLocaleDateString() : '—'}</td>
                         </tr>
                       );
                     })}
@@ -285,7 +285,7 @@ function AdminPanel({ onClose, constants = {} }) {
         </button>
         <button
           onClick={handleClear}
-          style={{ ...S.btn, background: confirmClear ? '#4a1010' : '#222', color: confirmClear ? '#f87171' : '#666' }}
+          style={{ ...S.btn, background: confirmClear ? '#4a1010' : '#222', color: confirmClear ? '#f87171' : '#ccc' }}
         >
           {confirmClear ? '⚠ Confirm clear?' : '🗑 Clear stats'}
         </button>

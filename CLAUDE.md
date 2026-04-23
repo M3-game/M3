@@ -84,7 +84,16 @@ If you don't know the reason for something, say so. Likewise if you're unsure. W
 
 **Never overwrite a file, even for a one-line fix. Always save the old file.**
 
-Every change — no matter how small — requires:
+**Exception: shared `core/` files are edited in place.** Files in
+`core/` (e.g., `core/AdminPanel.jsx`, `core/gameLogic.js`) are imported
+by multiple platform files. Versioning them would force cascading
+renames across every importer for any small edit. Edit in place; no
+archive, no rename. Platform files that import a changed `core/` file
+inherit the update without needing a version bump of their own.
+Platform files (`platforms/<platform>/match3-*.jsx`) still follow the
+full versioning rule below.
+
+Every change to a platform file — no matter how small — requires:
 
 1. **Archive the current file** by copying it to `platforms/<platform>/archive/` before making any edits.
 2. **Create a new versioned file** (e.g. `match3-v11.3` → `match3-v11.4`) with the changes applied.

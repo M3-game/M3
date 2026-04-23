@@ -30,25 +30,6 @@ These constants exist in code but have no UI:
 Consolidate these into a "Tunables" section in AdminPanel when someone
 touches it next.
 
-### Session L — contrast fix (next code session)
-
-Admin panel labels/slider text and the tablet scoring-history drawer
-(timestamps, per-event lines, collapsed-turn summaries) are rendered in
-off-white on a dark background at small font sizes. User flagged this
-as hard to read 2026-04-22.
-
-Scope:
-- Audit all small-text-on-dark in `core/AdminPanel.jsx` and the
-  scoring-history panel inside `platforms/tablet/match3-v11.10-tablet.jsx`.
-- Lift label/slider/timestamp text toward WCAG AA (4.5:1 contrast for
-  normal text, 3:1 for ≥18pt or ≥14pt bold). Practical moves: bump
-  `#bbb`/`#ccc` toward `#e8e8e8` or white; raise font-weight 400 → 500
-  on small labels; if any font size is ≤11px, bump to 12px.
-- Verify before/after with browser DevTools' contrast checker.
-
-Version bumps expected: tablet v11.10 → v11.11, campaign v1.25 → v1.26
-(since `core/AdminPanel.jsx` is shared).
-
 ---
 
 ## Cross-platform parity
@@ -359,3 +340,11 @@ sandbox (Session H) can be tuned against data rather than by guess.
   not the bonus-moves logic itself. v12.3 restores the paren; v12.2's
   campaign-parity bonus-moves logic is now reachable. Pending device
   verification.
+- **Admin panel + scoring-history drawer contrast fix.** 2026-04-22,
+  Session L. All text-color greys darker than `#ccc` (`#444`, `#555`,
+  `#666`, `#777`, `#888`, `#aaa`, `#bbb`) lifted to `#ccc` across
+  `core/AdminPanel.jsx` (in place — see CLAUDE.md shared-core
+  exemption), tablet `ScoringHistoryPanel` + `TabletAdminWrapper`
+  (v11.10 → v11.11), and campaign inline `CampaignAdmin` (v1.25 →
+  v1.26). Small-text bumps: 10px uppercase labels → 11px + fontWeight
+  500; 11px helper text → 12px. Borders/backgrounds unchanged.
