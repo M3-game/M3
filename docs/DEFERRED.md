@@ -106,19 +106,17 @@ touches it next.
   (SHIPPED 2026-04-23).** See Done section. Bumps tablet-sim to v1.1.
 
 - **Simulation harness — Session E-1b (admin UI + batch + stats +
-  histogram).** Fully scoped 2026-04-23 — see the E-1b starting brief in
-  `docs/PROGRESS-2026-04-23.md` for the complete spec (card layout,
-  preset buttons, stats set, vertical-bar histogram, clipboard JSON
-  shape, `_SIM.runGame({bot,target,botParams})` API shape). Version
-  target tablet-sim v1.1 → v1.2.
+  histogram) — SHIPPED 2026-04-23.** See Done section. Bumps tablet-sim
+  to v1.2.
 
-  ⚠ **Skill-gap caveat** (from DESIGN.md, restated). Skilled human
-  play involves 5–8 move lookahead. A 1-ply bot captures none of
-  that. Interpret sim results as *lower-bound casual play* —
-  **never** tune level targets down based on bot win-rate alone.
-  Use for: balance floor checks ("is this level winnable at all?"),
-  relative-difficulty comparisons across levels, score-distribution
-  anomaly spotting. Not for absolute-target tuning.
+  ⚠ **Skill-gap caveat** (from DESIGN.md, restated — permanent note
+  that carries into E-2 as well). Skilled human play involves 5–8 move
+  lookahead. A 1-ply bot captures none of that. Interpret sim results
+  as *lower-bound casual play* — **never** tune level targets down
+  based on bot win-rate alone. Use for: balance floor checks ("is this
+  level winnable at all?"), relative-difficulty comparisons across
+  levels, score-distribution anomaly spotting. Not for absolute-target
+  tuning.
 
 - **Simulation harness — Session E-2a (Monte Carlo bot + Web Worker
   pool + framework integration with E-1b).** Fully scoped 2026-04-23 —
@@ -126,6 +124,8 @@ touches it next.
   complete spec (MC params with admin-tunable N / depth-cap / rollout
   strategy / worker count, Web Worker pool architecture, runtime math
   validating the pool decision). Version target tablet-sim v1.2 → v1.3.
+  `_SIM.runGame({bot, target, moves, botParams})` signature already
+  locked in v1.2 so E-2a slots in without retrofit.
 
 - **Simulation harness — Session E-2b (MC tuning session).** Scoped
   2026-04-23 — see the E-2b starting brief in
@@ -386,3 +386,35 @@ sandbox (Session H) can be tuned against data rather than by guess.
   while condition. `won` flag at end still reflects target-reached;
   `finalScore` captures full play-through. Build clean; sim bundle
   71.13 kB (from 71.14 kB — comment + one-line change).
+
+- **Simulation harness — admin batch runner + stats + histogram
+  (Session E-1b).** 2026-04-23. Tablet-sim bumped `v1.1 → v1.2`. New
+  "Simulation Batch Runner" card added to the tablet-sim admin wrapper
+  (between the inherited Playback card and the launcher buttons). Bot
+  dropdown (1-Ply Heuristic — MC slot reserved for E-2a), admin-
+  tunable Target score (default 6000) and Moves per game (default
+  20), both persisted to sessionStorage. Preset batch-size buttons
+  `[10][50][100][200][1000]`. Async orchestration: `setTimeout(0)`
+  yield per game with live progress text (`Running… N / total`) and a
+  Cancel button; cancel discards the in-flight batch's results.
+  Aggregate stats block covers outcomes (win/loss/stuck rates), score
+  (mean · median · p10 · p90 · range), moves (avg-to-win · avg-in-
+  loss), cascades (avg + best maxCombo), specials, bonus moves (%
+  earning ≥1 · max earned), runtime (total · avg/game). Vertical-bar
+  histogram with auto-sized 500/1000-pt buckets (1000 if observed
+  range ≥10k), color-split at target (win side blue, loss side red),
+  dashed yellow target line overlay, p10/median/p90 labels below.
+  Collapsible per-game detail table (default expanded for batches
+  ≤100, collapsed for 200/1000). Copy JSON button emits Option C
+  shape: `{ metadata, aggregates, games }`. `_SIM.runGame` signature
+  extended to `{ bot, target, moves, botParams }` — final shape set
+  here so E-2a's Monte Carlo addition slots in without retrofit.
+  Legacy keys (`tileCount`, `levelTarget`) still honored. Return
+  shape adds `outcome` ('win'/'loss'/'stuck'), `bonusMovesEarned`
+  accumulator (remaining field was always 0 post-v1.1 because bot
+  consumes everything — earned is the useful counter for the "%
+  earning ≥1" stat), `runtimeMs`, plus `bot` and `botParams` echoed
+  for JSON metadata. Build clean; sim bundle 84.97 kB (from 71.13 kB
+  — batch runner UI + helpers). Also updated `index.html` sim card
+  desc + badge from stale `v1.0 · E-1a` to current `v1.2 · E-1b`
+  (missed update during E-1a2 rolled forward).
