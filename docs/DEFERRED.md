@@ -436,11 +436,7 @@ surface.
 
 **Session plan (5 sessions):**
 
-- **V-1 — Scaffold.** Fork `platforms/tablet/match3-v11.11-tablet.jsx`
-  → new platform `platforms/tablet-verses/`. Create `verses.html`,
-  `src/entry-verses.jsx`, Vite config entry, "Verses" card on
-  `index.html`. Platform plays like tablet arcade; no memorize-
-  specific logic yet — just plumbing. Ships
+- **V-1 — Scaffold — SHIPPED 2026-04-24.** See Done section. Ships
   `match3-v1.0-tablet-verses.jsx`.
 
 - **V-2 — Single-game MVP.** Content model: `games/` directory with
@@ -586,6 +582,22 @@ surface.
 
 ## Done
 
+- **Memorize Mode scaffold (Session V-1).** 2026-04-24. New sibling
+  platform `platforms/tablet-verses/match3-v1.0-tablet-verses.jsx`
+  forked from tablet v11.11. Plumbing only — platform plays exactly
+  like tablet arcade; no memorize-specific logic. Changes vs. source:
+  component renamed `Match3Game → Match3Verses`; in-game header
+  `"🎮 Match-3 v11.11"` → `"Verses v1.0"` (no emoji per scoping,
+  content-driven title deferred to V-2); version comment block
+  prepended with V-1 provenance, full tablet history carried forward.
+  New files: `verses.html` (root), `src/entry-verses.jsx`,
+  `platforms/tablet-verses/archive/` (empty, ready for future
+  versioning). `vite.config.js` gains `verses` rollup input. Landing-
+  page card added to `index.html` at end of main grid (after Campaign):
+  label "Verses", name "📖 Verses", desc "v1.0 · scaffold — plays like
+  tablet arcade · memorize mechanics land in V-2", badge In Progress
+  (wip). Build clean: `dist/verses.html` emitted, verses bundle
+  64.37 kB matches tablet bundle byte-for-byte outside the rebrand.
 - **Phone-418 bonus-moves UI — prompt never fires.** 2026-04-22, Session
   B-2. Root cause was a JS syntax error in v12.2 (missing `)` on the
   in-header End-and-carry button chain) preventing React from mounting,
