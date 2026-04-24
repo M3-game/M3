@@ -300,11 +300,11 @@ picker).
 
 ```js
 export default {
-  title: "Titus 3:11–13",
+  title: "Titus 2:11–13",
   translation: "KJV",       // optional
   verses: [                 // single-level games use top-level `verses`
     {
-      reference: "Titus 3:11",
+      reference: "Titus 2:11",
       chunks: ["For the grace of God", "That brings salvation", ...],
     },
     ...
@@ -331,15 +331,27 @@ proves error-prone in practice, we can add a runtime schema check
 surfaced in an admin panel.
 
 **Core mechanics (memorization purely additive):**
-- Moves = chunks; each passage sets its own move budget via the data
-  (Titus 3:11–13 = 13 chunks = 13 moves).
-- One chunk reveals per successful swap, at turn settle (after all
-  cascades finish and the board stabilizes). Swaps that don't produce
-  a match (snap back, no move counter decrement) also don't trigger a
-  reveal.
+- **First chunk pre-visible at game start** (locked during V-2 scoping
+  2026-04-24 — easier memorization entry point, gives the player
+  something to read before the first match).
+- **Moves = chunks − 1** (because the first chunk is pre-visible, so
+  matches reveal chunks 2 through N). For Titus 2:11–13 = 13 chunks =
+  12 moves; default target = `12 × 300 = 3,600`.
+- One chunk reveals per successful swap, at turn settle — after all
+  cascades finish and the board stabilizes, then a **200ms beat** so
+  the player reads the settled board before the text updates. Swaps
+  that don't produce a match (snap back, no move counter decrement)
+  also don't trigger a reveal.
 - Text bar between banner and board; rolling 3-chunk window (current
   + 2 prior); current chunk emphasized (brighter / bolder), prior two
-  dimmed.
+  dimmed. **Typography:** Georgia serif (locked 2026-04-24). Two-
+  column layout — reference (e.g., `(Titus 2:11)`) flush left, chunk
+  content indented so content-rows align under content-rows. Current
+  chunk 22px fontWeight 500 full-contrast; prior two 15px regular
+  dimmed (`#888` light / `#ccc` dark — respects `#ccc` floor rule).
+  New-chunk reveal animation: ~250ms fade/slide from bottom; previous
+  chunks shift up and demote. Container min-height ~96px so reveals
+  don't shift the canvas.
 - Silent 1.5× victory round at target-hit (no prompt — "end early"
   would stop chunk reveals, which defeats memorization). Brief
   "Target reached — 1.5×!" banner, then play continues.
@@ -428,8 +440,16 @@ reveal timing tuning, force-win buttons. Add if specific needs
 surface.
 
 **First games:**
-- **Titus 3:11–13** — single-level, 13 chunks (3 / 6 / 4 across verses
-  11 / 12 / 13). Ships with V-2 as the first playable content.
+- **Titus 2:11–13 NKJV** — single-level, 13 chunks (3 / 6 / 4 across
+  verses 11 / 12 / 13). Ships with V-2 as the first playable content.
+  Chunks authored by user during V-2 scoping 2026-04-24. Translation
+  is **NKJV**. Each verse's first chunk carries the reference inline
+  (e.g., `"(Titus 2:11) For the grace of God"`); subsequent chunks are
+  content only and render indented under the reference. Target default
+  at V-2: `12 × 300 = 3,600`. (The content pasted by the user during
+  scoping said "Titus 3:11–13" in the reference lines — that was a
+  typo corrected during the Q1 fact-check. The text is NKJV Titus 2,
+  not Titus 3.)
 - **Psalm 91** — multi-level, 3–4 levels TBD during V-3 (user
   suggested this split during scoping). Ships with V-3 as the first
   multi-level content.
@@ -439,16 +459,115 @@ surface.
 - **V-1 — Scaffold — SHIPPED 2026-04-24.** See Done section. Ships
   `match3-v1.0-tablet-verses.jsx`.
 
-- **V-2 — Single-game MVP.** Content model: `games/` directory with
-  `_template/`, `titus-3-11-13/game.js`, games README. Glob-
-  discovery manifest loads games from disk. Hardcoded Titus boot
-  (no picker yet — next session). Text bar between banner and
-  board, rolling 3-chunk window, current emphasized. Moves = chunks
-  (13 for Titus); successful swap reveals next chunk on settle.
-  Basic end-of-round: passage reveal after 2.5s + **Play again**
-  button (no arcade handoff yet). Ships
-  `match3-v1.1-tablet-verses.jsx`. **Earliest playtest-able
-  version — start memorizing Titus between V-2 and V-3 sessions.**
+- **V-2 — Single-game MVP.** Scoped in depth during 2026-04-24
+  scoping session (Q1–Q7 roadmap). All sub-decisions below are
+  locked unless the user explicitly reopens them during V-2 coding.
+
+  **Content model and discovery.** `platforms/tablet-verses/games/`
+  directory. Each game is a subfolder containing `game.js` that
+  default-exports a plain data object (see DEFERRED Memorize Mode
+  "Content model" section for shape). Discovery uses Vite's
+  `import.meta.glob('./games/*/game.js', { eager: true })` at build
+  time — no manifest file. Runtime filter excludes folders whose
+  slug starts with `_` (so `_template/` is never in the picker) and
+  games with `hidden: true`. At V-2 there's only one non-template
+  entry (`titus-2-11-13/`); the app hardcodes boot to that slug. V-3
+  adds the picker UI on top of the same discovery call — no
+  discovery-layer refactor between V-2 and V-3.
+
+  **Template + README.** `games/_template/` contains `game.js` (fully
+  exemplified skeleton with both single-level `verses` and multi-
+  level `levels[]` shapes; the unused shape is commented out) and
+  `README.md` (~one-screenful authoring doc covering: how to start,
+  slug naming in kebab-case, single vs multi-level shape, chunk
+  rules, target formula, reference format, `hidden: true` drafting
+  flag, what renders where). Placeholder data in the template is
+  obviously fake (e.g., `"Book 1:1"`).
+
+  **Titus 2:11–13 content.** Single-level. 13 chunks (3 / 6 / 4
+  across verses 11 / 12 / 13). NKJV. First chunk of each verse
+  carries the `(Titus 2:NN)` reference inline; remaining chunks are
+  content only. Target defaults to `moves × 300 = 12 × 300 = 3,600`.
+  Single-level shape supports optional top-level `targetScore`
+  override (parallel to multi-level's per-level override).
+
+  **Text bar (rolling 3-chunk window).** Full-width container between
+  header and canvas. Two-column layout: reference flush left (col 1,
+  only on chunks that begin a new verse), content indented (col 2,
+  always). Georgia serif typography. Current chunk 22px fontWeight
+  500 full-contrast; prior two 15px regular dimmed. Reveal animation
+  ~250ms fade/slide from bottom. No ornaments — typography does all
+  the distinguishing work. Container min-height ~96px to keep
+  canvas position stable.
+
+  **Chunk reveal wiring.** `revealedChunkIndex` starts at 0 (chunk 0
+  pre-visible as current at game start). Increments by 1 on each
+  successful-swap settle, up to `chunks.length - 1 = 12`. Settle
+  hook: tap existing tablet cascade-end callback (where `isAnimating`
+  goes false). **200ms beat** after settle before reveal fires so
+  the board reads as settled. Non-match swaps don't trigger (they
+  already don't decrement moves in the inherited tablet logic).
+
+  **Move budget.** 12 moves (chunks − 1, since chunk 0 is pre-
+  visible). Game ends cleanly at move 0.
+
+  **Bonus moves at V-2.** Force-disable the inherited tablet arcade
+  end-of-run bonus-moves prompt via a `versesMode` guard (early-
+  return at the prompt trigger site). Bonus-moves earning logic
+  stays active (score thresholds still tick), but accumulated
+  bonus moves sit idle — nothing consumes them. V-4 replaces the
+  guard with memorize-mode-specific victory-round + bonus-consume
+  + arcade-handoff logic.
+
+  **Target-hit notification at V-2.** Reused pattern from reward-
+  mode's HUGE-turn popup (`platforms/tablet-rewardmode/match3-v1.1-
+  tablet-rewardmode.jsx`). When score crosses target:
+  - Brief toast at top: `Target reached!` — auto-dismisses after
+    ~2.5s.
+  - Persistent header state-change: target display flips to gold
+    (or gets a ✓), stays that way through end-of-round.
+  - **No 1.5× scoring** — that's V-4. V-4 updates the toast copy to
+    `Target reached — 1.5×!` and wires the scoring branch.
+
+  **End-of-round flow.**
+  1. 12th successful swap → cascade → settle.
+  2. 200ms beat.
+  3. Last chunk fades into current slot (~250ms).
+  4. **2.5s hold** — player absorbs the final chunk.
+  5. Passage-reveal modal appears.
+
+  **Passage-reveal modal.** Centered modal overlaid on a dimmed
+  board (`rgba(0,0,0,0.5)` dim; no blur). Content: translation
+  label at top (`Titus 2:11–13 · NKJV`, smaller serif), then full
+  passage in the same Georgia two-column layout as the rolling
+  window — all 13 chunks at current-weight/contrast, no dimming.
+  Single button below: `Play again`. No auto-dismiss — player
+  clicks. During modal visibility, the rolling text bar is hidden
+  (single focus).
+
+  **Play again behavior.** Regenerate board, moves to 12, score to
+  0, `revealedChunkIndex` back to 0 (chunk 0 pre-visible again),
+  dismiss modal. V-2 has no persistence; nothing to save or carry.
+  Bonus-moves counter also resets to 0 (since the prompt is
+  disabled and there's nothing to consume).
+
+  **No other navigation at V-2.** No "back to arcade", no "home".
+  Browser back / close tab is the exit. V-4 adds the "Tablet
+  arcade" handoff button.
+
+  Ships `match3-v1.1-tablet-verses.jsx`. **Earliest playtest-able
+  version — start memorizing Titus 2:11–13 between V-2 and V-3.**
+
+  **Follow-ups to confirm during V-2 implementation (not scoping
+  decisions, just traceability):**
+  - Exact line of the settle callback hook — I'll note it in the
+    V-2 commit message.
+  - Exact site of the bonus-moves prompt guard — also noted in
+    commit.
+
+  **Open for adjustment based on first playtest:** the 200ms settle
+  beat, 2.5s passage-modal hold, toast duration — all round
+  numbers. User flagged "we may need to adjust once it's live."
 
 - **V-3 — Picker + level-select + multi-level.** Two-tier landing:
   main picker (game cards) → level-select (for multi-level games
