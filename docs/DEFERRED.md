@@ -463,25 +463,232 @@ surface.
 - **V-2 — Single-game MVP — SHIPPED 2026-04-24.** See Done section.
   Ships `match3-v1.3-tablet-verses.jsx`.
 
-- **V-3 — Picker + level-select + multi-level.** Two-tier landing:
-  main picker (game cards) → level-select (for multi-level games
-  only). Single-level games bypass level-select. Extend data shape
-  to support `levels[]`; add `psalm-91/game.js` as first multi-
-  level game. Hybrid progression. Level-to-level flow: Next level /
-  Back to level-select / Retry per the locked end-of-level specs.
-  Bonus-moves carry within game. Ships
-  `match3-v1.4-tablet-verses.jsx`. Can split into V-3a (picker) +
-  V-3b (multi-level + Psalm 91) if session feels too heavy.
+- **V-3 — Picker + level-select + multi-level. Deep-scoped 2026-04-24.**
+  All sub-decisions below locked unless the user explicitly reopens
+  during coding.
 
-  **Optional pickup at V-3 start (V-2 follow-up):** further header
-  shrink. After v1.3 trimmed specials + combo, the user observed
-  whitespace between the title and the Score/Moves/... stat row
-  — the current `justifyContent: space-between` on the header
-  card stretches those rows apart to fill the 80px minHeight.
-  Cheap fix: drop to `flex-start` + add a small explicit gap, or
-  drop minHeight entirely and let the header size to content.
-  Small change; V-3 can bundle it into the first commit before
-  the picker work, or defer.
+  **Session split.** V-3 runs as two sessions to keep each under the
+  context-budget ceiling (v1.3's post-V-2 inheritance already pushes
+  the active file to ~4,200 lines):
+  - **V-3a — picker only.** Main picker screen, Titus now boots
+    through picker (remove hardcoded `VERSES_BOOT_SLUG` branch),
+    V-2 follow-up header-shrink bundled. Single-level games click
+    straight to play. Ships `match3-v1.4-tablet-verses.jsx`.
+  - **V-3b — `levels[]` data shape + level-select screen + multi-
+    level play flow + Psalm 91 content + in-memory hybrid
+    progression.** Ships `match3-v1.5-tablet-verses.jsx`.
+
+  **Picker screen (V-3a).**
+  - Card grid: `repeat(auto-fill, minmax(220px, 1fr))`, same as
+    `index.html` landing page.
+  - Purple gradient background matching the in-game body (visual
+    continuity across the stack).
+  - Page header: "Verses" title + subtitle "Select a passage to
+    begin." — subtitle open to change; alternatives parked if a
+    better line surfaces: "Memorize through play.", "Match tiles.
+    Learn Scripture.", "Play to memorize.", or omit the subtitle.
+  - Per-card content (pre-V-4 — no stars/best-score/completed):
+    - **Single-level game:** Title ("Titus 2:11–13") + translation
+      below in smaller muted text ("NKJV"). Nothing else.
+    - **Multi-level game:** same as single-level plus a third line
+      reading `N levels` (e.g., "4 levels" for Psalm 91).
+  - No emoji or icons on cards.
+  - **Click behavior:** single-level → play; multi-level →
+    level-select screen.
+  - **Titus through picker.** The current V-2 hardcoded
+    `VERSES_BOOT_SLUG = 'titus-2-11-13'` + direct boot becomes
+    `activeSlug | null` state — null = show picker. When slug is
+    selected, component enters play mode.
+
+  **Level-select screen (V-3b — multi-level games only).**
+  - Same visual language as main picker: purple gradient
+    background, card grid.
+  - Page header: game title ("Psalm 91") + `← Back` to main
+    picker (top-left).
+  - Per-level card content (pre-V-4): level title from
+    `level.title` field if set (e.g., "Psalm 91:1–4"), else
+    fallback "Level N". **Title only** — no chunk count, no move
+    count, no target score. V-4 layers stars + best-score +
+    completion marker into these same cards.
+  - **Lock-state visuals:** unlocked cards render normally; locked
+    cards render dimmed (opacity 0.5 + reduced color saturation
+    via `filter: grayscale(0.7)` or similar — settle in playtest).
+    Locked cards non-clickable (cursor default, no onClick).
+
+  **Navigation + back-button flow.**
+  - **In-game header, top-left:** `← Back` button, always
+    clickable during play, no confirmation popup.
+  - **Start-of-round passage modal:** `Back` button alongside
+    `Begin game` / `Begin level` (since the modal covers the
+    in-game header).
+  - **Level-select screen header:** `← Back` to main picker.
+  - **Routing targets:**
+    - Single-level game (in-game or start modal) → main picker.
+    - Multi-level game (in-game or start modal) → level-select.
+    - Level-select → main picker.
+  - **End-of-round modal buttons** stay as locked per the prior
+    DEFERRED end-of-level flows (Play again / Next level / Retry /
+    Back to level-select / Tablet arcade per state).
+  - **Bonus-moves pool** behavior:
+    - Zeroes on any return to main picker (exiting the game).
+    - Persists moving between play ↔ level-select within the same
+      game (level-to-level carry, per locked spec).
+  - **No mid-round confirmation.** V-3 has no persistence; a
+    misclick = restart, not lost data. Playtest will flag if a
+    confirm is needed.
+
+  **Hybrid progression at V-3 (in-memory only — V-4 adds persistence).**
+  - Per game, track `completedLevels: Set<number>` of completed
+    level indices in React state. Scoped to the currently-active
+    game; cleared when player returns to main picker.
+  - **Unlock logic:** Level 0 always unlocked. Level N unlocked
+    iff Level N−1 is in `completedLevels` this session OR
+    `fullCompleted` is true for this game.
+  - **Full-game completion:** when `completedLevels.size ===
+    game.levels.length`, flip `fullCompleted = true` → all levels
+    unlocked for the rest of the session (free-replay mode).
+  - **Refresh = reset.** Session-only. V-4 wraps the same state
+    shape with localStorage for persistence.
+
+  **Multi-level play UX.**
+  - **In-game header (multi-level games only):** game title + a
+    small "Level N of M" indicator.
+  - **Start-of-round passage modal fires at the start of each
+    level** (not just game start), showing that level's passage.
+    Button label: "Begin game" for single-level (as shipped v1.2),
+    "Begin level" in multi-level.
+  - **Per-level state resets** on level transition (Next level
+    button): score → 0, levelTarget → level's target, moves →
+    `chunks.length − 1`, revealedChunkIndex → 0, targetReached →
+    false, showTargetToast → false.
+  - **Persists across levels within a game:** `bankedMoves`
+    (locked per the bonus-moves spec), `completedLevels` Set,
+    `fullCompleted` flag.
+
+  **Psalm 91 content (V-3b — `games/psalm-91/game.js`).**
+  - Translation: NKJV (consistent with Titus).
+  - Reference format in data: **"Ps. 91:N"** (abbreviated, to
+    fit the 110px reference column in the text bar without
+    overflow on 2-digit verses — estimated "(Psalm 91:16)" at
+    19px Georgia italic = ~112px, over the 110px column).
+  - **4 thematic levels** on natural breakpoints (total 49 chunks):
+    - **Level 1 — Ps. 91:1–4 (the secret place / refuge) — 13
+      chunks / 12 moves / default target 3,600.**
+    - **Level 2 — Ps. 91:5–8 (protection from danger) — 12
+      chunks / 11 moves / default target 3,300.**
+    - **Level 3 — Ps. 91:9–13 (angels / no harm) — 14 chunks /
+      13 moves / default target 3,900.**
+    - **Level 4 — Ps. 91:14–16 (God speaks) — 10 chunks / 9
+      moves / default target 2,700.**
+  - Per-level `targetScore` defaults to `moves × 300`; override
+    per level in data if playtest shows mis-tuning.
+
+  **Psalm 91 chunks** (user-authored 2026-04-24, 6 NKJV proofread
+  fixes applied, reference format normalized to "Ps. 91:N"):
+
+  ```
+  Level 1 — Ps. 91:1–4 (13 chunks)
+
+  (Ps. 91:1)
+    He who dwells
+    In the secret place of the Most High          [fix: lowercase "of"]
+    Shall abide under the shadow                   [fix: "under" not "in"]
+    Of the Almighty
+
+  (Ps. 91:2)
+    I will say of the Lord
+    "He is my refuge and my fortress;              [fix: added "my" before "fortress"]
+    My God, in Him I will trust."
+
+  (Ps. 91:3)
+    Surely He shall deliver you
+    From the snare of the fowler
+    And from the perilous pestilence
+
+  (Ps. 91:4)
+    He shall cover you with His feathers
+    And under His wings you shall take refuge;
+    His truth shall be your shield and buckler.
+
+  Level 2 — Ps. 91:5–8 (12 chunks)
+
+  (Ps. 91:5)
+    You shall not be afraid
+    of the terror by night,
+    Nor of the arrow that flies by day.            [fix: "Nor of" not "Nor"]
+
+  (Ps. 91:6)
+    Nor of the pestilence
+    That walks in darkness
+    Nor of the destruction
+    That lays waste at noonday
+
+  (Ps. 91:7)
+    A thousand may fall at your side,
+    And ten thousand at your right hand;
+    But it shall not come near you.
+
+  (Ps. 91:8)
+    Only with your eyes shall you look,
+    And see the reward of the wicked
+
+  Level 3 — Ps. 91:9–13 (14 chunks)
+
+  (Ps. 91:9)
+    Because you have made the LORD,                [fix: comma not period; LORD all-caps]
+    Who is my refuge
+    Even the Most High,
+    Your dwelling place
+
+  (Ps. 91:10)
+    No evil shall befall you,
+    Nor shall any plague come near your dwelling.
+
+  (Ps. 91:11)
+    For He shall give His angels charge over you
+    To keep you in all your ways.
+
+  (Ps. 91:12)
+    In their hands they shall bear you up
+    Lest you dash your foot against a stone.
+
+  (Ps. 91:13)
+    You shall tread upon
+    The lion and the cobra
+    The young lion and the serpent
+    You shall trample underfoot.
+
+  Level 4 — Ps. 91:14–16 (10 chunks)
+
+  (Ps. 91:14)
+    "Because he has set his love upon Me
+    Therefore I will deliver him;
+    I will set him on high
+    Because he has known My name.                  [fix: capital "My"]
+
+  (Ps. 91:15)
+    He shall call upon Me
+    And I will answer him
+    I will be with him in trouble;
+    I will deliver him and honor him
+
+  (Ps. 91:16)
+    With long life I will satisfy him,
+    And show him My salvation.
+  ```
+
+  **V-2 follow-up bundled into V-3a first commit.** Further header
+  shrink — the v1.3 header still has whitespace between the title
+  and the Score/Moves/Target row (the `justifyContent:
+  space-between` + `minHeight: 80px` stretches content apart).
+  Cheap fix: drop to `justifyContent: flex-start` with a small
+  explicit gap, or drop `minHeight` entirely and let the header
+  size to content. ~3 lines of style changes. Lands in the first
+  V-3a commit before picker work.
+
+  **Version numbering across V-3:**
+  - V-3a ships `match3-v1.4-tablet-verses.jsx`.
+  - V-3b ships `match3-v1.5-tablet-verses.jsx`.
 
 - **V-4 — Stars, persistence, victory round, arcade handoff.** Per-
   level best score, star count (campaign thresholds), completion-
@@ -489,13 +696,13 @@ surface.
   show progress (stars, best score, "✓ Completed" marker). Silent
   1.5× victory round at target-hit with brief banner. "Tablet
   arcade" button: pool rolls into arcade session; handoff banner on
-  arcade entry. Ships `match3-v1.3-tablet-verses.jsx`.
+  arcade entry. Ships `match3-v1.6-tablet-verses.jsx`.
 
 - **V-5 — Admin + polish.** Admin panel behind long-press-logo
   unlock: reveal-delay slider, simulate-completed button, reset-
   stats button, debug log toggle. Animation and timing tuning based
   on V-2 through V-4 playtests. Any remaining small fixes surfaced
-  during development. Ships `match3-v1.5-tablet-verses.jsx`.
+  during development. Ships `match3-v1.7-tablet-verses.jsx`.
 
 **Future option (surfaced during v1.3 playtest, not committed to a
 session):** **Smaller board in VERSES_MODE — remove two rows
