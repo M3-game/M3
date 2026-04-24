@@ -119,13 +119,8 @@ touches it next.
   tuning.
 
 - **Simulation harness — Session E-2a (Monte Carlo bot + Web Worker
-  pool + framework integration with E-1b).** Fully scoped 2026-04-23 —
-  see the E-2a starting brief in `docs/PROGRESS-2026-04-23.md` for the
-  complete spec (MC params with admin-tunable N / depth-cap / rollout
-  strategy / worker count, Web Worker pool architecture, runtime math
-  validating the pool decision). Version target tablet-sim v1.2 → v1.3.
-  `_SIM.runGame({bot, target, moves, botParams})` signature already
-  locked in v1.2 so E-2a slots in without retrofit.
+  pool + framework integration with E-1b) — SHIPPED 2026-04-23.** See
+  Done section. Bumps tablet-sim to v1.3.
 
 - **Simulation harness — Session E-2b (MC tuning session).** Scoped
   2026-04-23 — see the E-2b starting brief in
@@ -386,6 +381,49 @@ sandbox (Session H) can be tuned against data rather than by guess.
   while condition. `won` flag at end still reflects target-reached;
   `finalScore` captures full play-through. Build clean; sim bundle
   71.13 kB (from 71.14 kB — comment + one-line change).
+
+- **Simulation harness — Monte Carlo bot + Web Worker pool (Session
+  E-2a).** 2026-04-23. Tablet-sim bumped `v1.2 → v1.3`. Major structural
+  change: the `_SIM` namespace plus its shared constants (ROWS, COLS,
+  TILE_TYPES, MIN/MAX_MOVES, BASE_TARGET, TARGET_VARIANCE,
+  BONUS_MOVE_INTERVAL, SUPER/HYPERNOVA_MIN_TILES) and pure helpers
+  (`hasValidMoves`, `findMatchesSimple`, `calculateUnusedSpecialsBonus`)
+  extracted into new co-located shared module
+  `platforms/tablet-sim/simCore.js` — single source of truth, imported
+  by both the main-thread v1.3 JSX and the new Web Worker. simCore is
+  edited in place going forward (not a versioned platform file —
+  CLAUDE.md's never-overwrite rule applies to platform files, not
+  shared libraries). Monte Carlo implementation in simCore:
+  `mcPickBestSwap` runs N rollouts per candidate swap, each simulating
+  up to `depthCap` moves via chosen strategy, picks swap with highest
+  expected total score at horizon. `_SIM.runGame` now dispatches on
+  `opts.bot` between `'heuristic-1-ply'` (default) and `'monte-carlo'`
+  (consumes `opts.botParams = { n, depthCap, rolloutStrategy }`). New
+  file `platforms/tablet-sim/sim-worker.js` is a module worker that
+  imports simCore and handles `{type:'run', id, bot, target, moves,
+  botParams}` messages, posting back `{type:'result', id, result}` or
+  `{type:'error', id, message}`. Vite auto-emits a separate worker
+  chunk via `new Worker(new URL('./sim-worker.js', import.meta.url),
+  { type: 'module' })`. SimBatchRunner gains: a "Monte Carlo" option in
+  the bot dropdown; an MC Parameters sub-section (shown only when MC
+  selected) with N (default 30, range 10–200), depth-cap (default 5,
+  range 3–20), rollout strategy (default 1-Ply Heuristic; alt Random),
+  and workers (default `navigator.hardwareConcurrency − 1`, range
+  1–hardwareConcurrency) — all four sessionStorage-persisted under
+  `m3_sim_mc_*` keys. Run-path dispatch: 1-ply continues on the
+  synchronous `setTimeout(0)` loop unchanged; MC uses a worker pool
+  (poolSize = min(mcWorkers, batchSize)) with dispatch-on-complete
+  pattern — main thread initial-dispatches poolSize games, each
+  `result` message pushes the result and dispatches the next pending
+  game; `finish()` terminates all workers on completion. Cancel
+  force-resolves the pending promise via `mcFinishRef.current()` since
+  Worker.terminate() fires no event. Clipboard JSON metadata adds
+  `botParams: { n, depthCap, rolloutStrategy, workers }` when bot is
+  Monte Carlo. Results display gains a summary banner at the top
+  showing bot name + key params (e.g., "Monte Carlo — N=30, depth 5,
+  1-Ply Heuristic rollouts, 7 workers"). Build clean; sim bundle
+  90.43 kB (from 85.90 kB), separate worker chunk `sim-worker-*.js`
+  also emitted.
 
 - **Simulation harness — admin batch runner + stats + histogram
   (Session E-1b).** 2026-04-23. Tablet-sim bumped `v1.1 → v1.2`. New
