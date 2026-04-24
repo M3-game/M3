@@ -280,6 +280,225 @@ sandbox (Session H) can be tuned against data rather than by guess.
 
 ---
 
+## Memorize Mode (Verses platform)
+
+Scoped 2026-04-24. New sibling platform for memorization games delivered
+via match-3. Verses reveal one chunk per successful swap; memorization
+is purely additive and does not change match-3 gameplay. Fits the
+"amplify fun, not interfere" corollary in DESIGN.md — the game rewards
+skilled play with verse exposure and high scores rather than gating
+progress behind obstacles.
+
+**Platform.** `platforms/tablet-verses/`, forked from tablet v11.11.
+Entry: `verses.html` + `src/entry-verses.jsx`. Card "Verses" on main
+`index.html` (normal-visible, not admin-gated). Single React app;
+picker and play are internal states (no separate HTML file for the
+picker).
+
+**Content model.** Games live under `platforms/tablet-verses/games/
+<slug>/game.js`. JS data file with shape:
+
+```js
+export default {
+  title: "Titus 3:11–13",
+  translation: "KJV",       // optional
+  verses: [                 // single-level games use top-level `verses`
+    {
+      reference: "Titus 3:11",
+      chunks: ["For the grace of God", "That brings salvation", ...],
+    },
+    ...
+  ],
+  // OR for multi-level games:
+  levels: [
+    {
+      title: "Psalm 91:1–4",           // optional level title
+      targetScore: 4200,               // optional override; default
+                                       // = moves × 300 = chunks × 300
+      verses: [ ... ],
+    },
+    ...
+  ],
+};
+```
+
+Glob-discovery (no manifest). `hidden: true` flag at the top level
+keeps a game out of the picker while drafting. `_template/` folder +
+README documenting the shape and common patterns provided for
+authoring. No CLI scaffolder or validator script — the data shape is
+simple enough that a working template is sufficient; if authoring
+proves error-prone in practice, we can add a runtime schema check
+surfaced in an admin panel.
+
+**Core mechanics (memorization purely additive):**
+- Moves = chunks; each passage sets its own move budget via the data
+  (Titus 3:11–13 = 13 chunks = 13 moves).
+- One chunk reveals per successful swap, at turn settle (after all
+  cascades finish and the board stabilizes). Swaps that don't produce
+  a match (snap back, no move counter decrement) also don't trigger a
+  reveal.
+- Text bar between banner and board; rolling 3-chunk window (current
+  + 2 prior); current chunk emphasized (brighter / bolder), prior two
+  dimmed.
+- Silent 1.5× victory round at target-hit (no prompt — "end early"
+  would stop chunk reveals, which defeats memorization). Brief
+  "Target reached — 1.5×!" banner, then play continues.
+- Bonus moves (tablet-arcade mechanic, earned at 10k score thresholds)
+  exist in memorize mode but do not reveal new chunks — they just
+  allow the player to keep scoring after chunks are done. They carry
+  level-to-level within a game and persist on "Play again," zero on
+  picker-exit or browser close, and roll into tablet arcade on the
+  "Tablet arcade" handoff button. Cap 99 (inherited from tablet
+  arcade).
+- Target score: `moves × 300` formula default, optional per-level
+  `targetScore` override in data file. Short games may need a lower
+  multiplier since cascade setup is harder with few moves — that's
+  what the override is for.
+
+**Progression + picker UX:**
+- **Two-tier picker.** Main picker shows one card per game. Click a
+  multi-level game → level-select screen with per-level cards
+  (showing locked / completed / star / best-score state). Click a
+  single-level game → goes straight to play, bypassing level-select.
+- **Hybrid progression** (user picked: "middle parts are often the
+  hardest"). First pass through a multi-level game is strict —
+  must hit target to unlock the next level. After the full game is
+  completed once, any level is freely selectable on replay.
+- **Target-based level completion.** "Completed" = hit target score.
+  Falling short = must replay the level to advance (during first pass)
+  or just replay it (during free-replay mode).
+
+**End-of-level flows:**
+- **Win (hit target):** silent 1.5× plays out, remaining moves used,
+  final score settles → ~2.5s delay → passage for this level reveals
+  → buttons: **Next level →** (primary) and **Back to level-select**.
+  Player clicks to advance — no auto-timer (memorize mode should let
+  the reader breathe).
+- **Fail (missed target):** ~2.5s delay → passage for this level
+  reveals anyway (memorization is additive) → buttons: **Retry** and
+  **Back to level-select**. Stars and best-score never regress if a
+  replay scores worse.
+- **Final-level game end:** ~2.5s delay → passage for the final level
+  reveals → stays visible indefinitely with **Play again** (restart
+  game from Level 1) and **Tablet arcade** (leave memorize mode,
+  open standard arcade) buttons. No auto-dismiss; player chooses.
+- **Individual level replay** (post-completion free-replay mode):
+  ~2.5s delay → passage reveals → **Back to level-select** button
+  only (no "Next level" — player chose this level standalone, not as
+  part of a sequence).
+
+**Stars.** Campaign-style 1–5★ per level at 1.00× / 1.15× / 1.30× /
+1.50× / 1.75× target. Shown on level-select cards and as aggregate
+state on the picker's game card (e.g., "12 / 20 stars" for a 4-level
+game). **Tentative** — removable later if they start feeling like
+noise; first flag for reassessment is after V-4 ships and playtest
+feedback comes in.
+
+**Persistence.** Per-level: best score, star count, completion-count,
+last-played timestamp. Per-game: completed-once flag (triggers hybrid
+free-replay mode). localStorage-keyed under `m3_verses_*`.
+
+**Arcade handoff.** When a game is completed in full and the player
+clicks the **Tablet arcade** button on the final-level end screen,
+the accumulated bonus-moves pool transfers into the tablet arcade
+session. One-way handoff (no rollback). Brief "+N bonus moves carried
+from memorize mode" banner on arcade entry so the extra moves don't
+appear silently. Memorize pool zeroes after the transfer. **Shares
+future plumbing** with Session F's planned campaign → arcade
+continuation (DEFERRED "Gameplay / UX additions" section); build
+memorize → arcade standalone first, unify the helper in a later
+session once both handoffs are concrete.
+
+**Admin.** Memorize mode is user-facing (not admin-gated), but a
+small admin panel behind the existing long-press-logo unlock on
+`index.html` (or `?admin=1` URL param on `verses.html`) provides
+dev/test tooling:
+- **Reveal delay slider** (default 2.5s, range 1–5s) — tune the
+  end-of-level passage-reveal delay.
+- **"Simulate game completed" button** — flips a game to the
+  hybrid-unlocked state for testing free-replay without actually
+  playing through every level.
+- **"Reset all stats" button** — clears best scores, stars,
+  completion-count. Scoped per-game or all.
+- **Debug log toggle** — console logs for chunk reveals, level
+  transitions, bonus-move carry events.
+
+Not proposed for v1 admin: target-score override at runtime, chunk-
+reveal timing tuning, force-win buttons. Add if specific needs
+surface.
+
+**First games:**
+- **Titus 3:11–13** — single-level, 13 chunks (3 / 6 / 4 across verses
+  11 / 12 / 13). Ships with V-2 as the first playable content.
+- **Psalm 91** — multi-level, 3–4 levels TBD during V-3 (user
+  suggested this split during scoping). Ships with V-3 as the first
+  multi-level content.
+
+**Session plan (5 sessions):**
+
+- **V-1 — Scaffold.** Fork `platforms/tablet/match3-v11.11-tablet.jsx`
+  → new platform `platforms/tablet-verses/`. Create `verses.html`,
+  `src/entry-verses.jsx`, Vite config entry, "Verses" card on
+  `index.html`. Platform plays like tablet arcade; no memorize-
+  specific logic yet — just plumbing. Ships
+  `match3-v1.0-tablet-verses.jsx`.
+
+- **V-2 — Single-game MVP.** Content model: `games/` directory with
+  `_template/`, `titus-3-11-13/game.js`, games README. Glob-
+  discovery manifest loads games from disk. Hardcoded Titus boot
+  (no picker yet — next session). Text bar between banner and
+  board, rolling 3-chunk window, current emphasized. Moves = chunks
+  (13 for Titus); successful swap reveals next chunk on settle.
+  Basic end-of-round: passage reveal after 2.5s + **Play again**
+  button (no arcade handoff yet). Ships
+  `match3-v1.1-tablet-verses.jsx`. **Earliest playtest-able
+  version — start memorizing Titus between V-2 and V-3 sessions.**
+
+- **V-3 — Picker + level-select + multi-level.** Two-tier landing:
+  main picker (game cards) → level-select (for multi-level games
+  only). Single-level games bypass level-select. Extend data shape
+  to support `levels[]`; add `psalm-91/game.js` as first multi-
+  level game. Hybrid progression. Level-to-level flow: Next level /
+  Back to level-select / Retry per the locked end-of-level specs.
+  Bonus-moves carry within game. Ships
+  `match3-v1.2-tablet-verses.jsx`. Can split into V-3a (picker) +
+  V-3b (multi-level + Psalm 91) if session feels too heavy.
+
+- **V-4 — Stars, persistence, victory round, arcade handoff.** Per-
+  level best score, star count (campaign thresholds), completion-
+  count, last-played — localStorage-keyed. Picker + level-select
+  show progress (stars, best score, "✓ Completed" marker). Silent
+  1.5× victory round at target-hit with brief banner. "Tablet
+  arcade" button: pool rolls into arcade session; handoff banner on
+  arcade entry. Ships `match3-v1.3-tablet-verses.jsx`.
+
+- **V-5 — Admin + polish.** Admin panel behind long-press-logo
+  unlock: reveal-delay slider, simulate-completed button, reset-
+  stats button, debug log toggle. Animation and timing tuning based
+  on V-2 through V-4 playtests. Any remaining small fixes surfaced
+  during development. Ships `match3-v1.4-tablet-verses.jsx`.
+
+**Scoping notes worth keeping:**
+- Scoping done as a seven-item roadmap, one decision per message,
+  completed 2026-04-24. Two decisions reversed mid-scoping:
+  - **Stars:** initially drafted as "no" for simplicity → flipped to
+    "yes campaign-style" for replay motivation after user accepted
+    hybrid progression's replay emphasis.
+  - **Bonus moves on Play Again:** initially drafted as "zero on
+    Play Again" → flipped to "persist" after user framed them as an
+    earned reward rather than per-session currency.
+- "Verses." was considered with a period for stylistic weight;
+  user dropped the period, final name is "Verses" (no period).
+  Keep the dual meaning (scripture / competition) in mind when
+  picker copy is written.
+- Memorization is *not* what counts as progress — target score is.
+  If a player wants to revisit a verse they memorized, they have to
+  hit target on that level (during first pass) or use free-replay
+  (post-completion). Don't add a "mark as memorized" affordance;
+  progress is measured by play.
+
+---
+
 ## Research / external context
 
 - **Match-3 literature survey — scoped multi-session research task.**
