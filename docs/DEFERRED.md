@@ -96,20 +96,21 @@ touches it next.
   Session D (v11.8) which shipped slow-motion and history panel; step
   mode is the missing third mode.
 - **Slow-mode and history panel** — shipped in tablet v11.8 (Session D,
-  2026-04-22). See `docs/PROGRESS-2026-04-22.md`. Campaign port pending.
+  2026-04-22). See `docs/archive/PROGRESS-2026-04-22.md`. Campaign port
+  pending.
 - **Simulation harness — Session E-1a scaffold + 1-ply bot (SHIPPED
   2026-04-22).** See Done section. The sibling platform
   `platforms/tablet-sim/` and the pure `_SIM` namespace are live;
   `window.runSimGame()` callable from DevTools.
+- **Simulation harness — Session E-1a2 bot-plays-to-exhausted fix
+  (SHIPPED 2026-04-23).** See Done section. Bumps tablet-sim to v1.1.
 
-- **Simulation harness — Session E-1b (admin UI + batch + stats).**
-  Wrap `_SIM.runGame` in an admin overlay on `tablet-sim.html`:
-  preset buttons for 10 / 50 / 200 games, async-chunked run loop
-  (keep the browser responsive while batching), aggregate stats
-  (win-rate, score distribution with percentiles, stuck-rate,
-  avg specialsCreated, avg maxCombo), copy-to-clipboard raw JSON.
-  Pull this forward if reward-mode playtest surfaces questions
-  about relative difficulty across lever settings.
+- **Simulation harness — Session E-1b (admin UI + batch + stats +
+  histogram).** Fully scoped 2026-04-23 — see the E-1b starting brief in
+  `docs/PROGRESS-2026-04-23.md` for the complete spec (card layout,
+  preset buttons, stats set, vertical-bar histogram, clipboard JSON
+  shape, `_SIM.runGame({bot,target,botParams})` API shape). Version
+  target tablet-sim v1.1 → v1.2.
 
   ⚠ **Skill-gap caveat** (from DESIGN.md, restated). Skilled human
   play involves 5–8 move lookahead. A 1-ply bot captures none of
@@ -119,21 +120,27 @@ touches it next.
   relative-difficulty comparisons across levels, score-distribution
   anomaly spotting. Not for absolute-target tuning.
 
-- **Simulation harness — Monte Carlo extension (previously E₂,
-  deferred).** Now implementable by adding a second bot to the
-  `_SIM` namespace inside the existing `tablet-sim/` sibling — no
-  new sibling needed (E-1a already built the shared scaffold).
-  MC loop: ~100 random playouts per candidate swap; pick the swap
-  with the highest average final score. Captures cascade potential
-  emergently without explicit deep lookahead.
+- **Simulation harness — Session E-2a (Monte Carlo bot + Web Worker
+  pool + framework integration with E-1b).** Fully scoped 2026-04-23 —
+  see the E-2a starting brief in `docs/PROGRESS-2026-04-23.md` for the
+  complete spec (MC params with admin-tunable N / depth-cap / rollout
+  strategy / worker count, Web Worker pool architecture, runtime math
+  validating the pool decision). Version target tablet-sim v1.2 → v1.3.
 
-  **Calibration instead of verification.** Don't require bit-
-  identical equivalence between sim and main game. Check that sim
-  score distributions land in a similar range to observed human
-  play. If wildly different ranges, it has a bug; fix.
+- **Simulation harness — Session E-2b (MC tuning session).** Scoped
+  2026-04-23 — see the E-2b starting brief in
+  `docs/PROGRESS-2026-04-23.md`. Short session; runtime-config + short
+  runs to lock tuning defaults. v1.3 → v1.4 only if code defaults
+  change.
 
-  **Deprioritized 2026-04-22.** Pull forward if E-1b bot data
-  reveals blind spots the MC approach could illuminate.
+- **`_SIM` internal target generation — round to 100.** The live arcade
+  rounds generated target scores to 100-point increments; `_SIM`
+  currently generates unrounded targets (e.g., 4837). Flagged
+  2026-04-23 during E-1b scoping. Not a blocker for E-1b itself (admin
+  sets a fixed target that bypasses `_SIM`'s internal generator for
+  batch runs), but worth tightening so any context that still uses the
+  auto-generator matches live behavior. Fix: round the target in
+  `runGame`'s default assignment at `opts.levelTarget ?? ...`.
 - **Animated tutorials** — mini-grid demo inline on each intro screen.
   Reuses `drawTile` / `drawSpecialIcon`. Per-level distribution:
   - L1: basic 3-match
@@ -367,3 +374,15 @@ sandbox (Session H) can be tuned against data rather than by guess.
   Mid-session bug: initial board ignored URL/sessionStorage because
   the module-level lever mirror was initialized to defaults; fix —
   call `loadRewardmodeLevers()` at module load time.
+
+- **Tablet-sim bot plays until moves exhausted (Session E-1a2).**
+  2026-04-23. Tablet-sim bumped `v1.0 → v1.1`. The `runGame` loop
+  `while (score < levelTarget && …)` was exiting as soon as score
+  crossed target, so the bot never accumulated past target and never
+  crossed the 10k bonus-move threshold across 50 games of console
+  testing. The "0 bonus moves in 50 games" finding from E-1a was an
+  artifact of this setting, not a real "bot can't reach it" signal.
+  One-line fix: dropped the `score < levelTarget` clause from the
+  while condition. `won` flag at end still reflects target-reached;
+  `finalScore` captures full play-through. Build clean; sim bundle
+  71.13 kB (from 71.14 kB — comment + one-line change).
