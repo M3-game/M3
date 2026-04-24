@@ -35,6 +35,16 @@ playtest feel wins.
   throttle the player.
 - **Variety extends fun too, when done right.** See "Variety through
   amplification, not interference" below.
+- **Variance is a feature, not a bug.** Even a Monte Carlo bot with
+  ~9,000× more compute than the 1-ply heuristic loses ~14% of games
+  at a 1-ply-calibrated target — initial-board + refill variance
+  denies cascade chains on bad hands. (Evidence: 2026-04-23
+  tablet-sim v1.3 100-game MC batch at target 6000 / moves 20.) The
+  game therefore retains real stochastic stakes across all skill
+  levels; variance keeps even strong play honest rather than
+  degenerating into pure skill-ceiling determinism. Tuning decisions
+  that would eliminate the bad-hand tail (e.g., guaranteed-match
+  refills, mulligan mechanics) should be weighed against this.
 - **Visible scoring.** Score popups, multiplier callouts, cascade chain text,
   and the bonus-move flash should make the *source* of each point legible —
   the player should feel why they're winning, not just see the number climb.

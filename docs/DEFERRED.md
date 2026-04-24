@@ -122,11 +122,70 @@ touches it next.
   pool + framework integration with E-1b) — SHIPPED 2026-04-23.** See
   Done section. Bumps tablet-sim to v1.3.
 
-- **Simulation harness — Session E-2b (MC tuning session).** Scoped
-  2026-04-23 — see the E-2b starting brief in
-  `docs/PROGRESS-2026-04-23.md`. Short session; runtime-config + short
-  runs to lock tuning defaults. v1.3 → v1.4 only if code defaults
-  change.
+- **Simulation harness — Session E-2b (MC tuning session) — deferred
+  2026-04-23 after E-2a playtest covered ~80–90% of the "does MC
+  work?" question.** Not blocking anything downstream; Session I,
+  campaign hypernova, reward-mode integration all proceed with MC's
+  current defaults as-is. Resume if/when tuned defaults become
+  practically useful (e.g., if MC becomes a daily-driver for balance
+  testing) or if a future bot variant needs a matched baseline.
+
+  **Findings captured from the 2026-04-23 playtest (for cold
+  resumption):**
+  - **MC at defaults (N=30, depth-cap=5, 1-Ply rollouts) vs. 1-Ply at
+    matched target=6000, moves=20 — from three batches (10g / 50g /
+    100g) at fixed target 6000 and fixed 20 moves:**
+    - 1-Ply (earlier 100-game v1.1 batch, random 18–24 moves / random
+      5000–6500 target): 54% win rate, mean 6,837, 21% earning ≥1
+      bonus move.
+    - MC (10-game pilot): misleadingly rosy 100% win / mean 13,481 /
+      80% earning ≥1 bonus. Small-N luck — no losses sampled.
+    - MC (50-game): 86% win / mean 12,229 / median 11,795 / 64%
+      earning ≥1 bonus.
+    - **MC (100-game — the locked-in estimate): 86% win / mean 11,745
+      / median 10,920 / p10 4,585 / p90 18,385 / 52% earning ≥1
+      bonus. Range 1,665 → 30,005.** Win rate held exactly stable
+      between 50g and 100g; mean and median drifted down ~10% from
+      50g estimate; bonus-earn rate was the most mis-estimated
+      metric at small N (80% → 64% → 52%). Worth noting for future
+      small-batch interpretations: bonus-earn ratio needs >50 games
+      to stabilize.
+  - **MC is not invincible at 1-Ply-calibrated targets.** 14 losses
+    in the 100-game batch (all finished 1,665–5,750, i.e., at or below
+    target, all used full 20 moves, none got stuck). Losses share a
+    profile: **3–7 specials created + maxCombo 3–6**, vs. wins
+    **6–23 specials + maxCombo 4–13**. These are "bad-hand" games
+    where the initial board + refill variance denied the cascade
+    chains MC needs. Real design insight: even an AI ~9,000× more
+    expensive than the 1-Ply heuristic can't brute-force a win from
+    a bad hand — variance is a genuine game-design feature retained
+    at skilled-equivalent play. (Now also captured in
+    `docs/DESIGN.md` Optimize-for-Fun list.)
+  - **Runtime cost.** ~65–80s avg per game at N=30 / depth=5 / 1-Ply
+    rollouts. ~16 min wall-clock for 100 games with 7 workers (50-game
+    batch was ~7 min with 9 workers). Usable for scheduled tuning
+    runs, not casual exploration. Per-game cost stable across batch
+    sizes — no degradation at scale.
+  - **Target 6,000 is 1-Ply-calibrated; too easy for MC tuning.**
+    Median MC score at defaults is ~10,920. For E-2b to observe
+    meaningful parameter-sensitivity differences, recommend
+    **starting calibration target ~10,500–12,500** (centered on the
+    100-game median) for roughly 50% win rate. Around 9k would give
+    ~65–70%; around 13k would give ~35–40%.
+  - **Matched 1-Ply baseline at the chosen calibration target is
+    still worth running first** (fixed 20 moves + new target, 100
+    games, ~12s). Gives the tuning table a direct comparison column.
+  - **Unusual tail observation — maxCombo vs. score correlation is
+    weak.** Best maxCombo in 100g was 13 (game 29) but that game
+    scored only 12,025 — 13 short cascades compounding rather than
+    one big chain. MC doesn't reliably convert deep combo depth into
+    peak scores; cascade depth alone isn't a proxy for "big turn."
+
+  **When resuming E-2b, the starting brief's sensitivity sweeps still
+  apply** — N (10/20/30/60/100 at depth=5, 1-Ply), depth-cap (3/5/8/12
+  at N=30, 1-Ply), rollout strategy (1-Ply vs. Random at N=30, depth=5).
+  Decision output: either keep defaults (v1.3 stays) or bump to v1.4
+  with updated source constants + documented reasoning.
 
 - **`_SIM` internal target generation — round to 100.** The live arcade
   rounds generated target scores to 100-point increments; `_SIM`
