@@ -706,13 +706,17 @@ surface.
   SHIPPED 2026-04-24.** See Done section. Bumps tablet-verses to
   v1.6 + tablet arcade to v11.12.
 
-- **V-5 — Admin + polish.** Admin panel behind long-press-logo
-  unlock: reveal-delay slider, simulate-completed button, reset-
-  stats button (all-games or per-game scope), debug log toggle.
-  Animation and timing tuning based on V-2 through V-4 playtests.
-  Update the "Available in v1.6" caption (now stale — Arcade mode
-  is active in v1.6) if any holdover refs surface. Any remaining
-  small fixes. Ships `match3-v1.7-tablet-verses.jsx`.
+- **V-5 — Admin + polish — DEFERRED 2026-04-24, "if needed."**
+  Originally scoped: admin panel behind long-press-logo unlock with
+  reveal-delay slider, simulate-completed button, reset-stats
+  button, and debug log toggle. **Polish was rolled into V-2 → V-4
+  inline as playtest signal arrived**, and on review the remaining
+  admin features didn't justify a session of their own — most of
+  the cost is the panel scaffolding itself, and only "simulate
+  game completed" had standing value (a transient testing tool).
+  Hand-editing localStorage in DevTools covers that use case if it
+  ever surfaces. Re-open as a session if a specific need comes up.
+  Ships `match3-v1.7-tablet-verses.jsx` if/when shipped.
 
 **Future option (surfaced during v1.3 playtest, not committed to a
 session):** **Smaller board in VERSES_MODE — remove two rows
