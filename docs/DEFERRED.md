@@ -478,6 +478,131 @@ surface.
   existing `levels[]` array; picker auto-updates. Same chunk-authoring
   pattern as v1.0 (I draft per-section, user edits toward thematic-
   phrase chunks).
+
+- **Matt 5 ready-to-code drafts (drafted 2026-04-25, awaiting code-up
+  in a fresh session).** Two levels finalized via the established
+  chunking workflow. Append the entries below to the `levels[]` array
+  in `platforms/tablet-verses/games/matthew-5/game.js` (after the
+  existing 3 levels). After ship: Matt 5 totals 90 chunks / 85 moves
+  across 5 levels. No engine changes expected — content-only addition,
+  build should pass cleanly.
+
+  Wrapping profile (informational only — accepted by design):
+  - **Matt 5:21–26 (Murder / anger):** 25 chunks / 24 moves / 7,200
+    default target. ~7 chunks wrap to 2 lines at 20px Georgia bold.
+  - **Matt 5:27–30 (Adultery):** 15 chunks / 14 moves / 4,200 default
+    target. ~4 chunks wrap or are borderline. Tighter wrap profile
+    than other levels. vv. 29–30 are intentionally identical-structure
+    parallel ("If your right [eye/hand] causes you to sin…") — chunked
+    the same way so the rhythm reinforces.
+
+  ```js
+      {
+        title: "Matthew 5:21–26",
+        verses: [
+          {
+            reference: "Matt. 5:21",
+            chunks: [
+              "You have heard that it was said to those of old,",
+              "'You shall not murder,",
+              "and whoever murders will be in danger of the judgment.'",
+            ],
+          },
+          {
+            reference: "Matt. 5:22",
+            chunks: [
+              "But I say to you",
+              "that whoever is angry with his brother without a cause",
+              "shall be in danger of the judgment.",
+              "And whoever says to his brother, 'Raca!'",
+              "shall be in danger of the council.",
+              "But whoever says, 'You fool!'",
+              "shall be in danger of hell fire.",
+            ],
+          },
+          {
+            reference: "Matt. 5:23",
+            chunks: [
+              "Therefore if you bring your gift to the altar,",
+              "and there remember",
+              "that your brother has something against you,",
+            ],
+          },
+          {
+            reference: "Matt. 5:24",
+            chunks: [
+              "leave your gift there before the altar,",
+              "and go your way.",
+              "First be reconciled to your brother,",
+              "and then come and offer your gift.",
+            ],
+          },
+          {
+            reference: "Matt. 5:25",
+            chunks: [
+              "Agree with your adversary quickly,",
+              "while you are on the way with him,",
+              "lest your adversary deliver you to the judge,",
+              "the judge hand you over to the officer,",
+              "and you be thrown into prison.",
+            ],
+          },
+          {
+            reference: "Matt. 5:26",
+            chunks: [
+              "Assuredly, I say to you,",
+              "you will by no means get out of there",
+              "till you have paid the last penny.",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Matthew 5:27–30",
+        verses: [
+          {
+            reference: "Matt. 5:27",
+            chunks: [
+              "You have heard that it was said,",
+              "'You shall not commit adultery.'",
+            ],
+          },
+          {
+            reference: "Matt. 5:28",
+            chunks: [
+              "But I say to you",
+              "that whoever looks at a woman to lust for her",
+              "has already committed adultery with her in his heart.",
+            ],
+          },
+          {
+            reference: "Matt. 5:29",
+            chunks: [
+              "If your right eye causes you to sin,",
+              "pluck it out and cast it from you;",
+              "for it is more profitable for you",
+              "that one of your members perish,",
+              "than for your whole body to be cast into hell.",
+            ],
+          },
+          {
+            reference: "Matt. 5:30",
+            chunks: [
+              "And if your right hand causes you to sin,",
+              "cut it off and cast it from you;",
+              "for it is more profitable for you",
+              "that one of your members perish,",
+              "than for your whole body to be cast into hell.",
+            ],
+          },
+        ],
+      },
+  ```
+
+  When coding the append, also update the file's header comment block
+  to reflect the new totals (5 levels, 90 chunks, 85 moves) and shift
+  the "PARTIAL" status note (5:1–20 → 5:1–30 covered, with 5:31–48
+  still planned).
 - **Isaiah 52:13–53:12 — ESV.** First non-NKJV game in the project.
   User preference noted 2026-04-25: ESV, not NKJV. The Servant Song
   unit (52:13–15 lead-in + all of ch. 53). 15 verses; multi-level.
