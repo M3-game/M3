@@ -702,19 +702,17 @@ surface.
   - V-3a ships `match3-v1.4-tablet-verses.jsx`.
   - V-3b ships `match3-v1.5-tablet-verses.jsx`.
 
-- **V-4 — Stars, persistence, victory round, arcade handoff.** Per-
-  level best score, star count (campaign thresholds), completion-
-  count, last-played — localStorage-keyed. Picker + level-select
-  show progress (stars, best score, "✓ Completed" marker). Silent
-  1.5× victory round at target-hit with brief banner. "Tablet
-  arcade" button: pool rolls into arcade session; handoff banner on
-  arcade entry. Ships `match3-v1.6-tablet-verses.jsx`.
+- **V-4 — Stars, persistence, victory round, arcade handoff —
+  SHIPPED 2026-04-24.** See Done section. Bumps tablet-verses to
+  v1.6 + tablet arcade to v11.12.
 
 - **V-5 — Admin + polish.** Admin panel behind long-press-logo
   unlock: reveal-delay slider, simulate-completed button, reset-
-  stats button, debug log toggle. Animation and timing tuning based
-  on V-2 through V-4 playtests. Any remaining small fixes surfaced
-  during development. Ships `match3-v1.7-tablet-verses.jsx`.
+  stats button (all-games or per-game scope), debug log toggle.
+  Animation and timing tuning based on V-2 through V-4 playtests.
+  Update the "Available in v1.6" caption (now stale — Arcade mode
+  is active in v1.6) if any holdover refs surface. Any remaining
+  small fixes. Ships `match3-v1.7-tablet-verses.jsx`.
 
 **Future option (surfaced during v1.3 playtest, not committed to a
 session):** **Smaller board in VERSES_MODE — remove two rows
@@ -838,6 +836,150 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Memorize Mode stars + persistence + 1.5× victory + arcade
+  handoff + board shrink + see-entire-passage (Session V-4).**
+  2026-04-24. Tablet-verses bumped `v1.5 → v1.6`
+  (`match3-v1.6-tablet-verses.jsx`); tablet arcade bumped
+  `v11.11 → v11.12` (`match3-v11.12-tablet.jsx`) for the entry
+  banner. Largest single delivery in the V-* track. Same-day ship
+  after V-3b + V-4 scoping. Six-decision scoping pass first
+  (persistence shape / star rendering / card layout / victory round
+  / arcade handoff / impl order); two mid-V-4 fold-ins driven by
+  V-3b playtest (board shrink, see-entire-passage reveal).
+
+  **Persistence layer (Decision #1).** `progress: Record<slug,
+  GameProgress>` map on the wrapper, hydrated eagerly at mount from
+  `m3_verses_<slug>` localStorage keys. Persisted via single
+  `useEffect` that writes every slug's blob on any progress change
+  (small N — 2 games at V-4 — so per-slug-write tracking is
+  premature). Schema:
+  ```js
+  {
+    version: 1,
+    levels: Array<null | { best, stars, completions, lastPlayed }>,
+    completedLevels: number[],
+    fullCompleted: boolean
+  }
+  ```
+  Empty/malformed/wrong-version blobs fall back to a freshly-built
+  empty progress object via `versesEmptyProgress(game)`. On
+  game-pick, the wrapper hydrates session-mirror state
+  (`completedLevels` Set, `fullCompleted` boolean) from
+  `progress[slug]` so a returning player sees their unlocks intact.
+  bankedMoves stays session-only (zero on return to picker).
+
+  **Stars (Decision #2).** `★` Unicode character (not emoji),
+  five per level. Earned: `color: '#FFD700'` (gold). Unearned:
+  `color: '#ccc'`. Same character + colors as `core/AdminPanel.jsx`
+  and the campaign file — reused exactly for visual consistency.
+  Thresholds locked at `[1.00, 1.15, 1.30, 1.50, 1.75]` × target
+  → 1/2/3/4/5 stars. 0 stars when target wasn't hit.
+  `versesComputeStars(score, target)` and `versesAggregateStars(game,
+  gameProgress)` helpers added near the top of the file.
+  No-regression rule: best/stars only update if new value is higher;
+  completions and lastPlayed always update.
+
+  **Card UI (Decision #3).**
+  - **Picker cards (`VersesPicker`):** new `X / Y ★` aggregate line
+    (always rendered for shape consistency — "0 / 5 ★" for unplayed
+    games, gold ★ when at least one earned). Inline ✓ before title
+    when `fullCompleted`. Locked-card path (V-3b) unchanged.
+  - **Level-select cards (`VersesLevelSelect`):** new `VersesStarRow`
+    component renders 5 `★` per unlocked card. `Best: 4,250` line
+    below stars when there's a best to show. Inline ✓ before title
+    for completed levels (won at least once). Unlocked-but-unplayed
+    cards show 5 empty stars (clear "play this for stars" affordance)
+    + omit the best line. Locked cards stay title-only (V-3b spec).
+
+  **Victory round (Decision #4).** `bonusRoundActive` flag (already
+  wired into the scoring branch with `BONUS_ROUND_MULTIPLIER = 1.5`)
+  auto-flips true when `targetReached` flips true in VERSES_MODE —
+  silent activation, no prompt. Toast copy updated from V-2's
+  `✓ Target reached!` to `✓ Target reached — 1.5×!`. Persistent
+  `· 1.5×` appended after the gold ✓ on the header Target field
+  during the multiplier window. Both clear on level transition via
+  the `slug:levelIndex` remount.
+
+  **Arcade-mode handoff (Decision #5).** V-3b's inactive Arcade mode
+  button on the final-level first-pass win modal flips active.
+  onClick: writes bankedMoves to BANKED_KEY (additive — adds to any
+  existing arcade balance, doesn't overwrite) + writes
+  `m3_arcade_carry_from_verses` carry-receipt key with amount +
+  ISO timestamp + navigates to `${BASE_URL}tablet.html`. Tablet
+  arcade v11.12 (separate platform-file bump in this same V-4
+  commit) reads the carry-receipt key in a useEffect at component
+  mount, shows a 2.5s top banner reading `+N bonus moves carried
+  from memorize mode`, and clears the receipt key (refresh doesn't
+  replay the banner). Banner styling matches the V-2 target-toast
+  (gold gradient pill, Georgia 16px, bold).
+
+  **Board shrink + text bar bump (mid-V-4 fold-in from V-3b
+  playtest).** VERSES_MODE: `ROWS` 12 → 10 (conditional, arcade
+  fallback path stays at 12 rows for theoretical regression
+  isolation — VERSES_MODE is always true at runtime). Frees ~100px
+  of vertical space and changes scoring expectation slightly
+  (fewer cascade opportunities → lower expected per-move score).
+  Target formula stays at `moves × 300` for V-4 ship; tune to
+  250 in playtest if needed.
+
+  Text bar (post-playtest tune in this same session): main chunk
+  19 → 20px, prior chunks 13 → 15px, padding 8 → 12px vertical,
+  reference column always 15px regardless of row (no longer scales
+  with the current-row size). First pass tried 22px main + a gold
+  left-border accent + tinted background on the current row;
+  playtest reaction was "too big and the bar doesn't help" — same-
+  session retune dropped to 20px and removed the highlight
+  decorations. Bigger font + bolder weight handles prominence on
+  its own.
+
+  **"See entire X" reveal (mid-V-4 fold-in).** New
+  `versesFlattenAllChunks(game)` helper concatenates `flatChunks`
+  across every level, preserving per-verse reference markers. New
+  `VersesFullPassageModal` component renders the concatenated
+  chunks in the same Georgia two-column layout as the V-2 end-of-
+  round modal. State (`showFullPassage`) lives on the wrapper so
+  both `VersesGame` (final-level win modal) and `VersesLevelSelect`
+  (free-replay mode) can trigger the same opener.
+
+  **Button placement:**
+  - **Final-level first-pass win modal:** 4th button after Play
+    again / Back to level selections / Arcade mode, labeled
+    `See entire <game.title>` (e.g., "See entire Psalm 91"). User
+    explicitly OK'd 4-button width; if cluttered, split into rows
+    later (back-style top, forward-style bottom).
+  - **Level-select page (free-replay mode only):** secondary
+    bordered button below the card grid, italic Georgia,
+    `See entire <game.title>`. Always-available bridge once the
+    game is fully completed.
+
+  Single-level games (Titus) don't get the button — their existing
+  end-of-round modal already shows the full passage as one read.
+
+  **Naming locked during V-4 scoping.** "Arcade mode" replaced V-3b's
+  "Tablet arcade" in player-facing UI ("Tablet arcade" leaks the
+  platform name; "Arcade mode" reads cleaner). Inactive caption
+  "Available in v1.6" was V-3b's placeholder; V-4 ships v1.6 active,
+  caption removed. V-5 should sweep for any holdover references.
+
+  **Wiring.** `src/entry-verses.jsx` imports v1.6; `src/main.jsx`
+  imports tablet v11.12; `index.html` Verses card desc → `v1.6 ·
+  stars + persistence + 1.5× victory + arcade handoff · 10-row
+  board`; tablet card desc → `v11.12 · verses → arcade carry banner
+  · v11.11 contrast fix · bonus cap 99 · run tracking · scoring-
+  history panel`. Build clean: verses 75.72 → 81.60 kB (+5.88 kB);
+  tablet 64.37 → 65.26 kB (+0.89 kB).
+
+  **Open for V-4 playtest:**
+  - Star thresholds vs. the smaller 10-row board (5★ = 1.75× target;
+    achievable on Psalm 91 levels with fewer cascade opportunities?).
+  - 1.5× scoring feel — toast + persistent header indicator + actual
+    score acceleration coherence.
+  - Arcade-mode handoff round-trip: complete Psalm 91, click
+    Arcade mode, verify banner on tablet entry, verify bonus moves
+    are spendable in arcade.
+  - Star contrast on the dim level-select cards (locked vs unlocked
+    sibling visual difference).
 
 - **Memorize Mode multi-level + level-select + Psalm 91 (Session
   V-3b).** 2026-04-24. Tablet-verses bumped `v1.4 → v1.5`
