@@ -451,9 +451,58 @@ surface.
   readers: during scoping the user pasted the chunk content with
   "Titus 3:11–13" reference lines — that was a typo, corrected
   during Q1 fact-check. The text is NKJV Titus 2, not Titus 3.)
-- **Psalm 91** — multi-level, 3–4 levels TBD during V-3 (user
-  suggested this split during scoping). Ships with V-3 as the first
-  multi-level content.
+- **Psalm 91 NKJV — SHIPPED V-3b 2026-04-24.** Multi-level, 4 thematic
+  levels (1–4 / 5–8 / 9–13 / 14–16). 49 chunks, 45 moves total. Data
+  lives at `platforms/tablet-verses/games/psalm-91/game.js`. No per-
+  level `targetScore` overrides; defaults to `moves × 300`. Reference
+  format `Ps. 91:N` (abbreviated to fit the 110px text-bar column).
+- **Matthew 5 NKJV (PARTIAL) — SHIPPED 2026-04-25.** Multi-level. v1.0
+  ships 5:1–20 across three levels: 5:1–12 Beatitudes (25 chunks),
+  5:13–16 Salt and light (12), 5:17–20 Fulfilling the Law (13). Total
+  at v1.0: 50 chunks / 47 moves. Data at
+  `platforms/tablet-verses/games/matthew-5/game.js`. Reference format
+  `Matt. 5:N`. ~22 of 50 chunks exceed ~40 chars and wrap to 2 lines
+  at the current 20px Georgia bold rendering — wrapping accepted to
+  preserve thematic phrasing ("Blessed are X" entire phrase, etc.).
+  See "Per-chunk font override" parked option below for the fallback
+  if wrapping proves jarring in playtest. Future Matt 5 levels are
+  additive (engine reads `levels[]` length without any "complete"
+  gate); see "Planned content" below.
+
+**Planned content (authoring queue, no engine work expected):**
+- **Matthew 5 future levels — additive to existing game file.** Per
+  scoping 2026-04-25, remaining sections are: 5:21–26 (anger), 5:27–30
+  (adultery), **5:31–37 (combined divorce + oaths — user thematic
+  decision: "Jesus treats marriage as an oath")**, 5:38–42 (turn the
+  other cheek), 5:43–48 (love your enemies). Append entries to the
+  existing `levels[]` array; picker auto-updates. Same chunk-authoring
+  pattern as v1.0 (I draft per-section, user edits toward thematic-
+  phrase chunks).
+- **Isaiah 52:13–53:12 — ESV.** First non-NKJV game in the project.
+  User preference noted 2026-04-25: ESV, not NKJV. The Servant Song
+  unit (52:13–15 lead-in + all of ch. 53). 15 verses; multi-level.
+  Data file's existing `translation` field already supports per-game
+  translation choice; just a content choice. No engine impact.
+- **James 1 — NKJV.** Whole chapter, 27 verses; multi-level. Sequence
+  TBD; expect to author after Matt 5 progresses meaningfully.
+
+**Parked options (engine changes, only if needed):**
+- **Per-chunk conditional font override.** Surfaced 2026-04-25 during
+  Matt 5 v1.0 authoring as a fallback for the long-chunk wrapping
+  problem. The proposal: add an optional per-chunk field (e.g.,
+  `fontSize: 16`) read by the text-bar renderer to shrink the current-
+  chunk font on a specific row, fitting longer chunks single-line
+  without changing the global default. Estimated ~5 lines in the text-
+  bar render block + a data-shape addition in the README. Not built
+  yet — the V-* track shipped with global 20px and content authors
+  can accept wrapping as a first-line response. Re-open if playtest
+  reveals the wrap-induced height-shift is jarring enough to warrant
+  the engine change. Reasoning trail: font-size reduction tested via
+  estimate (20 → 19 → 18px) saves only ~1 wrap because long chunks
+  are 50–60 chars, well past any of those thresholds; visual
+  hierarchy floors at 18px (prior chunks fixed at 15px). So a global
+  reduction isn't a win — the targeted per-chunk override is the
+  better lever if wrapping proves bad enough to fix.
 
 **Session plan (5 sessions):**
 
@@ -840,6 +889,47 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Memorize Mode content — Matthew 5 v1.0 (PARTIAL).** 2026-04-25.
+  First content-only session against the V-* engine — no
+  `match3-vX.Y-tablet-verses.jsx` changes. New
+  `platforms/tablet-verses/games/matthew-5/game.js` with three NKJV
+  levels covering Matt 5:1–20: Beatitudes (5:1–12, 25 chunks / 24
+  moves / 7,200 default target), Salt and light (5:13–16, 12 / 11 /
+  3,300), Fulfilling the Law (5:17–20, 13 / 12 / 3,600). 50 chunks /
+  47 moves total at v1.0.
+
+  **Authoring workflow (new pattern, may apply to future content).**
+  I draft chunks per-section against an NKJV reference; user edits
+  each toward thematic-phrase chunks ("Blessed are X" entire phrase,
+  combined "Whoever therefore breaks one of the least of these
+  commandments," etc.). Pattern stabilized after the Beatitudes (level
+  1) and held through levels 2 and 3 without re-decision.
+
+  **Wrapping decision.** ~22 of 50 chunks exceed ~40 chars (the
+  single-line limit at 20px Georgia bold in the 408px content
+  column) and will wrap to 2 lines when current. Considered three
+  paths: accept wrapping (chosen — lowest cost, preserves phrasing
+  intent), cap chunks at ~40 chars (rejected — splits "Blessed are X"
+  pattern), per-chunk font override (parked — engine work; see "Parked
+  options" in the Memorize Mode section). Font-size reduction tested
+  by estimate (20 → 19 → 18px) saves only ~1 wrap because long chunks
+  are 50–60 chars, well past any of those thresholds; also visual
+  hierarchy floors at 18px (prior chunks fixed at 15px).
+
+  **Translation note for upcoming content.** Isaiah 52:13–53:12
+  (planned next-after-Matt 5 work) will be **ESV**, not NKJV — user
+  preference noted 2026-04-25. James 1 stays NKJV. First multi-
+  translation project; data shape's existing `translation` field
+  supports per-game choice without engine changes.
+
+  **Future Matt 5 levels are additive.** Engine reads `levels[]`
+  length without any "complete" gate. Adding 5:21+ in future sessions
+  just appends entries — no engine touches, no platform-file version
+  bump.
+
+  **Bundle impact.** verses bundle 81.60 → 84.33 kB (+2.73 kB).
+  Build clean.
 
 - **Memorize Mode V-4 patch — suppress arcade BONUS ROUND banner
   in VERSES_MODE.** 2026-04-24 (post-V-4 ship). Tablet-verses
