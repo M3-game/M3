@@ -841,6 +841,21 @@ tablet arcade tuning.
 
 ## Done
 
+- **Memorize Mode V-4 patch — suppress arcade BONUS ROUND banner
+  in VERSES_MODE.** 2026-04-24 (post-V-4 ship). Tablet-verses
+  bumped `v1.6 → v1.7` (`match3-v1.7-tablet-verses.jsx`). One-line
+  fix: V-4 flipped `bonusRoundActive` true on `targetReached` to
+  drive the silent 1.5× scoring branch, but the inherited arcade
+  banner ("🌟 BONUS ROUND - 1.5x ALL POINTS! 🌟", pulsing gold)
+  was gated only on the same flag and lit up alongside the silent
+  multiplier — competing with the rolling text bar and dominating
+  the view, contrary to the V-2 "silent 1.5×" spec. Guard added:
+  `!VERSES_MODE && bonusRoundActive` on the banner JSX. Multiplier
+  itself + the V-4 target-reached toast + the persistent header
+  "· 1.5×" all keep working unchanged. Bundle dropped slightly
+  (81.60 → 81.24 kB) — the guarded JSX tree-shakes under
+  `VERSES_MODE = true` at module load.
+
 - **Memorize Mode stars + persistence + 1.5× victory + arcade
   handoff + board shrink + see-entire-passage (Session V-4).**
   2026-04-24. Tablet-verses bumped `v1.5 → v1.6`
