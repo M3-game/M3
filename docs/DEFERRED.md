@@ -463,6 +463,9 @@ surface.
 - **V-2 — Single-game MVP — SHIPPED 2026-04-24.** See Done section.
   Ships `match3-v1.3-tablet-verses.jsx`.
 
+- **V-3a — Picker + back-nav + V-2 header shrink — SHIPPED
+  2026-04-24.** See Done section. Bumps tablet-verses to v1.4.
+
 - **V-3 — Picker + level-select + multi-level. Deep-scoped 2026-04-24.**
   All sub-decisions below locked unless the user explicitly reopens
   during coding.
@@ -470,10 +473,11 @@ surface.
   **Session split.** V-3 runs as two sessions to keep each under the
   context-budget ceiling (v1.3's post-V-2 inheritance already pushes
   the active file to ~4,200 lines):
-  - **V-3a — picker only.** Main picker screen, Titus now boots
-    through picker (remove hardcoded `VERSES_BOOT_SLUG` branch),
-    V-2 follow-up header-shrink bundled. Single-level games click
-    straight to play. Ships `match3-v1.4-tablet-verses.jsx`.
+  - **V-3a — picker only — SHIPPED 2026-04-24** (see Done). Main
+    picker screen live, Titus boots through picker (hardcoded
+    `VERSES_BOOT_SLUG` removed), V-2 follow-up header-shrink
+    bundled. Single-level games click straight to play. Shipped
+    `match3-v1.4-tablet-verses.jsx`.
   - **V-3b — `levels[]` data shape + level-select screen + multi-
     level play flow + Psalm 91 content + in-memory hybrid
     progression.** Ships `match3-v1.5-tablet-verses.jsx`.
@@ -826,6 +830,74 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Memorize Mode picker + back-nav (Session V-3a).** 2026-04-24.
+  Tablet-verses bumped `v1.3 → v1.4`
+  (`match3-v1.4-tablet-verses.jsx`). The exported `Match3Verses`
+  is now a thin outer wrapper that manages `activeSlug` state;
+  null = picker, set = mount the renamed game component. The
+  v1.3 component was renamed `Match3Verses → VersesGame` and now
+  takes `{ slug, onBack }` props. Module-level
+  `VERSES_BOOT_SLUG`, `versesActiveGame`, `versesActiveLevel`
+  constants removed; `VersesGame` derives game + level via
+  `useMemo` from the slug prop. `useState` initializers for
+  `moves` and `levelTarget` read the same per-mount `versesLevel`
+  (was the module constant in v1.3). The outer wrapper passes
+  `key={slug}` so each pick triggers a fresh mount (and V-3b's
+  level-to-level transitions will too without wrapper changes).
+
+  **`VersesPicker` component.** Card grid
+  `repeat(auto-fill, minmax(220px, 1fr))` matching the index.html
+  landing page; purple gradient background matching the in-game
+  body for visual continuity. Header: "Verses" (Georgia, 36px) +
+  italic subtitle "Select a passage to begin." Card content:
+  title (18px, fontWeight 600) + translation (13px, #888) +
+  optional "N levels" line for multi-level games. No emoji or
+  icons. Hover: translateY(-2px) + box-shadow lift. Empty-
+  registry fallback message. Onclick: setActiveSlug(slug) — same
+  for single- and multi-level (V-3a has only single-level Titus;
+  V-3b adds the level-select branch when multi-level games exist).
+
+  **Back navigation.** Two entry points to the picker:
+  - **In-game header `← Back`** (top-left, mirrors the dark/light
+    toggle's positioning). Always clickable during play, no
+    confirmation popup per V-3 spec.
+  - **Start-of-round modal `Back`** (alongside `Begin game`). The
+    modal covers the in-game header, so its own Back button is
+    needed when the player wants to bail at game-start before
+    swapping a tile.
+  Both call the `onBack` prop, which the outer wrapper sets to
+  `() => setActiveSlug(null)`. End-of-round modal does not get a
+  Back button — V-2's post-round buttons (`Play again`) are the
+  routing surface there.
+
+  **Bonus-moves localStorage decoupling.** V-3 spec: pool zeroes on
+  any return to picker. Naive remount-via-key was insufficient —
+  the v1.3 useState initializer read from `BANKED_KEY` and the
+  persist-to-localStorage effect would have re-hydrated it on the
+  next pick. Fix: in VERSES_MODE, init to 0 and short-circuit the
+  write effect. Memorize-mode bonus moves are now session-scoped
+  and never bleed into the shared `BANKED_KEY` that arcade mode
+  reads.
+
+  **V-2 follow-up header shrink (bundled).** v1.3 header still had
+  whitespace between the title and the Score/Moves/Target row
+  because of `justifyContent: 'space-between'` + `minHeight: 80px`
+  stretching content apart. v1.4 in VERSES_MODE drops `minHeight`
+  (header sizes to content) and switches to
+  `justifyContent: 'flex-start'` + `gap: '6px'`. Three-line style
+  change, scoped to VERSES_MODE only.
+
+  **Wiring.** `src/entry-verses.jsx` imports v1.4; `index.html`
+  Verses card desc → `v1.4 · picker + back-nav · Titus 2:11–13`.
+  Build clean: verses bundle 65.56 → 68.30 kB (+2.74 kB).
+  Picker strings (`Select a passage to begin`, `Back to picker`)
+  verified bundled.
+
+  **Open for V-3a playtest:** picker subtitle copy (alternatives
+  parked); card hover-lift feel; card-grid spacing on small
+  viewports; in-game header fit after the shrink; header-trim
+  whitespace verification.
 
 - **Memorize Mode MVP — single game (Session V-2).** 2026-04-24.
   Tablet-verses bumped `v1.0 → v1.3` (`match3-v1.3-tablet-verses.jsx`)
