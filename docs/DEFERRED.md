@@ -466,21 +466,29 @@ surface.
 - **V-3a — Picker + back-nav + V-2 header shrink — SHIPPED
   2026-04-24.** See Done section. Bumps tablet-verses to v1.4.
 
-- **V-3 — Picker + level-select + multi-level. Deep-scoped 2026-04-24.**
-  All sub-decisions below locked unless the user explicitly reopens
-  during coding.
+- **V-3b — Multi-level + level-select + hybrid progression + Psalm 91
+  — SHIPPED 2026-04-24.** See Done section. Bumps tablet-verses to v1.5.
 
-  **Session split.** V-3 runs as two sessions to keep each under the
-  context-budget ceiling (v1.3's post-V-2 inheritance already pushes
-  the active file to ~4,200 lines):
+- **V-3 — Picker + level-select + multi-level. Both halves shipped
+  2026-04-24.** Original deep-scoping captured below for historical
+  reference (decisions referenced by V-4 onward). All sub-decisions
+  locked through V-3b.
+
+  **Session split.** V-3 ran as two sessions to keep each under the
+  context-budget ceiling (v1.3's post-V-2 inheritance already pushed
+  the active file to ~4,200 lines, v1.5 lands at ~5,000):
   - **V-3a — picker only — SHIPPED 2026-04-24** (see Done). Main
     picker screen live, Titus boots through picker (hardcoded
     `VERSES_BOOT_SLUG` removed), V-2 follow-up header-shrink
     bundled. Single-level games click straight to play. Shipped
     `match3-v1.4-tablet-verses.jsx`.
-  - **V-3b — `levels[]` data shape + level-select screen + multi-
-    level play flow + Psalm 91 content + in-memory hybrid
-    progression.** Ships `match3-v1.5-tablet-verses.jsx`.
+  - **V-3b — `levels[]` + level-select + multi-level play flow +
+    Psalm 91 + in-memory hybrid progression — SHIPPED 2026-04-24**
+    (see Done). Wrapper-state lift (Option B), `versesFlattenLevel`
+    extended for multi-level, `VersesLevelSelect` component, end-of-
+    round button matrix per Decision #2, "Level N of M" inlined
+    into header, instructions strip dejargoned. Shipped
+    `match3-v1.5-tablet-verses.jsx`.
 
   **Picker screen (V-3a).**
   - Card grid: `repeat(auto-fill, minmax(220px, 1fr))`, same as
@@ -830,6 +838,165 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Memorize Mode multi-level + level-select + Psalm 91 (Session
+  V-3b).** 2026-04-24. Tablet-verses bumped `v1.4 → v1.5`
+  (`match3-v1.5-tablet-verses.jsx`). Same-day ship after V-3a +
+  scoping. Five-decision scoping pass first (state architecture /
+  end-of-round button matrix / locked-card visuals / level-select
+  layout / implementation order) — all decisions captured in the
+  V-3 entry above as locked sub-decisions.
+
+  **Wrapper-state lift (Decision #1, Option B locked).** Outer
+  `Match3Verses` wrapper now owns navigation state at two scopes
+  — passage (`activeSlug`) and level (`activeLevelIndex`) — plus
+  cross-level state that survives level transitions within a game
+  (`completedLevels: Set<number>`, `fullCompleted: boolean`) and
+  the bonus-moves pool that has to survive level-to-level remount
+  (`bankedMoves`). Three render branches: `VersesPicker` (no
+  slug) / `VersesLevelSelect` (multi-level + no levelIndex) /
+  `VersesGame` (slug + levelIndex set). `VersesGame` keys on
+  `${slug}:${levelIndex}` so each pick AND each level transition
+  triggers a fresh mount; per-level state (score, moves, target,
+  revealedChunkIndex) auto-resets without manual orchestration.
+
+  **`bankedMoves` lift.** State moved out of `VersesGame` onto the
+  wrapper. The persist-to-`BANKED_KEY` effect also moved (still
+  short-circuits in VERSES_MODE; arcade fallback still hydrates
+  from / writes to `BANKED_KEY` if VERSES_MODE is ever flipped
+  off). Inside `VersesGame`, kept all existing call sites readable
+  via `const setBankedMoves = onBankedMovesChange` alias —
+  functional updaters (`setBankedMoves(prev => ...)`) keep
+  working because both React's useState dispatch and the wrapper's
+  setter accept updater functions. Roughly half-dozen call sites
+  total, none changed syntactically.
+
+  **Wrapper navigation handlers.**
+  - `handlePick(slug)` — picker → play (single-level) or →
+    level-select (multi-level). Resets cross-level state.
+  - `handleBackToPicker()` — full reset: clears slug, level,
+    completedLevels, fullCompleted, bankedMoves.
+  - `handleBackToLevelSelect()` — clears activeLevelIndex only;
+    keeps game-scoped state.
+  - `handleInGameBack()` — routes to picker (single-level) or
+    level-select (multi-level).
+  - `handleLevelComplete(idx)` — adds idx to completedLevels;
+    flips fullCompleted when set fills.
+  - `onAdvanceLevel` — increments activeLevelIndex (Next level →).
+  - `onRestartGame` — final-level "Play again": resets
+    activeLevelIndex to 0, zeros bankedMoves, keeps
+    completedLevels (player stays in free-replay).
+
+  **Data shape extension.** `versesFlattenLevel(game, levelIndex
+  = 0)` extended from v1.4's single-level signature. Single-level
+  games (top-level `verses` array) ignore the index. Multi-level
+  games (`levels[]` array) pick `levels[levelIndex]` with bounds
+  checking — out-of-range returns null. `versesIsMultiLevel(game)`
+  helper added for picker → play vs. level-select branching.
+
+  **`VersesLevelSelect` component (Decision #4).** Same purple
+  gradient + Georgia 36px centered title + `repeat(auto-fill,
+  minmax(220px, 1fr))` card grid as `VersesPicker`. Top-left
+  `← Back to passage selections` button. Page header = game
+  title (e.g., "Psalm 91"). Per-card content: `level.title`
+  (e.g., "Psalm 91:1–4") or fallback "Level N". Title only —
+  no chunk count / move count / target score (V-4 layers stars
+  + best-score + ✓-completed marker). No subtitle (Decision #4
+  — game title already orients).
+
+  **Locked-card visuals (Decision #3).** Locked cards: opacity
+  0.5 + `filter: grayscale(0.7)`, no hover-lift, `cursor:
+  default`, no `onClick` handler. Renders as a `<div>` instead
+  of `<button>` so it's not focusable. Unlocked cards keep the
+  picker's hover-lift (`translateY(-2px)` + shadow lift). Unlock
+  rule: Level 0 always unlocked; Level N unlocked iff N−1 is in
+  `completedLevels` for the current session OR `fullCompleted`
+  is true.
+
+  **Hybrid progression wire-up.** `VersesGame` calls
+  `onLevelComplete(levelIndex)` from inside the existing end-of-
+  round timer callback that opens the passage modal — fires once
+  per round, only when `targetReached` is true (= win). Wrapper
+  adds the index to `completedLevels` and flips `fullCompleted`
+  when the set fills. In-memory only; V-4 wraps the same shape
+  with `m3_verses_*` localStorage keys.
+
+  **Multi-level play UX.**
+  - In-game header: "Level N of M" inlined as a small italic
+    Georgia span (13px, #777) directly after the game title.
+    Inlined rather than a second row to keep the header at one
+    line — same shrink principle as V-2's specials-on-board /
+    combo-indicator removal. (Initial implementation put it on
+    a second row; user flagged the height regression during
+    V-3b playtest, fixed same-session.)
+  - Start-of-round modal button: "Begin game" (single-level)
+    or "Begin level" (multi-level). Back button alongside (V-3a
+    spec).
+  - Per-level state resets fall out of the slug:levelIndex
+    remount; no manual reset effects.
+
+  **End-of-round modal button matrix (Decision #2).** Driven by
+  a small lookup based on isMultiLevel / targetReached /
+  isFinalLevel / fullCompleted state at modal-open time. Six
+  rows in the matrix:
+  - Single-level (Titus): Play again + Back to passage selections.
+  - Multi-level, win, non-final, first-pass: Next level → +
+    Back to level selections.
+  - Multi-level, win, final, first-pass (game completes):
+    Play again + Back to level selections + Arcade mode (inactive,
+    opacity 0.5, no onClick, "Available in v1.6" caption).
+  - Multi-level, fail (any position), first-pass: Retry +
+    Back to level selections.
+  - Multi-level, win, free-replay: Replay + Back to level selections.
+  - Multi-level, fail, free-replay: Retry + Back to level selections.
+
+  **Naming locked during scoping.** "Back to passage selections"
+  for the verses-game-list screen and "Back to level selections"
+  for the level-select screen — wordier than "passages" /
+  "levels" alone but unambiguous (user flagged "passages" as
+  having multiple meanings). "Arcade mode" replaced "Tablet
+  arcade" — the latter leaks the platform name into player-
+  facing UI. The "Choose passage" / "Choose level" alternative
+  was considered and rejected ("Back to..." is more explicit
+  about the navigation direction).
+
+  **Instructions-strip dejargoning** (V-2 carry-over).
+  Replaced "Match 3+ tiles to reveal each chunk" / "keep playing
+  through all chunks to see the full passage" with "Match 3+
+  tiles to reveal more text" / "keep playing to see the full
+  passage." Standing rule: "chunk" stays in code, comments,
+  DEFERRED.md but never in user-facing strings.
+
+  **Psalm 91 content** (`games/psalm-91/game.js`). 4 thematic
+  levels split on natural verse breakpoints: Ps. 91:1–4 (13
+  chunks / 12 moves), Ps. 91:5–8 (12 chunks / 11 moves),
+  Ps. 91:9–13 (14 chunks / 13 moves), Ps. 91:14–16 (10 chunks
+  / 9 moves). Total 49 chunks / 45 moves. NKJV, reference
+  format "Ps. 91:N" to fit the existing 110px text-bar column.
+  Default per-level targets via `moves × 300` formula — no
+  per-level overrides at V-3b ship; tune in playtest.
+  Six NKJV proofread fixes (vs. user's first-pass authoring)
+  applied during V-3 deep-scoping and re-applied here:
+  Ps. 91:1 "of the Most High" lowercase + "under" the shadow
+  (not "in"); Ps. 91:2 "and my fortress" (added missing "my");
+  Ps. 91:5 "Nor of the arrow" (not "Nor"); Ps. 91:9 comma not
+  period after "the LORD" + LORD all-caps; Ps. 91:14 capital
+  "My" in "My name."
+
+  **Wiring.** `src/entry-verses.jsx` imports v1.5; `index.html`
+  Verses card desc → `v1.5 · multi-level + Psalm 91 · Titus
+  2:11–13`. Build clean: verses bundle 65.56 (v1.4) → 75.72 kB
+  (+10.16 kB across V-3b). Picker, level-select, end-of-round
+  matrix all visually verified during user playtest.
+
+  **Open for V-3b playtest / V-4 implementation:**
+  - "Available in v1.6" caption tone on the inactive Arcade
+    mode button — could read internal/jargon-y. Revisit for V-4
+    when it flips active.
+  - Locked-card dimming aggressiveness (opacity 0.5 +
+    grayscale 0.7) — settle in playtest if the visual cue
+    reads strong enough vs. unlocked siblings.
+  - Free-replay end-of-round modal feel (Replay/Retry).
 
 - **Memorize Mode picker + back-nav (Session V-3a).** 2026-04-24.
   Tablet-verses bumped `v1.3 → v1.4`
