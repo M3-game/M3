@@ -473,6 +473,16 @@ surface.
   gate); see "Planned content" below.
 
 **Planned content (authoring queue, no engine work expected):**
+
+**Pending user edits (added 2026-04-26):** Drafts for **Matt 5:31–48**
+(NKJV, three sections) and **Isaiah 52:13–53:12 ESV** (Servant Song,
+multi-level) were presented in chat 2026-04-26 and the user took them
+to edit externally. **At the start of any new coding session, ask the
+user to paste their edited drafts before doing any verses-content
+work.** Do not regenerate drafts from scratch — the user has human-
+edited versions ready. (See also: `project_pending_verses_drafts.md`
+in user memory.) Remove this note once both passages have shipped.
+
 - **Matthew 5 future levels — additive to existing game file.** Per
   scoping 2026-04-25, remaining sections are: **5:31–37 (combined
   divorce + oaths — user thematic decision: "Jesus treats marriage as
