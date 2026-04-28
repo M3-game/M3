@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Match3Game from '../platforms/phone-418/match3-v13.0-418px-phone.jsx'
+import Match3Game from '../platforms/phone-418/match3-v13.1-418px-phone.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

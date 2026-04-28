@@ -40,20 +40,6 @@ touches it next.
   campaign logic. Files: `platforms/tablet/match3-v11.6-tablet.jsx`,
   `platforms/campaign/tablet/match3-v1.25-campaign-tablet.jsx` lines
   1683–1696.
-- **Phone-418 v11.7 hypernova rework port (Session M-2).** Surfaced 2026-04-27
-  during M-1 parity comparison. Phone-418 v13.0 still has v10.1-era hypernova
-  logic: solo hypernova never fires specials (`// No chainedSpecials —
-  hypernova never touches specials`); combos like `hypernova+hypernova`,
-  `hypernova+supernova`, `bomb/cross/line+hypernova` clear ALL non-specials.
-  Tablet has had v11.7 "amplification, not interference" since 2026-04-21:
-  hypernova fires specials in 5×5+row+col footprint, preserves specials
-  outside, clears half of non-specials outside (with `HYPERNOVA_MIN_TILES_CLEARED
-  = 30` floor). Real gameplay divergence — hypernova feels different on phone
-  than tablet. Port `activateSpecialTile` case 'hypernova' + the four
-  hypernova combo branches (`hypernova+hypernova`, `hypernova+supernova`,
-  `bomb+hypernova`/`cross+hypernova`/`hypernova+line`) from tablet v11.12 to
-  phone-418 v13.0. Also extract `HYPERNOVA_MIN_TILES_CLEARED` as a named
-  constant.
 - **Phone-418 AdminPanel + recordGameResult() port.** Surfaced 2026-04-27
   during M-1 parity comparison. Phone-418 doesn't import from `core/AdminPanel.jsx`
   — no `?admin=1` URL access, no long-press-score panel, no scoring history,
@@ -942,6 +928,21 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Phone-418 v11.7 hypernova rework port (Session M-2).** 2026-04-27.
+  Surfaced same-day during M-1 parity comparison; shipped as immediate
+  follow-up. Backport of tablet's "amplification, not interference"
+  hypernova logic (Session C, 2026-04-21). Solo hypernova now fires
+  specials within the 5×5+row+col footprint (chains into cascade);
+  combos use footprint + half-of-rest with 30-tile floor; specials
+  outside footprint preserved. Cascade stagger 400→480ms and
+  match-to-clear transition 400→500ms on hypernova events. Three
+  constants extracted (`HYPERNOVA_MIN_TILES_CLEARED`,
+  `HYPERNOVA_CASCADE_SLOWDOWN`, `HYPERNOVA_MATCH_TRANSITION_MS`).
+  Points unchanged. Phone-418 v13.0 → v13.1 (v13.0 archived). Build
+  clean (51.54 kB bundle, +1.02 kB / +0.47 kB gzipped). v11.8 admin
+  slow-motion playback hooks intentionally NOT ported (no AdminPanel
+  on phone yet — separate deferred work).
 
 - **Phone-418 → JSX migration (Session M-1).** 2026-04-27. Format-only
   conversion, zero behavior change. Phone-418 was the lone holdout from
