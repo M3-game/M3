@@ -40,6 +40,32 @@ touches it next.
   campaign logic. Files: `platforms/tablet/match3-v11.6-tablet.jsx`,
   `platforms/campaign/tablet/match3-v1.25-campaign-tablet.jsx` lines
   1683–1696.
+- **Phone-418 v11.7 hypernova rework port (Session M-2).** Surfaced 2026-04-27
+  during M-1 parity comparison. Phone-418 v13.0 still has v10.1-era hypernova
+  logic: solo hypernova never fires specials (`// No chainedSpecials —
+  hypernova never touches specials`); combos like `hypernova+hypernova`,
+  `hypernova+supernova`, `bomb/cross/line+hypernova` clear ALL non-specials.
+  Tablet has had v11.7 "amplification, not interference" since 2026-04-21:
+  hypernova fires specials in 5×5+row+col footprint, preserves specials
+  outside, clears half of non-specials outside (with `HYPERNOVA_MIN_TILES_CLEARED
+  = 30` floor). Real gameplay divergence — hypernova feels different on phone
+  than tablet. Port `activateSpecialTile` case 'hypernova' + the four
+  hypernova combo branches (`hypernova+hypernova`, `hypernova+supernova`,
+  `bomb+hypernova`/`cross+hypernova`/`hypernova+line`) from tablet v11.12 to
+  phone-418 v13.0. Also extract `HYPERNOVA_MIN_TILES_CLEARED` as a named
+  constant.
+- **Phone-418 AdminPanel + recordGameResult() port.** Surfaced 2026-04-27
+  during M-1 parity comparison. Phone-418 doesn't import from `core/AdminPanel.jsx`
+  — no `?admin=1` URL access, no long-press-score panel, no scoring history,
+  no slow-motion playback. Also lacks the unified `match3_stats` localStorage
+  JSON written by `recordGameResult()` on every game end (tablet writes
+  endType: won / lost / earlyEnd / bonusRound / savedMoves; phone has only
+  separate `match3_highScore`/`match3_highCombo`/`match3_highTurnScore` keys).
+  Lower priority than M-2 hypernova port (no gameplay impact).
+- **Phone-418 verses → arcade carry banner.** Surfaced 2026-04-27 during M-1
+  parity comparison. Tablet reads `m3_arcade_carry_from_verses` on mount
+  (V-4 banner). Phone-418 has none — but no phone-418-verses exists yet, so
+  unused. Wire when phone-418-verses ships.
 - **Desktop + Phone 341 bonus-moves update** — still have pre-campaign gating
   (`!hasReachedTarget`), no bonus-round post-check, 🏦 emoji, "banked"
   terminology. Carried forward from the 2026-03-23 handoff.
@@ -882,9 +908,23 @@ tablet arcade tuning.
   across campaign file + DESIGN.md. Variables: `bonusRoundActive`,
   `setBonusRoundActive`, `startBonusRound`, `showBonusPrompt`,
   `bonusRoundScore`, `preBonusScore`. Avoid piecemeal renames.
-- **Remove "banked" variable names** — `usingBankedMoves`, `usingBankedMovesRef`,
+- **Session T-1 — banked → bonus rename across all platforms.** Surfaced
+  2026-04-27. User flagged that "banked moves" terminology leaks into
+  conversation and becomes shared shorthand even though the user finds the
+  framing wrong. Variables: `usingBankedMoves`, `usingBankedMovesRef`,
   `showBankedMovesPrompt`, `startUsingBankedMoves`, `endLevelCarryBanked`,
-  `BANKED_KEY`. Replace with "bonus" framing throughout.
+  `BANKED_KEY`, `BANKED_MOVES_KEY`, `BANKED_MOVES_CAP`, `BANKED_MOVES_WARN`,
+  `bankedMoves`, `bankedMovesRef`, `endGameCarryBanked`,
+  `requestEndGameCarryBanked`. Replace with "bonus" framing throughout.
+  **Scope:** all 5 active platform files (tablet v11.12, desktop v12.1,
+  campaign v1.26, phone-341 v12.1, phone-418 v13.0) + `core/AdminPanel.jsx`
+  (which exports `BANKED_KEY`) + `DESIGN.md` + `DEFERRED.md`. **Migration
+  strategy for shared localStorage key:** `BANKED_KEY` (= `'match3_bankedMoves'`)
+  is the cross-platform pool. Phone-418 + phone-341 have their own scoped
+  keys (`match3_phone418_bankedMoves` etc). Plan: rename to `BONUS_MOVES_KEY`
+  with backward-compat read of old key on first load + write to new key
+  going forward, OR keep the localStorage string verbatim and only rename
+  the JS constant. Decide at session start.
 
 ---
 
@@ -902,6 +942,20 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Phone-418 → JSX migration (Session M-1).** 2026-04-27. Format-only
+  conversion, zero behavior change. Phone-418 was the lone holdout from
+  the repo's JSX/Vite norm — single standalone HTML file with CDN React
+  and `React.createElement(...)` chains. Migration brings it in line so
+  phone-418-verses can be a JSX peer and the toolchain is unified across
+  the repo. Created `phone418.html`, `src/entry-phone418.jsx`, and
+  `platforms/phone-418/match3-v13.0-418px-phone.jsx`; updated
+  `vite.config.js` and `index.html`; archived v12.4 HTML. Build clean
+  (50.52 kB bundle, gzipped 15.32 kB). "banked" naming preserved verbatim
+  — Session T-1 will rename across all platforms. **Surfaced sync gaps
+  with tablet** (now in Cross-platform parity section): v11.7 hypernova
+  rework not ported (M-2), AdminPanel + `recordGameResult()` not present,
+  verses → arcade carry banner not present.
 
 - **Memorize Mode content — Matthew 5 v1.0 (PARTIAL).** 2026-04-25.
   First content-only session against the V-* engine — no

@@ -17,10 +17,7 @@ export default defineConfig({
         rewardmode: resolve(__dirname, 'rewardmode.html'),
         sim:        resolve(__dirname, 'tablet-sim.html'),
         verses:     resolve(__dirname, 'verses.html'),
-        // phone-418 is standalone CDN HTML — included so it's copied into dist.
-        // IMPORTANT: bump this path every time the phone-418 file version increments.
-        // See docs/DEFERRED.md for a static-copy followup that would automate this.
-        phone418:   resolve(__dirname, 'platforms/phone-418/match3-v12.4-418px-phone.html'),
+        phone418:   resolve(__dirname, 'phone418.html'),
       },
     },
   },
