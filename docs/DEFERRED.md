@@ -49,9 +49,12 @@ touches it next.
   separate `match3_highScore`/`match3_highCombo`/`match3_highTurnScore` keys).
   Lower priority than M-2 hypernova port (no gameplay impact).
 - **Phone-418 verses → arcade carry banner.** Surfaced 2026-04-27 during M-1
-  parity comparison. Tablet reads `m3_arcade_carry_from_verses` on mount
-  (V-4 banner). Phone-418 has none — but no phone-418-verses exists yet, so
-  unused. Wire when phone-418-verses ships.
+  parity comparison; **scoped into Session N-2 on 2026-04-28** (see
+  Memorize Mode → Phone-418-verses scope). Phone-418-verses will write a
+  *phone-scoped* key `m3_arcade_carry_from_verses_phone418` (not the
+  shared tablet key) per the 2026-03-23 phone/tablet-distinct-runs
+  principle. Phone-418 v13.1 → v13.2 in N-2 adds the mount-time read +
+  banner.
 - **Desktop + Phone 341 bonus-moves update** — still have pre-campaign gating
   (`!hasReachedTarget`), no bonus-round post-check, 🏦 emoji, "banked"
   terminology. Carried forward from the 2026-03-23 handoff.
@@ -828,6 +831,105 @@ tablet arcade tuning.
 
 ---
 
+## Phone-418-verses (Sessions N-1, N-2)
+
+Scoped 2026-04-28. Second platform in the Verses family — phone form
+factor at 418px. N-1 (content promotion) shipped same day; N-2 (the
+port itself) is planned. Phone-418 became JSX in M-1 (2026-04-27),
+making this peer feasible.
+
+**Six decisions locked at scoping (one-decision-per-message pass):**
+
+1. **Content sharing.** Game data lives at repo-root
+   `content/verses/<slug>/game.js`. Both platforms import from there;
+   one source of truth, no per-platform copies. **N-1 shipped this**
+   (tablet-verses v1.7 → v1.8, all 4 game folders moved).
+
+2. **Text-bar layout (form-factor adapt).** Tablet's two-column
+   layout (110px reference column + content column) doesn't fit the
+   418px phone — most chunks would wrap to 2 lines, container would
+   heave. Phone uses a **single-column stack**: chunks fill the full
+   ~400px usable width; reference rendered as a **small italic label
+   above each verse's first chunk**. Reduces wrap frequency
+   dramatically — at 18px Georgia, ~44–50 chars per line vs. ~24–29 in
+   the tablet two-column on phone.
+
+   **Typography (phone-only):** current chunk **18px Georgia**
+   (down from tablet's 22px); prior chunks **14px** (down from 15px).
+   Dimmed contrast inherits the existing `#888` on light bg / `#ccc`
+   on dark bg rule. Reference label font ~13–14px italic, settled in
+   build.
+
+3. **Board dimensions.** **10×10**, matching tablet-verses (which
+   already dropped to 10 ROWS in V-4). Not a divergence from tablet
+   on board shape — *is* a divergence on **target multiplier**: phone
+   locks `moves × 250` from the start, tablet stays at `moves × 300`
+   (with `× 250` parked). Lets the two form factors A/B the
+   multipliers in real playtest. Settle in build if `× 250` plays
+   poorly.
+
+4. **Bonus-moves carry handoff key.** Phone-418-verses writes to a
+   **phone-scoped** key `m3_arcade_carry_from_verses_phone418`
+   (not the shared `m3_arcade_carry_from_verses` that tablet uses).
+   Per the 2026-03-23 design principle that phone runs stay distinct
+   from tablet runs. Phone-418 v13.1 → v13.2 in N-2 adds the
+   mount-time read + "+N bonus moves carried from memorize mode"
+   banner — same UX shape as tablet v11.12, scoped to phone storage.
+
+5. **Session staging.** **Two sessions:** N-1 (content promotion,
+   shipped 2026-04-28) + N-2 (fork + form-factor adapt + entry
+   plumbing + arcade-carry wiring, planned). N-1 is a small refactor
+   with low blast radius (touches tablet-verses only); N-2 is the
+   meaty port. Splitting them keeps each session small enough to
+   verify independently.
+
+6. **Index.html card + in-app picker layout.**
+   - **Index.html:** new separate card "Phone Verses" (or similar
+     label, settled in build). Matches the existing one-card-per-
+     platform pattern. Card count 6 → 7.
+   - **In-app picker:** **compact cards** (2–3 per row at 418px),
+     so the passage list doesn't become a tall single-column stack
+     as content grows. Tablet picker keeps its current layout for
+     now; revisit when its passage count crowds the screen — same
+     compact treatment expected to migrate.
+
+**Session N-2 scope (planned):**
+- Fork `match3-v1.8-tablet-verses.jsx` →
+  `platforms/phone-418-verses/match3-v1.0-phone-418-verses.jsx`.
+- Apply form-factor adapts per Decisions #2, #3, #6 (text bar,
+  board, picker cards). Settle exact CSS values (compact-card
+  minmax, reference label font size, target tuning) in build.
+- Entry plumbing: `phone418-verses.html` (mirrors `phone418.html`
+  + `verses.html`), `src/entry-phone418-verses.jsx`,
+  `vite.config.js` rollup input. New "Phone Verses" card on
+  `index.html`.
+- Arcade-carry wiring: phone-418-verses writes the new key on
+  game-completion + final-level button click. Phone-418 v13.1 →
+  v13.2 reads the new key on mount, shows banner, clears.
+- Verify: `npm run build` clean. Manual playtest on real iPhone (or
+  418px Chrome devtools) for form-factor fit.
+
+**Settle in build (not scope-blocking):**
+- Exact compact-card grid sizing (tentative `minmax(140px, 1fr)`
+  for 2–3 per row at 418px).
+- Reference label font size (~13–14px italic).
+- Final "Phone arcade" button label (vs. "Arcade" / "Continue in
+  arcade").
+- Target tuning if `moves × 250` plays poorly.
+
+**Independent of pending Matt 5:31–48 + Isaiah ESV content edits.**
+Phone-418-verses can ship before, after, or concurrent with those
+content edits — both consume the same `content/verses/` directory
+that N-1 just established.
+
+**Out of scope for N-2 (stays deferred):**
+- AdminPanel + `recordGameResult()` on phone-418 — long-standing
+  deferred work in Cross-platform parity section.
+- Compact-card adoption on tablet picker — wait for tablet passage
+  count to crowd.
+
+---
+
 ## Research / external context
 
 - **Match-3 literature survey — scoped multi-session research task.**
@@ -928,6 +1030,26 @@ tablet arcade tuning.
 ---
 
 ## Done
+
+- **Verses content promotion (Session N-1).** 2026-04-28. First of two
+  sessions enabling phone-418-verses (the other is N-2, planned). Pure
+  refactor: game data folders (`titus-2-11-13`, `psalm-91`,
+  `matthew-5`, `_template`) moved out of
+  `platforms/tablet-verses/games/` to a neutral repo-root location at
+  `content/verses/<slug>/game.js`. Tablet-verses v1.7 → v1.8 — only
+  changes are the `import.meta.glob` path (`./games/*/game.js` →
+  `../../content/verses/*/game.js`), the slug-extraction regex, and
+  three doc-comment / in-app help-text references. Zero behavior
+  change. `src/entry-verses.jsx` repointed to v1.8. Build clean (63
+  modules, 0 warnings; verses bundle 84.33 → 86.34 kB / 26.25 kB gz —
+  uptick attributable to the new v1.8 version-comment block, not code).
+  Sets up N-2 to import the same `content/verses/` directory from
+  phone-418-verses without per-platform copies. **Six-decision
+  scoping pass** for the full Phone-418-verses program done same
+  morning; full locked decisions in the Memorize Mode → Phone-418-
+  verses scope entry above. **Pre-existing TypeScript "hint"
+  diagnostics** (9 unused-var hints inherited from v1.7) left in
+  place — out of scope for N-1.
 
 - **Phone-418 v11.7 hypernova rework port (Session M-2).** 2026-04-27.
   Surfaced same-day during M-1 parity comparison; shipped as immediate

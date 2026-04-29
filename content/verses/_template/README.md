@@ -1,8 +1,12 @@
 # Verses — game authoring
 
-Each subfolder under `platforms/tablet-verses/games/` is one memorize-mode
-game. To add a game, copy this `_template/` folder to a sibling folder,
+Each subfolder under `content/verses/` is one memorize-mode game,
+shared across all verses platforms (tablet-verses and phone-418-verses).
+To add a game, copy this `_template/` folder to a sibling folder,
 rename it to your passage's slug, and edit `game.js`.
+
+(Path moved from `platforms/tablet-verses/games/` in N-1, 2026-04-28,
+to be neutral between platforms.)
 
 Folders whose name starts with `_` (like this one) are skipped by the
 runtime picker, so the template is always safely present.
@@ -73,5 +77,5 @@ publish. (Effective V-3; V-2 hardcodes boot to `titus-2-11-13`.)
 
 ## Example
 
-See `games/titus-2-11-13/game.js` for a working single-level example
-(13 chunks across 3 verses).
+See `content/verses/titus-2-11-13/game.js` for a working single-level
+example (13 chunks across 3 verses).
