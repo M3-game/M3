@@ -48,13 +48,11 @@ touches it next.
   endType: won / lost / earlyEnd / bonusRound / savedMoves; phone has only
   separate `match3_highScore`/`match3_highCombo`/`match3_highTurnScore` keys).
   Lower priority than M-2 hypernova port (no gameplay impact).
-- **Phone-418 verses → arcade carry banner.** Surfaced 2026-04-27 during M-1
-  parity comparison; **scoped into Session N-2 on 2026-04-28** (see
-  Memorize Mode → Phone-418-verses scope). Phone-418-verses will write a
-  *phone-scoped* key `m3_arcade_carry_from_verses_phone418` (not the
-  shared tablet key) per the 2026-03-23 phone/tablet-distinct-runs
-  principle. Phone-418 v13.1 → v13.2 in N-2 adds the mount-time read +
-  banner.
+- ~~**Phone-418 verses → arcade carry banner.**~~ **Shipped N-2 2026-04-28.**
+  Phone-418 v13.1 → v13.2 reads phone-scoped
+  `m3_arcade_carry_from_verses_phone418` on mount, shows 2.5s gold-pill
+  banner, clears the key. Phone-418-verses v1.0 (also shipped same
+  commit) writes the receipt. See Done section for full N-2 entry.
 - **Desktop + Phone 341 bonus-moves update** — still have pre-campaign gating
   (`!hasReachedTarget`), no bonus-round post-check, 🏦 emoji, "banked"
   terminology. Carried forward from the 2026-03-23 handoff.
@@ -831,12 +829,14 @@ tablet arcade tuning.
 
 ---
 
-## Phone-418-verses (Sessions N-1, N-2)
+## Phone-418-verses (Sessions N-1, N-2 — both shipped 2026-04-28)
 
-Scoped 2026-04-28. Second platform in the Verses family — phone form
-factor at 418px. N-1 (content promotion) shipped same day; N-2 (the
-port itself) is planned. Phone-418 became JSX in M-1 (2026-04-27),
-making this peer feasible.
+Scoped + shipped 2026-04-28. Second platform in the Verses family —
+phone form factor at 418px. Both sessions landed same day. Phone-418
+became JSX in M-1 (2026-04-27), making this peer feasible. Decision
+log preserved below for future-session context (e.g., when adding
+phone-341-verses, deciding whether to ramp tablet's `× 250` parked
+target option, or migrating compact-card picker to tablet).
 
 **Six decisions locked at scoping (one-decision-per-message pass):**
 
@@ -1031,10 +1031,75 @@ that N-1 just established.
 
 ## Done
 
+- **Phone-418-verses port (Session N-2).** 2026-04-28. Second of the
+  two-session program scoped same morning. Phone form factor of the
+  Verses platform — fork of tablet-verses v1.8 (the N-1 baseline) into
+  `platforms/phone-418-verses/match3-v1.0-phone-418-verses.jsx`.
+  Both Verses platforms now share `content/verses/<slug>/game.js`
+  (the N-1 architecture validated by Vite auto-extracting a shared
+  `game-*.js` chunk: 8.37 kB / 2.84 kB gz, used by both bundles).
+
+  **Form-factor adapts vs. tablet-verses v1.8** (full per-decision
+  rationale in the v1.0 file's top comment block):
+  - Tile sizing 50→40 / gap 4→2 (matches phone-418 arcade; board
+    fits 418px width exactly).
+  - Target multiplier 300→250 (divergent from tablet, which stays
+    at 300; A/B opportunity).
+  - Text-bar render: two-column (110px / 1fr) → single-column stack;
+    reference rendered as 13px italic label above each verse's first
+    chunk; current chunk 18px (was 20px), prior 14px (was 15px).
+  - Passage-modal + full-passage-modal: same single-column treatment
+    at 16px chunks / 12px italic purple reference.
+  - Picker + level-select grids: `minmax(220px, 1fr)` →
+    `minmax(140px, 1fr)`, gap 16→12px, maxWidth 900→600px (2 cards
+    per row at 418px instead of 1).
+  - Storage phone-scoped: `m3_phone418_verses_<slug>` per game (was
+    `m3_verses_<slug>`); local `PHONE418_BANKED_MOVES_KEY` constant
+    `'match3_phone418_bankedMoves'` replaces 5 active code references
+    to the imported tablet `BANKED_KEY` (AdminPanel/STATS_KEY/
+    defaultStats imports kept inert per scope discipline).
+  - Carry-receipt key `m3_arcade_carry_from_verses` →
+    `m3_arcade_carry_from_verses_phone418`; navigation target
+    `tablet.html` → `phone418.html`.
+
+  **Phone-418 v13.1 → v13.2** (carry-banner receiving end, in the
+  same N-2 commit): mount-time `useEffect` reads the phone-scoped
+  receipt key, shows a 2.5s gold-pill top banner ("+N bonus moves
+  carried from memorize mode") at 14px Georgia (smaller than tablet's
+  16px to suit phone width; `maxWidth: calc(100vw - 24px)` for safety
+  on narrow phones), clears the key on first read so refreshes don't
+  replay.
+
+  **Entry plumbing:** new `phone418-verses.html`,
+  `src/entry-phone418-verses.jsx`, and `vite.config.js`
+  `phone418Verses` rollup input. New "📖 Verses — Phone (418px)"
+  card on `index.html` (sibling to the existing "📖 Verses — Tablet"
+  card; tablet card renamed accordingly). Card count 6 → 7.
+  `src/entry-phone418.jsx` repointed to v13.2; `index.html` arcade
+  description updated.
+
+  **Build:** clean. 66 modules transformed (was 63 — three new
+  files), zero warnings.
+  - `phone418Verses-*.js` 77.83 kB / 23.45 kB gz (new) — comparable
+    to verses bundle.
+  - `verses-*.js` 86.34 → 78.06 kB (-8.28 kB) due to shared content
+    chunk extraction.
+  - `phone418-*.js` 51.54 → 52.51 kB (+0.97 kB) for carry-banner
+    code.
+
+  **Inherited "hint" diagnostics** (the 9 from v1.7's unused vars)
+  carry into v1.0. Out of scope.
+
+  **Inherited behavior preserved verbatim:** the V-4 line that zeroes
+  the arcade banked-moves pool on Verses `restartGame()` (now
+  `localStorage.setItem(PHONE418_BANKED_MOVES_KEY, '0')` on phone)
+  matches tablet's same path. Apparently not user-affecting in
+  tablet practice; T-1 may revisit.
+
 - **Verses content promotion (Session N-1).** 2026-04-28. First of two
-  sessions enabling phone-418-verses (the other is N-2, planned). Pure
-  refactor: game data folders (`titus-2-11-13`, `psalm-91`,
-  `matthew-5`, `_template`) moved out of
+  sessions enabling phone-418-verses (N-2 shipped same day, see
+  above). Pure refactor: game data folders (`titus-2-11-13`,
+  `psalm-91`, `matthew-5`, `_template`) moved out of
   `platforms/tablet-verses/games/` to a neutral repo-root location at
   `content/verses/<slug>/game.js`. Tablet-verses v1.7 → v1.8 — only
   changes are the `import.meta.glob` path (`./games/*/game.js` →
@@ -1043,8 +1108,8 @@ that N-1 just established.
   change. `src/entry-verses.jsx` repointed to v1.8. Build clean (63
   modules, 0 warnings; verses bundle 84.33 → 86.34 kB / 26.25 kB gz —
   uptick attributable to the new v1.8 version-comment block, not code).
-  Sets up N-2 to import the same `content/verses/` directory from
-  phone-418-verses without per-platform copies. **Six-decision
+  N-2 (same day) validated the architecture: Vite auto-extracted a
+  shared `game-*.js` chunk used by both verses bundles. **Six-decision
   scoping pass** for the full Phone-418-verses program done same
   morning; full locked decisions in the Memorize Mode → Phone-418-
   verses scope entry above. **Pre-existing TypeScript "hint"

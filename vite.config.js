@@ -18,6 +18,7 @@ export default defineConfig({
         sim:        resolve(__dirname, 'tablet-sim.html'),
         verses:     resolve(__dirname, 'verses.html'),
         phone418:   resolve(__dirname, 'phone418.html'),
+        phone418Verses: resolve(__dirname, 'phone418-verses.html'),
       },
     },
   },
