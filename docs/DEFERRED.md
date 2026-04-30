@@ -59,6 +59,16 @@ touches it next.
 - **Arcade end-run confirm** — "Are you sure?" popup on truly final
   end-game actions in the tablet arcade file, when score < target and moves
   remain. (Campaign v1.25 has its in-header version; arcade needs its own.)
+- **Cross-platform: extend N-4 prompt-button confirm to other platforms.**
+  Tablet v11.13 (N-4, 2026-04-29) added the are-you-sure confirm to the
+  bonus-moves prompt's "End and carry moves forward" button. The same
+  prompt button exists on phone-418-verses v1.1 and tablet-verses v1.8
+  (and possibly campaign tablet, phone-418, phone-341), still calling
+  `endLevelCarryBanked` directly. For consistency, sweep all platforms
+  in one change rather than reactive per-platform fixes. Also flag
+  `wouldWin` semantics on each platform — confirm logic depends on
+  `targetReached` + specials bonus, which may differ slightly across
+  arcade-only and verses-mode files.
 
 ---
 
@@ -1018,21 +1028,6 @@ that N-1 just established.
 
 ## Known bugs (carried forward)
 
-- **Tablet "are you sure?" confirm not firing on End-and-carry-moves-forward.**
-  Reported 2026-04-29 by user during phone-418-verses N-3 device testing.
-  Behavior: in the tablet game, when the player runs out of moves below
-  target and clicks "End and carry moves forward" / equivalent end-game
-  button, an are-you-sure confirm popup is expected (per v11.9 in-file
-  comment: "v11.9: routes through `requestEndLevelCarryBanked` so an
-  are-you-sure confirm fires if the player is below target") but did not
-  appear in recent play. Investigate: (a) whether `requestEndLevelCarryBanked`
-  is actually wired to a confirm modal in current tablet code, (b) whether
-  a recent change broke the wiring, (c) whether the confirm path differs
-  in the carry-from-verses entry mode vs. cold-start tablet arcade.
-  Distinct from the deferred "Arcade end-run confirm" entry in
-  Cross-platform parity (which is about the campaign-style header confirm
-  not yet existing on tablet arcade) — this report is specifically that
-  the bonus-moves carry-forward confirm regressed.
 - **Time attack: score undercounted if timer fires mid-cascade** — partially
   fixed in v1.14 via `pendingTimeExpiry` + `isAnimating`/`combo` check.
   v1.25 extends with the 1.5s grace window. Verify in playtest.
@@ -1045,6 +1040,33 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Tablet v11.13 — extend v11.9 are-you-sure confirm to bonus-moves
+  prompt (Session N-4).** 2026-04-29. Investigation triggered by user
+  report that the confirm modal didn't fire when clicking "End and
+  carry moves forward" on the bonus-moves prompt at moves=0.
+  Investigation finding (no regression): tablet v11.12 had two buttons
+  with that exact label, and v11.9 had intentionally wired the
+  confirm only to one of them — the in-header button visible during
+  active bonus-moves use, not the prompt button. Original v11.9
+  rationale ("a save after an already-failed turn") rejected; user
+  feedback: the carry-forward decision is itself worth confirming
+  because bonus moves earned this round roll into the next round's
+  pool, and ending below target trades a chance at this round's win
+  for that. Fix: prompt button now routes through
+  `requestEndLevelCarryBanked` wrapper (the same wrapper the
+  in-header button uses). Wrapper's `wouldWin` check handles both
+  prompt variants correctly — confirm if below target; no confirm
+  if `promptWonAlready` (target reached, prompt asks "keep playing
+  with N bonus moves?" instead of "out of moves"). Single line of
+  code change + version bump per no-overwrites rule + comment
+  updates. Files: archived `match3-v11.12-tablet.jsx` →
+  `platforms/tablet/archive/`; new `match3-v11.13-tablet.jsx`
+  active. `src/main.jsx` repointed to v11.13. `index.html` tablet
+  card description updated. Build clean — tablet bundle 65.26 kB /
+  20.02 kB gz, unchanged. Cross-platform follow-up logged in
+  Cross-platform parity section (phone-418-verses + tablet-verses
+  + others have the same prompt button still calling direct).
 
 - **Phone-418-verses v1.1 — overflow fix (Session N-3).** 2026-04-29.
   Reactive fix from user device-testing v1.0 on real iPhone. Two display
