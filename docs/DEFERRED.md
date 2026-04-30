@@ -1018,6 +1018,21 @@ that N-1 just established.
 
 ## Known bugs (carried forward)
 
+- **Tablet "are you sure?" confirm not firing on End-and-carry-moves-forward.**
+  Reported 2026-04-29 by user during phone-418-verses N-3 device testing.
+  Behavior: in the tablet game, when the player runs out of moves below
+  target and clicks "End and carry moves forward" / equivalent end-game
+  button, an are-you-sure confirm popup is expected (per v11.9 in-file
+  comment: "v11.9: routes through `requestEndLevelCarryBanked` so an
+  are-you-sure confirm fires if the player is below target") but did not
+  appear in recent play. Investigate: (a) whether `requestEndLevelCarryBanked`
+  is actually wired to a confirm modal in current tablet code, (b) whether
+  a recent change broke the wiring, (c) whether the confirm path differs
+  in the carry-from-verses entry mode vs. cold-start tablet arcade.
+  Distinct from the deferred "Arcade end-run confirm" entry in
+  Cross-platform parity (which is about the campaign-style header confirm
+  not yet existing on tablet arcade) — this report is specifically that
+  the bonus-moves carry-forward confirm regressed.
 - **Time attack: score undercounted if timer fires mid-cascade** — partially
   fixed in v1.14 via `pendingTimeExpiry` + `isAnimating`/`combo` check.
   v1.25 extends with the 1.5s grace window. Verify in playtest.
@@ -1030,6 +1045,48 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Phone-418-verses v1.1 — overflow fix (Session N-3).** 2026-04-29.
+  Reactive fix from user device-testing v1.0 on real iPhone. Two display
+  bugs fixed:
+  - **Chrome overflow.** v1.0 inherited tablet-verses's chrome-sizing
+    pattern of `width: ${boardWidth + 30}px` (= 448px) on header,
+    rolling text bar, and bottom instructions, plus a 20px page-wrapper
+    padding. Total horizontal budget 488px overshot iPhone viewports
+    (most are 390–430px). Fix: collapsed page padding to
+    `'0 0 60px 0'`; trimmed all three chrome elements to
+    `${boardWidth}px` exactly (matches the board's 418px).
+  - **Score-row crowding when bonus moves earned.** Single flex row of
+    Score / Moves / Bonus moves / Target (and 5th End-button when
+    `usingBankedMoves`) totalled ~470–585px content on ~378px usable
+    inner-header width — `space-around` collapsed to zero spacing,
+    trailing items spilled past edge. Fix: split the row into a
+    vertical column of two rows. Row 1 (always): Score / Moves /
+    Target. Row 2 (only when `bankedMoves > 0` OR `usingBankedMoves`):
+    "Bonus moves: N" left-aligned + "End and carry moves forward"
+    button right-aligned (button uses `marginLeft: 'auto'` so it
+    anchors right whether or not the count precedes it). Row 2
+    children semantically grouped (status + action, both bonus-related).
+  - **No canvas / board changes.** `TILE_SIZE` / `TILE_GAP` / ROWS /
+    COLS untouched. Board still 418px. On viewports narrower than
+    418px the board itself still overflows; that's a separate scope
+    (would require canvas responsive-scaling — CSS-scale or recompute
+    `TILE_SIZE` on resize).
+  - **Files:** archived
+    `platforms/phone-418-verses/match3-v1.0-phone-418-verses.jsx` →
+    `archive/`; new
+    `platforms/phone-418-verses/match3-v1.1-phone-418-verses.jsx` is
+    active. `src/entry-phone418-verses.jsx` repointed to v1.1;
+    `index.html` card description updated.
+  - **Build:** clean. 66 modules transformed, zero warnings.
+    `phone418Verses-*.js` 77.83 → 77.99 kB (+0.16 kB from new comment
+    text + row 2 wrapper logic). Other bundles unchanged.
+  - **Re-verification on real iPhone still pending** before N-3
+    declared closed.
+  - **Dev-on-phone gotcha noted** for next session: Vite dev server
+    defaults to localhost-only; needs `--host` flag (`npm run dev --
+    --host`) or `server: { host: true }` in `vite.config.js` to be
+    reachable from iPhone on same Wi-Fi.
 
 - **Phone-418-verses port (Session N-2).** 2026-04-28. Second of the
   two-session program scoped same morning. Phone form factor of the
