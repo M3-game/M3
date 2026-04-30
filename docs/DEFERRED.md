@@ -59,16 +59,16 @@ touches it next.
 - **Arcade end-run confirm** — "Are you sure?" popup on truly final
   end-game actions in the tablet arcade file, when score < target and moves
   remain. (Campaign v1.25 has its in-header version; arcade needs its own.)
-- **Cross-platform: extend N-4 prompt-button confirm to other platforms.**
-  Tablet v11.13 (N-4, 2026-04-29) added the are-you-sure confirm to the
-  bonus-moves prompt's "End and carry moves forward" button. The same
-  prompt button exists on phone-418-verses v1.1 and tablet-verses v1.8
-  (and possibly campaign tablet, phone-418, phone-341), still calling
-  `endLevelCarryBanked` directly. For consistency, sweep all platforms
-  in one change rather than reactive per-platform fixes. Also flag
-  `wouldWin` semantics on each platform — confirm logic depends on
-  `targetReached` + specials bonus, which may differ slightly across
-  arcade-only and verses-mode files.
+- ~~**Cross-platform: extend N-4 prompt-button confirm to other platforms.**~~
+  **Partially shipped N-5 2026-04-29.** Campaign tablet (v1.27),
+  tablet-verses (v1.9), phone-418-verses (v1.2) updated. Desktop /
+  phone-418 arcade / phone-341 not in scope for N-5 — they don't have
+  the `requestEndLevelCarryBanked` wrapper or the `showEndConfirm`
+  modal at all. Adding the confirm there requires porting both the
+  wrapper function and the modal markup from tablet (or
+  campaign/tablet-verses), which is part of the larger
+  "Desktop + Phone 341 bonus-moves update" item above. See N-5
+  Done entry for full fix details.
 
 ---
 
@@ -1040,6 +1040,50 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Apply N-4 prompt-button confirm to campaign tablet + tablet-verses +
+  phone-418-verses, plus phone-418-verses padding bump (Session N-5).**
+  2026-04-29. Two bundled items: (a) extend N-4's are-you-sure confirm
+  fix to the three other platforms that have the
+  `requestEndLevelCarryBanked` wrapper and `showEndConfirm` modal
+  already wired up; (b) phone-418-verses padding adjustment from the
+  user-rec thread (Option B — bump card internal padding rather than
+  shrinking card widths, preserving alignment with the board edges).
+  Audit found three platforms in scope (campaign tablet, tablet-verses,
+  phone-418-verses); three out of scope (desktop, phone-418 arcade,
+  phone-341 — they don't have the wrapper or modal at all, would
+  require larger port).
+  - **Cross-platform fix.** Same one-line change in each:
+    `onClick={endLevelCarryBanked}` → `onClick={requestEndLevelCarryBanked}`
+    on the bonus-moves prompt's "End and carry moves forward" button.
+    Wrapper's `wouldWin` check produces correct behavior in both
+    prompt variants (confirm if below target; just-end if `targetReached`).
+  - **Phone-418-verses padding (Option B).** Card widths unchanged
+    (still match boardWidth = 418px so card edges align with board).
+    Internal padding bumped: header `'10px 20px'` / `'12px 20px'` →
+    `'10px 28px'` / `'12px 28px'`; rolling text bar `'12px 20px'` →
+    `'12px 28px'`; bottom instructions `'12px 16px'` → `'12px 24px'`.
+    Back button (←) `left: '8px'` → `left: '16px'`. Theme toggle
+    `right: '8px'` → `right: '16px'`. Net: content sits 28px from
+    screen edge instead of 20px; ← / ☀️ buttons sit 16px from edge
+    instead of 8px.
+  - **Files:** archived `match3-v1.26-campaign-tablet.jsx` /
+    `match3-v1.8-tablet-verses.jsx` / `match3-v1.1-phone-418-verses.jsx`
+    to their respective archive dirs; created v1.27 / v1.9 / v1.2
+    active files. `src/entry-campaign.jsx`, `src/entry-verses.jsx`,
+    `src/entry-phone418-verses.jsx` repointed. `index.html`
+    descriptions updated for all three cards.
+  - **Build:** clean. 66 modules transformed, zero warnings. Bundle
+    sizes unchanged from v1.26 / v1.8 / v1.1 baselines (no code
+    growth — only the one-line onClick change + comment text +
+    JSX prop tweaks for padding).
+  - **Process note.** User pushed back on the phrase "cross-platform
+    consistency sweep" — overbuilt language for "apply the same fix
+    to the other files." Memory updated to flag invented compound
+    nouns. Also: my Option A pitch leaned on a "what most iPhone
+    apps look like" claim I couldn't actually source; user asked to
+    verify, recommendation switched to Option B (which has identical
+    content-spacing math but aligns card edges with the board).
 
 - **Tablet v11.13 — extend v11.9 are-you-sure confirm to bonus-moves
   prompt (Session N-4).** 2026-04-29. Investigation triggered by user
