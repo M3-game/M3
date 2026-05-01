@@ -24,15 +24,17 @@ Update both docs as part of the same commit that ships the code:
 
 Without these updates, the docs go stale and future sessions lose their map.
 
-### Day rotation for PROGRESS doc
+### Rotating the PROGRESS doc
 
-At the start of each new work day (first session on that date), rotate:
+Rotate the PROGRESS doc when something ships on a date later than the current doc's date, or when there's another reason to start a fresh doc. Don't rotate just because the date has changed — a quiet day with no ship continues to use the existing doc.
+
+When rotating (as part of the same commit that ships the code):
 
 1. Move the existing `docs/PROGRESS-YYYY-MM-DD.md` into `docs/archive/`.
 2. Create a new `docs/PROGRESS-<today>.md`.
 3. Carry forward the session-roster table (updated to reflect what's shipped), the current platform-status table, and still-load-bearing narrative entries. Drop narrative fully captured elsewhere (DESIGN.md / DEFERRED.md / prior handoff).
 
-Rotation happens at day boundary, not per session — multiple sessions on the same day share one PROGRESS doc.
+Multiple sessions on the same day share one PROGRESS doc.
 
 ## Context & Session Tracking
 

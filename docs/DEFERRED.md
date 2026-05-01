@@ -70,6 +70,40 @@ touches it next.
   "Desktop + Phone 341 bonus-moves update" item above. See N-5
   Done entry for full fix details.
 
+- **Unified responsive phone — supersedes phone-341 and phone-418.**
+  Surfaced 2026-05-01 during N-6 scoping. Currently we maintain two
+  fixed-width phone arcade platforms (phone-341 at 341px, phone-418
+  at 418px). The N-6 work on phone-418-verses establishes a working
+  pattern for viewport-derived tile sizing (`Math.min(40, floor(
+  (viewport - 48 - (COLS-1)*TILE_GAP) / COLS))` read once at module
+  load, COLS=9). Once that pattern is field-tested on real iPhones
+  across the production range (SE 375px → Pro Max 430px), the same
+  approach can supersede both phone-341 and phone-418 with a single
+  responsive arcade platform. Hard parts the verses field-test will
+  surface: tile-size rounding edge cases, orientation handling (we
+  currently lock at mount with no resize listener), iOS Safari
+  address-bar collapse changing visible height mid-game, and how
+  existing phone-341 / phone-418 level targets translate to a wider
+  responsive range. **Hold off** until at least one verses field-test
+  cycle completes. Not blocked by anything else, but no urgency
+  either.
+
+- **Phone-418 arcade — apply N-6 responsive redesign once verses
+  is field-tested.** Surfaced 2026-05-01 during N-6 scoping. Phone-418
+  arcade (`platforms/phone-418/match3-v13.2-418px-phone.jsx`) has the
+  same chrome-matched-to-boardWidth pattern as phone-418-verses had
+  pre-N-6, so it likely has the same edge-pressure issue on real
+  iPhones (← back button / settings buttons sitting close to rounded
+  screen corners). Not currently reported as broken — phone-418
+  arcade gets less play than phone-418-verses lately, so the
+  problem may not have been observed. Once N-6 is field-tested on
+  verses, port the same `COLS=9` + viewport-derived `TILE_SIZE` +
+  `TARGET_MARGIN_PX=24` + `MAX_TILE_PX=40` constants block. Note:
+  this is a stepping stone to the larger "Unified responsive phone"
+  item above — phone-418 arcade gets responsive first, then phone-341
+  is folded in once we're confident the responsive math holds across
+  the full production iPhone range.
+
 ---
 
 ## Build / deploy
@@ -1075,10 +1109,11 @@ that N-1 just established.
   7. **Session label = "T-1"** (one label, all 3 platforms in one
      commit). Per the no-overwrites rule, each platform gets its own
      version bump regardless: tablet v11.13 → v11.14, tablet-verses
-     v1.9 → v1.10, phone-418-verses v1.2 → v1.3.
+     v1.9 → v1.10, phone-418-verses v1.3 → v1.4 (baseline updated
+     2026-05-01: N-6 shipped v1.3 ahead of T-1; T-1 starts from v1.3).
 
   **Implementation order:** tablet first (v11.13 → v11.14), then
-  tablet-verses (v1.9 → v1.10), then phone-418-verses (v1.2 → v1.3).
+  tablet-verses (v1.9 → v1.10), then phone-418-verses (v1.3 → v1.4).
   Per user instruction.
 
   **Files touched:** the 3 platform files + their entry files
@@ -1098,21 +1133,16 @@ that N-1 just established.
 
 ## Known bugs (carried forward)
 
-- **Phone-418-verses v1.2 padding bump not visibly different on real
-  iPhone.** Reported 2026-04-29 by user during N-5 verification —
-  the v1.1 → v1.2 padding bump (Option B: header / text bar /
-  instructions internal padding 20 → 28; back button + theme toggle
-  position 8 → 16 from corner) doesn't appear to have made a visible
-  difference on user's phone. Needs investigation next session.
-  Possibilities to check: (a) browser cache / dev-server stale state
-  — was user looking at v1.1 build? (b) deploy not refreshed if
-  testing against deployed URL; (c) my edits in v1.2 actually applied
-  correctly — verify `grep "padding: '12px 28px'\|left: '16px'\|right: '16px'"`
-  shows the new values; (d) the change is too subtle visually +
-  user perceived no difference even with the new values rendering.
-  Don't proceed to T-1 until this is resolved or the phone-418-verses
-  v1.2 baseline is confirmed working as intended — T-1 will bump
-  v1.2 → v1.3 and we don't want to compound an unverified fix.
+- ~~**Phone-418-verses v1.2 padding bump not visibly different on real
+  iPhone.**~~ **Resolved by N-6 (2026-05-01)** — superseded by
+  responsive redesign. v1.2 baseline kept the chrome at fixed 418px
+  (edge-to-edge on a 418px viewport), so the internal padding bump
+  only moved content inward inside the card while the card itself
+  still sat flush at the screen edges. N-6 (v1.3) goes to 9 columns
+  + viewport-derived tile size, which shrinks both board and chrome
+  so the whole composition floats inside the viewport with natural
+  margin on every iPhone. v1.2's padding values were preserved into
+  v1.3 (still comfortable inside the smaller card).
 - **Time attack: score undercounted if timer fires mid-cascade** — partially
   fixed in v1.14 via `pendingTimeExpiry` + `isAnimating`/`combo` check.
   v1.25 extends with the 1.5s grace window. Verify in playtest.
@@ -1125,6 +1155,68 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Phone-418-verses v1.3 — responsive board sizing (Session N-6).**
+  2026-05-01. Reactive ship after user reported on real iPhone that
+  v1.2's padding bump didn't visibly help — chrome cards still sat
+  flush at the screen edges (matched to fixed 418px boardWidth), so
+  the ← / ☀️ buttons positioned absolutely inside the cards still
+  felt pressed against the rounded screen corner.
+  - **Scoping pass (multi-message).** Three paths surfaced — A: shrink
+    grid to 9×10 (gameplay change); B: keep 10×10 with smaller tiles;
+    C: read viewport at runtime and scale tiles to fit. User leaned
+    A+C combined: 9 columns + viewport-derived tile size, capped at
+    40px. Reasoning: A+C gives 36-42px tiles across the iPhone range
+    (SE 375px → Pro Max 430px), versus C alone bottoming out at 33px
+    on SE (below Apple's 44pt tap target). 9×10 is industry norm
+    (Candy Crush 9×9, Bejeweled started 8×8).
+  - **Locked decisions.** Standard 24px each-side margins (48px chrome
+    budget); 40px tile cap matching tablet; chrome cards stay matched
+    to boardWidth (Option B principle from N-5 preserved); tile size
+    locked at module load via IIFE reading `window.innerWidth` (no
+    resize listener — rotation mid-game keeps original size); level
+    targets unchanged at `target × 250`, recalibrate post-playtest if
+    needed.
+  - **Per-iPhone math at runtime.** SE 375px → 34px tiles, 322px
+    board, 26.5px margins. iPhone 12-15 390-393px → 36px, 340px,
+    25-26.5px. 418px reference → 39px, 367px, 25.5px. iPhone 14/15
+    Plus & Pro Max 428-430px → 40px (capped), 376px, 26-27px.
+    Buttons inside chrome at `left: 16px` end up ~41-43px from screen
+    edge across the range — clears iPhone's ~24-30px rounded corner
+    with room to spare without needing CSS safe-area insets.
+  - **Implementation.** Constants block updated:
+    `const COLS = 9` (was 10); `const TILE_SIZE = 40` replaced by
+    `const TILE_SIZE = (function () { ... })()` IIFE; new constants
+    `TARGET_MARGIN_PX = 24` and `MAX_TILE_PX = 40` surfaced for
+    future tuning. All downstream code (boardWidth derivation, canvas
+    sizing, hit detection, popup positioning, match detection)
+    automatically picks up the new values — no other code edits.
+    v1.2's internal-card padding values preserved (still comfortable
+    inside the smaller card).
+  - **Files.** Archived `match3-v1.2-phone-418-verses.jsx` to
+    `platforms/phone-418-verses/archive/`; created
+    `match3-v1.3-phone-418-verses.jsx` active. `src/entry-phone418-verses.jsx`
+    repointed to v1.3. `index.html` phone-418-verses card description
+    updated.
+  - **Build:** clean. 66 modules transformed, zero warnings.
+    `phone418Verses` bundle 78.14 kB / 23.56 kB gz (was 77.99 / 23.49
+    in v1.2; +0.15 kB from new comment block + IIFE).
+  - **Process notes.**
+    - User asked the broader strategic question mid-scoping: should
+      this approach also supersede phone-341 + phone-418 arcade?
+      Recommendation: yes eventually, but field-test on verses first
+      (lower-stakes platform) before touching arcade. Logged two
+      deferred items (Unified responsive phone; Phone-418 arcade
+      responsive port).
+    - On overconfidence: I asserted "C is the right answer for
+      production-quality" early, but user correctly pushed back that
+      smaller tiles on small phones might hurt playability — A+C
+      addresses that better than C alone, with concrete math
+      backing it up.
+    - On the corrected PROGRESS-doc rotation rule: rule was rewritten
+      mid-session (CLAUDE.md edit) — rotation now happens when
+      shipping on a later date, not just because the day ticks over.
+      This commit is the first to apply the new rule (04-29 → 05-01).
 
 - **Apply N-4 prompt-button confirm to campaign tablet + tablet-verses +
   phone-418-verses, plus phone-418-verses padding bump (Session N-5).**
