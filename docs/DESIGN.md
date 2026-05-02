@@ -359,18 +359,41 @@ No level has a real target score. All values in `PLACEHOLDER_TARGETS` in
 | Use | Avoid | Why |
 |---|---|---|
 | **bonus moves** | "banked moves", "saved moves" | "Banked" implies a reserve only available on failure. These are bonus moves the player earns and can spend any time regular moves run out — win or fail. The "banked" framing led directly to a design bug where the prompt only appeared on loss. |
-| **victory round** | "bonus round" | "Bonus round" creates confusion with "bonus moves." "Victory round" captures the right idea: the player has already won and is playing on to score more. Rename pending — see below. |
+| **victory round** | "bonus round" | "Bonus round" creates confusion with "bonus moves." "Victory round" captures the right idea: the player has already won and is playing on to score more. Rename shipped 2026-05-01 (Session T-1) on tablet, tablet-verses, phone-418-verses; deferred for the other 5 platforms — see "Cross-platform terminology sweep" in DEFERRED.md. |
 | **"End and carry moves forward"** | "End and save", "carry banked moves" | This is the actual button label in the code. Use it verbatim for clarity. |
 | **"Use bonus moves"** | "Use banked moves", "Use extra moves" | Consistent with the bonus-moves framing. |
 
-### Planned rename: "bonus round" → "victory round"
+### Rename status: "bonus round" → "victory round" + `bankedMoves` → `bonusMoves`
 
-The in-code term "bonus round" (variables: `bonusRoundActive`, `showBonusPrompt`,
-`bonusRoundScore`, `preBonusScore`, `startBonusRound`) and all UI strings that say
-"bonus round" should be renamed to "victory round" in a future dedicated session.
+Shipped 2026-05-01 in Session T-1 across 3 of 8 platforms: tablet
+(v11.13 → v11.14), tablet-verses (v1.9 → v1.10), phone-418-verses
+(v1.3 → v1.4). Identifiers, user-visible strings, and comments all
+updated to "victory round" / "bonus moves". Same session also
+renamed the carry-pool identifiers (`bankedMoves` → `bonusMoves`,
+incl. setters/refs and the verses-pattern `onBankedMovesChange` →
+`onBonusMovesChange` callback prop).
 
-**Why victory round:** it captures that the player has already reached the target —
-this extra phase is their victory lap, not a bonus. It is clearly distinct from
-"bonus moves," which are the earned moves the player carries between levels.
+**Why victory round:** captures that the player has already reached
+the target — this extra phase is their victory lap, not a bonus. It
+is clearly distinct from "bonus moves," which are the earned moves
+the player carries between levels.
 
-Do not rename piecemeal — do it in one pass to avoid mixed terminology in the code.
+**Deferred (still on old terminology):** campaign tablet, phone-418
+arcade, phone-341, desktop, time-attack — plus `core/AdminPanel.jsx`
+and the stats data layer (`endType: 'bonusRound'`, `stats.bonusRoundsTaken`,
+`bonusRoundRate`). Per locked T-1 decision #5/#6: core stays untouched
+during T-1 because renaming `BANKED_KEY` would force the 5 deferred
+platforms to follow in lockstep. See DEFERRED.md "Cross-platform
+terminology sweep" for the full follow-on scope.
+
+**Hard sync requirement** for the future cross-platform sweep: the
+`'match3_phone418_bankedMoves'` localStorage key is shared between
+phone-418-verses and phone-418 arcade. Phone-418-verses' constant
+*name* was modernized in T-1 (`PHONE418_BANKED_MOVES_KEY` →
+`PHONE418_BONUS_MOVES_KEY`) but its *value* was deliberately preserved
+to keep the verses → arcade carry-out flow working. The string MUST
+be migrated in lockstep with phone-418 arcade — both platforms touch
+it on the same commit, with the migration code in one of the two
+files reading the old key and writing the new one.
+
+Do not rename piecemeal — same principle the original lock established.

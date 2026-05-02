@@ -1036,98 +1036,93 @@ that N-1 just established.
 
 ## Terminology
 
-- **Session T-1 — bundled "bonus round → victory round" + "bankedMoves
-  → bonusMoves" rename. Scoped 2026-04-29; ready for implementation
-  next session.** Two distinct renames packaged into one effort because
-  they touch the same files, share the same migration window, and share
-  the same comment / doc rewrites. Naming becomes coherent: "victory"
-  for the 1.5× multiplier phase that fires after target is hit; "bonus"
-  for the +1 move awards and the carry-forward pool.
+- **Cross-platform terminology sweep (post-T-1 follow-on).** Session
+  T-1 (2026-05-01) shipped the "victory round" / "bonus moves" rename
+  on 3 of 8 platforms: tablet, tablet-verses, phone-418-verses. This
+  entry tracks the deferred half — the remaining 5 platforms plus core
+  + the stats data layer — so the codebase eventually returns to
+  uniform terminology.
 
-  **Locked scoping decisions (from 2026-04-29 scoping discussion):**
+  **Scope of the future sweep:**
 
-  1. **Bundled effort** (not split). One pass per platform handles both
-     renames + the player-data migration.
-  2. **Player-data strategy: rename + migrate.** Storage key strings
-     change AND existing player progress is preserved via one-time
-     migration on mount (read old key, write new key, delete old).
-     **Sub-decision:** since core stays unchanged in T-1 (per #5),
-     `BANKED_KEY`'s storage string in core (`'match3_bankedMoves'`
-     or similar) doesn't actually change for T-1 — only phone-418-
-     verses' local `PHONE418_BANKED_MOVES_KEY` migrates (its string
-     also changes since it's defined locally in that file).
-     Tablet + tablet-verses keep their existing localStorage location
-     under `BANKED_KEY`; migration for the shared key happens later
-     when we sweep core + the 5 deferred platforms. If user wants
-     migration on tablet / tablet-verses now, override at session
-     start and we'll touch core.
-  3. **User-visible string:** "🌟 BONUS ROUND - 1.5× ALL POINTS! 🌟"
-     becomes "🌟 VICTORY ROUND - 1.5× ALL POINTS! 🌟". (Wording
-     pattern preserved; just the name changes.)
-  4. **Inventory** (full list of renames):
-     *Variables / state* (each with its setter, ref, etc.):
-     - `bankedMoves` → `bonusMoves`
-     - `usingBankedMoves` → `usingBonusMoves`
-     - `showBankedMovesPrompt` → `showBonusMovesPrompt`
-     - `bonusRoundActive` → `victoryRoundActive`
-     - `bonusRoundScore` → `victoryRoundScore`
-     - `preBonusScore` → `preVictoryScore`
-     - `showBonusPrompt` → `showVictoryPrompt`
+  1. **Five deferred platforms** still on "banked" / "bonus round":
+     campaign tablet (currently v1.27), phone-418 arcade (v13.2),
+     phone-341 (v12.1), desktop (v12.1), time-attack (v12.1). Each
+     gets the same identifier + user-visible-string rename T-1
+     applied to the first 3 platforms. Deferred per locked T-1
+     decision #6 to keep the original session manageable.
 
-     *Functions:*
-     - `endLevelCarryBanked` → `endLevelCarryBonus`
-     - `requestEndLevelCarryBanked` → `requestEndLevelCarryBonus`
-     - `startUsingBankedMoves` → `startUsingBonusMoves`
+  2. **Core (`core/AdminPanel.jsx`) renames.** Per locked T-1 decision
+     #5, core stayed unchanged because renaming it would force every
+     importer to follow in lockstep — including the 5 deferred
+     platforms. The core sweep covers:
+     - `BANKED_KEY` constant → renamed (e.g., `BONUS_KEY` or
+       `CARRY_KEY`; pick during scoping). Its storage-string value
+       `'match3_bankedMoves'` migrates in lockstep.
+     - `defaultStats()` schema: `bonusRoundsTaken` → `victoryRoundsTaken`.
+     - AdminPanel display: `bonusRoundRate` → `victoryRoundRate`,
+       label "Bonus Round Rate" → "Victory Round Rate".
 
-     *Constants:*
-     - `BONUS_ROUND_MULTIPLIER` → `VICTORY_ROUND_MULTIPLIER`
-     - `BANKED_MOVES_CAP` → `BONUS_MOVES_CAP`
-     - `BANKED_MOVES_WARN` → `BONUS_MOVES_WARN`
+  3. **Stats data layer migration** (one-time, runs in core on first
+     load after the sweep ships). The `match3_stats` localStorage blob
+     contains:
+     - Top-level counter `bonusRoundsTaken: N` → migrate to
+       `victoryRoundsTaken: N`.
+     - Per-game history entries `history[].endType === 'bonusRound'`
+       → migrate to `'victoryRound'`. AdminPanel renders the raw
+       string, so without migration old entries display the old name
+       indefinitely (cosmetic, not functional).
+     - Migration happens once in core (since the blob is shared across
+       all platforms via the `STATS_KEY` import). Idempotent — read
+       old value, write new, delete/zero old.
+     - `recordGameResult()` calls in every platform get updated to
+       write the new endType string + increment the new counter.
 
-     *Phone-418-verses only:* `PHONE418_BANKED_MOVES_KEY` →
-     `PHONE418_BONUS_MOVES_KEY`. Both constant name AND its storage
-     string value change; one-time migration runs on mount.
+  4. **HARD sync requirement — phone-418 shared storage key.** This
+     was surfaced during T-1 and is the trickiest part of the future
+     sweep. Phone-418-verses and phone-418 arcade share one localStorage
+     key for their bonus-moves pool — both files declare a constant
+     pointing at the SAME string `'match3_phone418_bankedMoves'`, and
+     the verses → arcade carry-out flow writes to it so arcade can
+     pick up the merged total on entry.
+     - **In T-1 (already shipped):** phone-418-verses' constant *name*
+       was renamed `PHONE418_BANKED_MOVES_KEY` →
+       `PHONE418_BONUS_MOVES_KEY`. Its *value* was deliberately KEPT
+       as `'match3_phone418_bankedMoves'`. Otherwise the carry-out
+       would have written to a key arcade doesn't read.
+     - **In the future sweep:** phone-418 arcade and phone-418-verses
+       MUST migrate together in the same commit. Both constants get
+       new values (e.g., `'match3_phone418_bonusMoves'`); migration
+       code reads the old key and writes the new one (in arcade only,
+       since both platforms share the same key). The storage-string
+       value match between the two files is a hard correctness
+       contract.
+     - Comment block at phone-418-verses' constant declaration (lines
+       ~877-886 in v1.4) calls this requirement out so the future
+       sweep can't miss it.
 
-     *Stays unchanged:* `BANKED_KEY` (in core, untouched per #5);
-     `BONUS_MOVE_INTERVAL`, `WIN_BONUS_PER_MOVE`,
-     `EARLY_END_BONUS_PER_MOVE`, `bonusMoveFlash`,
-     `bonusMoveThresholdRef` — these already use "bonus" terminology
-     consistent with the new naming (they refer to the +1 move award
-     flow, not the carry pool or the multiplier round).
-  5. **`core/AdminPanel.jsx` stays unchanged** during T-1. Renaming
-     `BANKED_KEY` there would force every importer to update at the
-     same time, including campaign / phone-418 / phone-341 / desktop /
-     time-attack — platforms we've explicitly deferred per #6. Core
-     gets handled when those 5 platforms are eventually swept (a
-     future T-1d / T-2 / similar session).
-  6. **Cross-platform timing — defer the other 5 platforms.** T-1
-     covers tablet → tablet-verses → phone-418-verses only. Campaign
-     tablet, phone-418 arcade, phone-341, desktop, time-attack stay
-     on "banked" / "bonus round" terminology until a later session.
-     This means there's a multi-week period where the codebase has
-     mixed terminology — accepted tradeoff to keep T-1 manageable.
-  7. **Session label = "T-1"** (one label, all 3 platforms in one
-     commit). Per the no-overwrites rule, each platform gets its own
-     version bump regardless: tablet v11.13 → v11.14, tablet-verses
-     v1.9 → v1.10, phone-418-verses v1.3 → v1.4 (baseline updated
-     2026-05-01: N-6 shipped v1.3 ahead of T-1; T-1 starts from v1.3).
+  5. **Session shape — likely T-2 / T-3 / etc.** Per locked T-1
+     decision #5 ("a future T-1d / T-2 / similar session"). Suggested
+     split: one session for the 5 platforms + core + stats migration
+     (same scope as T-1 but for the deferred half), or split by
+     platform pair if any one of the 5 has unusual scope.
 
-  **Implementation order:** tablet first (v11.13 → v11.14), then
-  tablet-verses (v1.9 → v1.10), then phone-418-verses (v1.3 → v1.4).
-  Per user instruction.
+  6. **Stats data note (Option A continuation).** T-1 shipped Option
+     A for the stats layer — leave `endType: 'bonusRound'` and
+     `stats.bonusRoundsTaken` untouched in the 3 T-1 platforms, on
+     the basis that the deferred 5 still write old strings. After
+     this sweep ships, all 8 platforms write the new strings, and
+     the migration in core (above) cleans up historical data once.
 
-  **Files touched:** the 3 platform files + their entry files
-  (`src/main.jsx`, `src/entry-verses.jsx`,
-  `src/entry-phone418-verses.jsx`) + `index.html` (3 version labels) +
-  `docs/DESIGN.md` (terminology section) + `docs/DEFERRED.md` (this
-  entry moves to "Done") + `docs/PROGRESS-<today>.md` (session row
-  + addendum).
-
-  **Hard sync requirement at session start:** verify scope locked
-  decisions against any same-day commits to phone-418-verses /
-  tablet-verses (the other Verses platforms) — those are the most
-  likely to drift between this scoping and the implementation
-  session.
+  **Open questions for scoping the future session:**
+  - Does the BANKED_KEY rename in core warrant a single-purpose session,
+    or bundle with the 5-platform sweep? (Probably bundle — core +
+    all importers need to land together.)
+  - Does desktop / time-attack / phone-341 see playtest before this
+    sweep? If so, scoping pass may pick up additional renames.
+  - Does the new constant name for `BANKED_KEY` get decided here in
+    DEFERRED.md or at scoping time? (Lean: at scoping time, since
+    candidate names depend on what other constants exist by then.)
 
 ---
 
@@ -1155,6 +1150,56 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Session T-1 — bundled "victory round" / "bonus moves" rename
+  (3 of 8 platforms).** 2026-05-01. Tablet v11.13 → v11.14, tablet-
+  verses v1.9 → v1.10, phone-418-verses v1.3 → v1.4. All identifier
+  renames per the original locked inventory plus two additions
+  surfaced during execution: the verses-pattern callback prop
+  `onBankedMovesChange` → `onBonusMovesChange` (tablet-verses + phone-
+  418-verses), and the hyphenated-comment form `banked-moves` →
+  `bonus-moves`. User-visible strings updated: "🌟 BONUS ROUND - 1.5×
+  ALL POINTS! 🌟" → "🌟 VICTORY ROUND - 1.5× ALL POINTS! 🌟",
+  "Enter Bonus Round?" → "Enter Victory Round?", post-game
+  "Bonus Round: +N" → "Victory Round: +N".
+  - **Stats data layer (Option A — leave alone in T-1).** Mid-session
+    discovery: `endType: 'bonusRound'` written by `recordGameResult()`
+    and `stats.bonusRoundsTaken` counter aren't on the original
+    inventory but use the same terminology. Three options surfaced
+    (A: leave unchanged, B: rename without migration, C: migrate).
+    All three either touched core (against locked decision #5) or
+    accepted partial inconsistency. Picked **A** — preserves locked
+    decision #5 and matches Option A's spirit. AdminPanel power users
+    see "bonusRound" in historical history-entry rows for now;
+    counter keeps incrementing under the old name. Full sweep will
+    fix in the future cross-platform terminology session.
+  - **Phone-418-verses cross-platform key share — storage VALUE
+    preserved.** Mid-session discovery during phone-418-verses pass:
+    the constant `PHONE418_BANKED_MOVES_KEY` shares its storage value
+    `'match3_phone418_bankedMoves'` with phone-418 arcade's
+    `BANKED_MOVES_KEY` constant (deferred T-1 platform). Verses →
+    arcade carry-out writes to this shared key so arcade can pick up
+    the merged pool. Original locked decision #2 ("rename + migrate")
+    didn't anticipate this share — would have broken the carry-out.
+    Resolution: rename the constant *name* in T-1 for code coherence
+    (`PHONE418_BONUS_MOVES_KEY`) but KEEP the *value* as
+    `'match3_phone418_bankedMoves'`. No migration needed (no on-disk
+    change). The future cross-platform sweep migrates both constants
+    together in the same commit. Captured as a hard requirement in
+    the "Cross-platform terminology sweep" entry above.
+  - **Build verification.** Three clean `npm run build` runs after
+    each platform; 66 modules, zero warnings each time. Tablet
+    bundle 65.27 kB / 20.03 kB gz unchanged. Verses bundle 78.06 kB /
+    23.48 kB gz; phone-418-verses bundle 78.14 kB / 23.57 kB gz —
+    bundle sizes essentially flat (rename is identifier-level, no
+    new code beyond the version comment blocks).
+  - **Files touched:** 3 platform files (new versions) + 3 archive
+    copies + 3 entry-file imports + `index.html` (3 version labels) +
+    `docs/DESIGN.md` (terminology section updated to reflect
+    shipped vs. deferred status) + `docs/DEFERRED.md` (T-1 entry
+    moved here, new Cross-platform terminology sweep entry added) +
+    `docs/PROGRESS-2026-05-01.md` (session row + addendum). One
+    commit covers all of it per locked decision #7.
 
 - **Phone-418-verses v1.3 — responsive board sizing (Session N-6).**
   2026-05-01. Reactive ship after user reported on real iPhone that
@@ -1394,7 +1439,9 @@ that N-1 just established.
   the arcade banked-moves pool on Verses `restartGame()` (now
   `localStorage.setItem(PHONE418_BANKED_MOVES_KEY, '0')` on phone)
   matches tablet's same path. Apparently not user-affecting in
-  tablet practice; T-1 may revisit.
+  tablet practice; T-1 may revisit. (T-1 shipped 2026-05-01 without
+  revisiting this — preserved verbatim with constant renamed to
+  PHONE418_BONUS_MOVES_KEY but storage-string value unchanged.)
 
 - **Verses content promotion (Session N-1).** 2026-04-28. First of two
   sessions enabling phone-418-verses (N-2 shipped same day, see
@@ -1440,7 +1487,10 @@ that N-1 just established.
   `platforms/phone-418/match3-v13.0-418px-phone.jsx`; updated
   `vite.config.js` and `index.html`; archived v12.4 HTML. Build clean
   (50.52 kB bundle, gzipped 15.32 kB). "banked" naming preserved verbatim
-  — Session T-1 will rename across all platforms. **Surfaced sync gaps
+  — Session T-1 (2026-05-01) renamed across 3 of 8 platforms (tablet,
+  tablet-verses, phone-418-verses); the other 5 including phone-418
+  arcade still use "banked" — see Cross-platform terminology sweep in
+  the Terminology section. **Surfaced sync gaps
   with tablet** (now in Cross-platform parity section): v11.7 hypernova
   rework not ported (M-2), AdminPanel + `recordGameResult()` not present,
   verses → arcade carry banner not present.
