@@ -3,6 +3,13 @@
 **Last updated:** 2026-04-21
 **Status:** Authoritative — read this before implementing any gameplay changes.
 
+> **Naming note (Session P-2, 2026-05-02):** The two phone platforms were
+> renamed: `phone-418` → `phone` (arcade), `phone-418-verses` → `phone-verses`.
+> Phone-341 was retired (archived only, no longer builds). Earlier prose
+> below uses the old `phone-418` / `phone-341` names where it describes
+> events that happened under those names — kept as-is for historical
+> accuracy. Active platform paths going forward use the new names.
+
 This document records confirmed design decisions, corrections to earlier specs, and
 known bugs. It supplements, and in places supersedes, the earlier docs:
 

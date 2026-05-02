@@ -1,5 +1,14 @@
 # M3 — Deferred Work
 
+> **Naming note (Session P-2, 2026-05-02):** The two phone platforms were
+> renamed: `phone-418` → `phone` (arcade), `phone-418-verses` → `phone-verses`.
+> Phone-341 was retired (archived only, no longer builds). Earlier entries
+> below use the old `phone-418` / `phone-341` names where they describe
+> work scoped under those names — kept as-is for historical accuracy.
+> The "Cross-platform terminology + naming sweep" entry has been updated
+> to reflect the new path names + the five `phone418` storage-string
+> values that still need to migrate together.
+
 Running list of items scoped out of current sessions, admin UI placeholders,
 and known gaps waiting on later sessions.
 
@@ -70,17 +79,19 @@ touches it next.
   "Desktop + Phone 341 bonus-moves update" item above. See N-5
   Done entry for full fix details.
 
-- **Unified responsive phone — supersedes phone-341 and phone-418.**
-  Surfaced 2026-05-01 during N-6 scoping. Now scoped as **Session P-2**
-  (locked decisions below) — field-test of v1.4 verses + v13.3 arcade
-  came back positive on 2026-05-01, which unblocks the supersession.
-  P-2's commit completes the responsive-phone consolidation: rename
-  phone-418 → phone, rename phone-418-verses → phone-verses, retire
-  phone-341 entirely.
+- ~~**Unified responsive phone — supersedes phone-341 and phone-418.**~~
+  **Shipped 2026-05-02 (Session P-2).** Phone-418 → phone, phone-418-verses
+  → phone-verses, phone-341 retired (archived only). Both responsive
+  phone platforms now cover the entire iPhone production range; the
+  fixed-width phone-341 niche is absorbed.
 
-- **Session P-2 — phone-418 + phone-418-verses → phone / phone-verses
-  rename + phone-341 retirement. Scoped 2026-05-01; ready for
-  implementation next session.** Bundled session that completes the
+- ~~**Session P-2 — phone-418 + phone-418-verses → phone / phone-verses
+  rename + phone-341 retirement.**~~ **Shipped 2026-05-02.** Bundled
+  rename event committed alongside the doc-rotation, CLAUDE.md
+  prescriptive-table update, and the cross-platform sweep entry's
+  storage-string list expansion. Locked decisions below kept for
+  historical reference; they were the scoping basis for the shipped
+  work. Bundled session that completes the
   responsive-phone consolidation surfaced during N-6 scoping. After
   P-1 (2026-05-01) shipped the responsive board sizing to phone-418
   arcade, both phone-418 platforms are responsive across the iPhone
@@ -1137,11 +1148,11 @@ that N-1 just established.
 - **Cross-platform terminology + naming sweep (post-T-1 / post-P-2
   follow-on).** Session T-1 (2026-05-01) shipped the "victory round" /
   "bonus moves" rename on 3 of 8 platforms: tablet, tablet-verses,
-  phone-418-verses. Session P-2 (scoped 2026-05-01, ships next
-  session) renames phone-418 → phone, phone-418-verses → phone-verses,
-  and retires phone-341. This entry tracks what remains for the future
-  sweep so the codebase eventually returns to uniform terminology AND
-  uniform platform-naming on disk.
+  phone-verses (formerly phone-418-verses). Session P-2 (shipped
+  2026-05-02) renamed phone-418 → phone, phone-418-verses →
+  phone-verses, and retired phone-341. This entry tracks what remains
+  for the future sweep so the codebase eventually returns to uniform
+  terminology AND uniform platform-naming on disk.
 
   **Scope of the future sweep:**
 
@@ -1211,10 +1222,11 @@ that N-1 just established.
        lines ~877-886 in v1.4; same lines in the renamed v1.4.1)
        calls this requirement out so the future sweep can't miss it.
 
-  5. **Phone-platform storage strings (added by P-2 scoping
-     2026-05-01).** Beyond the terminology rename, P-2 deferred four
-     `phone418`-prefixed localStorage key strings to this future
-     sweep so all on-disk migrations happen as one coordinated event:
+  5. **Phone-platform storage strings (P-2 scoping 2026-05-01 +
+     mid-session 2026-05-02 expansion).** Beyond the terminology
+     rename, P-2 deferred FIVE `phone418`-bearing localStorage key
+     strings to this future sweep so all on-disk migrations happen
+     as one coordinated event:
      - `'match3_phone418_currentRun'` → `'match3_phone_currentRun'`
        (run tracking; used only by phone arcade)
      - `'match3_phone418_longestRun'` → `'match3_phone_longestRun'`
@@ -1226,22 +1238,31 @@ that N-1 just established.
      - `'m3_arcade_carry_from_verses_phone418'` →
        `'m3_arcade_carry_from_verses_phone'` (carry-receipt; SHARED
        between phone arcade reads it, phone-verses writes it)
-     The two shared keys (#3 and #4 in this list) require the same
+     - `'m3_phone418_verses_*'` → `'m3_phone_verses_*'` (verses
+       progress prefix — `VERSES_PROGRESS_KEY_PREFIX` in phone-verses;
+       used to namespace per-game level-completion data; surfaced
+       during P-2 mid-session inspection of phone-verses, was NOT on
+       the original P-2 inventory; preserved for the same reason as
+       the others — renaming orphans player progress without a
+       migration). This one's a prefix used as `${prefix}${gameId}`
+       at runtime, so the migration walks `localStorage` keys matching
+       the old prefix and re-keys each one with the new prefix.
+     The shared keys (#3 and #4 in this list) require the same
      lockstep migration constraint as the bankedMoves key: both
      readers and writers update at the same time, otherwise the
-     verses → arcade carry-out breaks. The two arcade-only keys
-     (#1 and #2) could in principle migrate independently, but
-     bundling them with the others keeps migrations to one event
-     instead of multiple — fewer opportunities for player-data
-     edge cases.
+     verses → arcade carry-out breaks. The arcade-only keys (#1, #2)
+     and the verses-only prefix (#5) could in principle migrate
+     independently, but bundling them with the others keeps
+     migrations to one event instead of multiple — fewer
+     opportunities for player-data edge cases.
 
-  5. **Session shape — likely T-2 / T-3 / etc.** Per locked T-1
+  6. **Session shape — likely T-2 / T-3 / etc.** Per locked T-1
      decision #5 ("a future T-1d / T-2 / similar session"). Suggested
      split: one session for the 5 platforms + core + stats migration
      (same scope as T-1 but for the deferred half), or split by
      platform pair if any one of the 5 has unusual scope.
 
-  6. **Stats data note (Option A continuation).** T-1 shipped Option
+  7. **Stats data note (Option A continuation).** T-1 shipped Option
      A for the stats layer — leave `endType: 'bonusRound'` and
      `stats.bonusRoundsTaken` untouched in the 3 T-1 platforms, on
      the basis that the deferred 5 still write old strings. After
