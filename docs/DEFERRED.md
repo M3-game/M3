@@ -88,21 +88,15 @@ touches it next.
   cycle completes. Not blocked by anything else, but no urgency
   either.
 
-- **Phone-418 arcade — apply N-6 responsive redesign once verses
-  is field-tested.** Surfaced 2026-05-01 during N-6 scoping. Phone-418
-  arcade (`platforms/phone-418/match3-v13.2-418px-phone.jsx`) has the
-  same chrome-matched-to-boardWidth pattern as phone-418-verses had
-  pre-N-6, so it likely has the same edge-pressure issue on real
-  iPhones (← back button / settings buttons sitting close to rounded
-  screen corners). Not currently reported as broken — phone-418
-  arcade gets less play than phone-418-verses lately, so the
-  problem may not have been observed. Once N-6 is field-tested on
-  verses, port the same `COLS=9` + viewport-derived `TILE_SIZE` +
-  `TARGET_MARGIN_PX=24` + `MAX_TILE_PX=40` constants block. Note:
-  this is a stepping stone to the larger "Unified responsive phone"
-  item above — phone-418 arcade gets responsive first, then phone-341
-  is folded in once we're confident the responsive math holds across
-  the full production iPhone range.
+- ~~**Phone-418 arcade — apply N-6 responsive redesign.**~~ **Shipped
+  2026-05-01 (Session P-1).** v13.2 → v13.3. Verbatim N-6 board-sizing
+  port: COLS 10 → 9, TILE_SIZE viewport-derived + capped at 40px,
+  new `TARGET_MARGIN_PX = 24` and `MAX_TILE_PX = 40` constants.
+  ROWS = 12 unchanged (arcade-specific; no scrolling-text bar competes
+  for vertical space). Scoring constants (BASE_TARGET = 5000,
+  TARGET_VARIANCE = 1500, BONUS_MOVE_INTERVAL) deferred for post-
+  playtest recalibration if 9-col feels notably easier or harder.
+  See entry in Done section.
 
 ---
 
@@ -1150,6 +1144,54 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Phone-418 arcade v13.3 — responsive board sizing (Session P-1).**
+  2026-05-01. Second session of 2026-05-01 after T-1. Verbatim N-6
+  port from phone-418-verses v1.3 to phone-418 arcade v13.2 → v13.3.
+  Same constants block restructure: `COLS = 10` → `COLS = 9`;
+  `TILE_SIZE = 40` (fixed) → IIFE-computed from `window.innerWidth`
+  capped at `MAX_TILE_PX = 40`; new `TARGET_MARGIN_PX = 24` and
+  `MAX_TILE_PX = 40` surfaced. ROWS = 12 retained (arcade-specific,
+  unchanged from v13.2 — no scrolling-text bar competes for vertical
+  space). Per-iPhone runtime sizing: SE 375px → TILE_SIZE 34, board
+  322 × 430px; iPhone 12-15 → 36, 340 × 454px; 418px reference → 39,
+  367 × 490px; Plus / Pro Max → 40 (capped), 376 × 502px.
+  - **Scoping pass.** Five decisions worked through one at a time:
+    (1) field-test sequencing — user confirmed v1.4 verses works on
+    real iPhone, proceed; (2) scope boundary — verbatim N-6 board-
+    sizing port; ROWS = 12 stays per user's "no scrolling text to
+    worry about, fits reasonably on testing phone"; (3) T-1 rename
+    bundling — declined, kept N-6 port standalone; "banked" /
+    "bonus round" terminology in arcade waits for cross-platform
+    sweep where it can coordinate with verses on the shared
+    `'match3_phone418_bankedMoves'` storage-key migration;
+    (4) scoring/difficulty — defer recalibration; ship 9-col board
+    with arcade's existing scoring constants intact; recalibrate via
+    `BASE_TARGET` if playtest reveals notable shift; (5) label P-1
+    (Phone-responsive port, first), version v13.2 → v13.3 (patch
+    bump, consistent with verses' N-6 v1.2 → v1.3).
+  - **Implementation.** Single constants-block restructure (lines
+    159-247 of v13.3). All downstream code (boardWidth derivation,
+    canvas dimensions, hit detection, popup positioning, match
+    detection, header/footer card widths) automatically picks up
+    the new values via existing COLS / ROWS / TILE_SIZE / TILE_GAP
+    references — no other code edits. Carry banner (v13.2 N-2)
+    untouched: uses `position: fixed` + `100vw - 24px` max-width,
+    not tied to boardWidth.
+  - **Audit.** Pre-edit grep confirmed no hardcoded `418` literal in
+    active code (only historical comment references). The two `40`
+    references in SVG render functions are viewBox scales (size /
+    40), independent of TILE_SIZE — left unchanged.
+  - **Build verification.** `npm run build` clean (66 modules, 0
+    warnings). Phone-418 bundle 52.66 kB / 16.15 kB gz (was 52.51 /
+    16.06 in v13.2; +0.15 kB / +0.09 kB gz, accounted for by the
+    new comment block + IIFE).
+  - **Stepping stone to Unified Responsive Phone.** P-2 (next session
+    in the P track, when ready): rename `phone-418` → `phone-responsive`
+    + retire phone-341 (the responsive board scales down to 375px,
+    covering phone-341's narrow-phone niche). High mechanical churn
+    (every file path, entry import, index.html label, doc reference),
+    low risk (pure rename + delete).
 
 - **Session T-1 — bundled "victory round" / "bonus moves" rename
   (3 of 8 platforms).** 2026-05-01. Tablet v11.13 → v11.14, tablet-
