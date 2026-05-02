@@ -71,22 +71,126 @@ touches it next.
   Done entry for full fix details.
 
 - **Unified responsive phone — supersedes phone-341 and phone-418.**
-  Surfaced 2026-05-01 during N-6 scoping. Currently we maintain two
-  fixed-width phone arcade platforms (phone-341 at 341px, phone-418
-  at 418px). The N-6 work on phone-418-verses establishes a working
-  pattern for viewport-derived tile sizing (`Math.min(40, floor(
-  (viewport - 48 - (COLS-1)*TILE_GAP) / COLS))` read once at module
-  load, COLS=9). Once that pattern is field-tested on real iPhones
-  across the production range (SE 375px → Pro Max 430px), the same
-  approach can supersede both phone-341 and phone-418 with a single
-  responsive arcade platform. Hard parts the verses field-test will
-  surface: tile-size rounding edge cases, orientation handling (we
-  currently lock at mount with no resize listener), iOS Safari
-  address-bar collapse changing visible height mid-game, and how
-  existing phone-341 / phone-418 level targets translate to a wider
-  responsive range. **Hold off** until at least one verses field-test
-  cycle completes. Not blocked by anything else, but no urgency
-  either.
+  Surfaced 2026-05-01 during N-6 scoping. Now scoped as **Session P-2**
+  (locked decisions below) — field-test of v1.4 verses + v13.3 arcade
+  came back positive on 2026-05-01, which unblocks the supersession.
+  P-2's commit completes the responsive-phone consolidation: rename
+  phone-418 → phone, rename phone-418-verses → phone-verses, retire
+  phone-341 entirely.
+
+- **Session P-2 — phone-418 + phone-418-verses → phone / phone-verses
+  rename + phone-341 retirement. Scoped 2026-05-01; ready for
+  implementation next session.** Bundled session that completes the
+  responsive-phone consolidation surfaced during N-6 scoping. After
+  P-1 (2026-05-01) shipped the responsive board sizing to phone-418
+  arcade, both phone-418 platforms are responsive across the iPhone
+  production range; the "418" in their paths is now a misleading
+  historical artifact. P-2 retires that artifact and consolidates
+  the phone-platform footprint.
+
+  **Locked scoping decisions (from 2026-05-01 scoping discussion):**
+
+  1. **New name = `phone`** (not `phone-responsive`, not `mobile`).
+     Parallels the existing `tablet` directory cleanly — short noun,
+     no qualifier. Future-proof: "phone-responsive" implicitly suggests
+     a sibling "phone-fixed" might exist, which we're explicitly
+     erasing by retiring phone-341. Shortest paths. The responsive
+     nature lives in the code (the IIFE-derived `TILE_SIZE` constant
+     + comment block) and in `DESIGN.md`, not the path.
+
+  2. **Storage keys preserve `phone418` strings verbatim.** The four
+     localStorage key string values (`'match3_phone418_currentRun'`,
+     `'match3_phone418_longestRun'`, `'match3_phone418_bankedMoves'`,
+     `'m3_arcade_carry_from_verses_phone418'`) all keep `phone418`
+     in their values for P-2. Renaming them risks orphaning player
+     progress unless we run a migration; two of the four are
+     cross-platform shared keys (the `bankedMoves` key is shared
+     between phone-418-verses and phone-418 arcade per the same
+     constraint that punted T-1's storage strings; the carry-receipt
+     key is also shared). The four `phone418` storage-string renames
+     fold into the future Cross-platform terminology + naming sweep
+     so all the migrations happen as one coordinated event in lockstep
+     across all platforms.
+
+  3. **Version handling — one-off three-part patch.** Active files
+     become `match3-v13.3.1-phone.jsx` and `match3-v1.4.1-phone-verses.jsx`.
+     The third digit captures "this is a refinement / move of v13.3 / v1.4
+     with no behavior change" — useful at-a-glance signal. Treated as a
+     one-off for this rename event; the next behavior change graduates
+     back to two-part (`v13.4` or `v14.0`, `v1.5` or `v2.0`). Not
+     adopting three-part as a project-wide convention.
+
+  4. **Doc-reference scope — selective.** Update `CLAUDE.md` fully
+     (the file-naming table is prescriptive, not historical — it tells
+     future readers and Claude what naming to use). Active docs
+     `docs/DESIGN.md`, `docs/DEFERRED.md`, and the current
+     `docs/PROGRESS-<today>.md` get a short note near the top
+     announcing the rename event and acknowledging that older entries
+     describing past sessions naturally use the old names; the
+     existing prose in those docs is left untouched. The
+     "Cross-platform terminology + naming sweep" entry in
+     DEFERRED.md is a forward-looking entry, so it gets a real update
+     to capture the four `phone418` storage-string renames as part
+     of the eventual sweep. Inside the new active source files
+     (`match3-v13.3.1-phone.jsx`, `match3-v1.4.1-phone-verses.jsx`),
+     all `phone-418` / `phone418` / `418PX` references are rewritten
+     for code coherence (same approach T-1 used for source-code
+     comments). Archive code files and archived PROGRESS docs are
+     left completely alone.
+
+  5. **Phone-341 retirement — archive both build wrappers, remove
+     from build, remove from landing page, drop from CLAUDE.md table.**
+     Three small files move into `platforms/phone-341/archive/`:
+     `phone341.html`, `src/entry-phone341.jsx`, and the active
+     `platforms/phone-341/match3-v12.1-phone341.jsx`. The archive
+     folder becomes the "everything phone-341 related, frozen in
+     time" location. Build configuration drops the `phone341` rollup
+     input from `vite.config.js`. Landing page (`index.html`) removes
+     the phone-341 card. `CLAUDE.md` file-naming table loses the
+     "Phone 341" row. Existing `platforms/phone-341/archive/` contents
+     stay where they are. Player localStorage keys saved on devices
+     that played phone-341 are left alone (orphan, harmless).
+
+  **Files touched in P-2 (concrete list):**
+  - Directory rename: `platforms/phone-418/` → `platforms/phone/`
+  - Directory rename: `platforms/phone-418-verses/` → `platforms/phone-verses/`
+  - Active platform file: `match3-v13.3-418px-phone.jsx` →
+    `match3-v13.3.1-phone.jsx` (with internal `phone-418` references
+    rewritten for coherence)
+  - Active platform file: `match3-v1.4-phone-418-verses.jsx` →
+    `match3-v1.4.1-phone-verses.jsx` (same)
+  - Archive subfolders move along with their parent directories;
+    contents preserved with original filenames untouched
+  - Entry files: `src/entry-phone418.jsx` → `src/entry-phone.jsx`,
+    `src/entry-phone418-verses.jsx` → `src/entry-phone-verses.jsx`
+  - HTML pages: `phone418.html` → `phone.html`,
+    `phone418-verses.html` → `phone-verses.html`
+  - Build config: `vite.config.js` updates `phone418` and
+    `phone418Verses` rollup inputs to `phone` and `phoneVerses`;
+    drops the `phone341` input
+  - Landing page: `index.html` updates two cards' hrefs + names +
+    descriptions; removes the phone-341 card
+  - Active docs: `CLAUDE.md` (full update), `docs/DESIGN.md` +
+    `docs/DEFERRED.md` + current PROGRESS doc (top-of-file rename
+    note only, prose left alone)
+  - Phone-341 retirement: three files move into existing
+    `platforms/phone-341/archive/`
+
+  **Implementation order suggestion:** rename phone-418 first
+  (arcade), then phone-418-verses (verses), then phone-341 retirement
+  last. Each is independent of the others. After each platform's
+  rename, run `npm run build` to verify before moving to the next.
+  One commit covers the whole session per the same principle T-1
+  used.
+
+  **Hard sync requirement at session start:** verify scope locked
+  decisions against any same-day commits to phone-418, phone-418-verses,
+  or phone-341 (the latter two are stable but worth a quick check).
+  Also re-verify that phone-418-verses' `PHONE418_BONUS_MOVES_KEY`
+  storage value is still `'match3_phone418_bankedMoves'` and that
+  phone-418 arcade's `BANKED_MOVES_KEY` storage value matches —
+  if either has shifted, the cross-platform key share assumptions
+  in decision #2 need revisiting.
 
 - ~~**Phone-418 arcade — apply N-6 responsive redesign.**~~ **Shipped
   2026-05-01 (Session P-1).** v13.2 → v13.3. Verbatim N-6 board-sizing
@@ -1030,21 +1134,24 @@ that N-1 just established.
 
 ## Terminology
 
-- **Cross-platform terminology sweep (post-T-1 follow-on).** Session
-  T-1 (2026-05-01) shipped the "victory round" / "bonus moves" rename
-  on 3 of 8 platforms: tablet, tablet-verses, phone-418-verses. This
-  entry tracks the deferred half — the remaining 5 platforms plus core
-  + the stats data layer — so the codebase eventually returns to
-  uniform terminology.
+- **Cross-platform terminology + naming sweep (post-T-1 / post-P-2
+  follow-on).** Session T-1 (2026-05-01) shipped the "victory round" /
+  "bonus moves" rename on 3 of 8 platforms: tablet, tablet-verses,
+  phone-418-verses. Session P-2 (scoped 2026-05-01, ships next
+  session) renames phone-418 → phone, phone-418-verses → phone-verses,
+  and retires phone-341. This entry tracks what remains for the future
+  sweep so the codebase eventually returns to uniform terminology AND
+  uniform platform-naming on disk.
 
   **Scope of the future sweep:**
 
-  1. **Five deferred platforms** still on "banked" / "bonus round":
-     campaign tablet (currently v1.27), phone-418 arcade (v13.2),
-     phone-341 (v12.1), desktop (v12.1), time-attack (v12.1). Each
-     gets the same identifier + user-visible-string rename T-1
-     applied to the first 3 platforms. Deferred per locked T-1
-     decision #6 to keep the original session manageable.
+  1. **Four deferred platforms** still on "banked" / "bonus round"
+     (after P-2 retires phone-341): campaign tablet (currently v1.27),
+     phone arcade (P-2-renamed from phone-418, currently v13.3.1),
+     desktop (v12.1), time-attack (v12.1). Each gets the same
+     identifier + user-visible-string rename T-1 applied to the
+     first 3 platforms. Deferred per locked T-1 decision #6 to keep
+     the original session manageable.
 
   2. **Core (`core/AdminPanel.jsx`) renames.** Per locked T-1 decision
      #5, core stayed unchanged because renaming it would force every
@@ -1072,9 +1179,10 @@ that N-1 just established.
      - `recordGameResult()` calls in every platform get updated to
        write the new endType string + increment the new counter.
 
-  4. **HARD sync requirement — phone-418 shared storage key.** This
+  4. **HARD sync requirement — phone shared storage key.** This
      was surfaced during T-1 and is the trickiest part of the future
-     sweep. Phone-418-verses and phone-418 arcade share one localStorage
+     sweep. Phone-verses (P-2-renamed from phone-418-verses) and
+     phone arcade (P-2-renamed from phone-418) share one localStorage
      key for their bonus-moves pool — both files declare a constant
      pointing at the SAME string `'match3_phone418_bankedMoves'`, and
      the verses → arcade carry-out flow writes to it so arcade can
@@ -1084,16 +1192,48 @@ that N-1 just established.
        `PHONE418_BONUS_MOVES_KEY`. Its *value* was deliberately KEPT
        as `'match3_phone418_bankedMoves'`. Otherwise the carry-out
        would have written to a key arcade doesn't read.
-     - **In the future sweep:** phone-418 arcade and phone-418-verses
-       MUST migrate together in the same commit. Both constants get
-       new values (e.g., `'match3_phone418_bonusMoves'`); migration
-       code reads the old key and writes the new one (in arcade only,
+     - **In P-2 (scoped, ships next session):** the constant *name*
+       in arcade gets implicit name-update via the platform rename
+       (the `BANKED_MOVES_KEY` constant in `match3-v13.3.1-phone.jsx`
+       still has the value `'match3_phone418_bankedMoves'`). The
+       string value preservation extends. Same constraint, same
+       resolution.
+     - **In the future sweep:** phone arcade and phone-verses MUST
+       migrate together in the same commit. Both constants get new
+       values (e.g., `'match3_phone_bonusMoves'` — combines the
+       banked → bonus terminology rename AND the phone418 → phone
+       platform-name rename in one migration step). Migration code
+       reads the old key and writes the new one (in arcade only,
        since both platforms share the same key). The storage-string
        value match between the two files is a hard correctness
        contract.
-     - Comment block at phone-418-verses' constant declaration (lines
-       ~877-886 in v1.4) calls this requirement out so the future
-       sweep can't miss it.
+     - Comment block at phone-verses' constant declaration (was
+       lines ~877-886 in v1.4; same lines in the renamed v1.4.1)
+       calls this requirement out so the future sweep can't miss it.
+
+  5. **Phone-platform storage strings (added by P-2 scoping
+     2026-05-01).** Beyond the terminology rename, P-2 deferred four
+     `phone418`-prefixed localStorage key strings to this future
+     sweep so all on-disk migrations happen as one coordinated event:
+     - `'match3_phone418_currentRun'` → `'match3_phone_currentRun'`
+       (run tracking; used only by phone arcade)
+     - `'match3_phone418_longestRun'` → `'match3_phone_longestRun'`
+       (run tracking; used only by phone arcade)
+     - `'match3_phone418_bankedMoves'` → `'match3_phone_bonusMoves'`
+       (bonus pool; SHARED between phone arcade + phone-verses;
+       combined with the banked → bonus terminology rename per #4
+       above)
+     - `'m3_arcade_carry_from_verses_phone418'` →
+       `'m3_arcade_carry_from_verses_phone'` (carry-receipt; SHARED
+       between phone arcade reads it, phone-verses writes it)
+     The two shared keys (#3 and #4 in this list) require the same
+     lockstep migration constraint as the bankedMoves key: both
+     readers and writers update at the same time, otherwise the
+     verses → arcade carry-out breaks. The two arcade-only keys
+     (#1 and #2) could in principle migrate independently, but
+     bundling them with the others keeps migrations to one event
+     instead of multiple — fewer opportunities for player-data
+     edge cases.
 
   5. **Session shape — likely T-2 / T-3 / etc.** Per locked T-1
      decision #5 ("a future T-1d / T-2 / similar session"). Suggested
