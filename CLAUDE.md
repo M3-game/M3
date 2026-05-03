@@ -137,5 +137,6 @@ Phone-341 was retired in Session P-2 (2026-05-02). Its files remain in `platform
 - [ ] `src/main.jsx` / `src/entry-campaign.jsx` updated
 - [ ] `index.html` version label updated
 - [ ] Version comment block in new file updated
+- [ ] **In-game header label inside the new file updated to match the new version** (the small `vX.Y` rendered in the running app's header — this is the "version-label drift" trap that hit phone-418 v13.1→v13.3 and phone-418-verses v1.0→v1.4 silently; see DEFERRED.md "In-game version-label drift" if unsure)
 - [ ] `docs/PROGRESS-<today>.md` updated (session row shipped, platform status, addendum if needed)
 - [ ] `docs/DEFERRED.md` updated (shipped item moved out, new deferred items added)

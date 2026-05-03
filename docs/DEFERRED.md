@@ -217,6 +217,26 @@ touches it next.
 
 ## Build / deploy
 
+- **In-game version-label drift — audit + fix (surfaced 2026-05-02).**
+  Several active platform files render an `<h1>` or `<span>` showing
+  `vX.Y` in the in-game header; that label is hardcoded inline in
+  the JSX and easy to forget when bumping versions. P-2 found two
+  silent drifts: phone arcade rendering `v13.1-418px` while the
+  active file was v13.3 (3 versions behind), and phone-verses
+  rendering `v1.5` since v1.0 (a dormant fallback that's never
+  user-visible but still wrong in code). Tablet flagged by user
+  on 2026-05-02 still rendering `v11.11` while active file is
+  v11.14 (3 versions behind; not addressed yet because the user
+  asked to plan the fix rather than bundle it). Other candidates
+  not yet inspected: campaign tablet, desktop, time-attack,
+  rewardmode, sim. Fix shape: one-time audit pass — for each
+  active platform, grep its in-game header text and confirm the
+  label string matches the active file version. Bump any stale
+  ones. Add the CLAUDE.md "Checklist before every commit" line
+  added 2026-05-02 ("In-game header label inside the new file
+  updated to match the new version") prevents re-drift going
+  forward, but doesn't auto-fix the existing backlog.
+
 - **Auto-copy all phone-418 versions into dist.** Today `vite.config.js` has a
   single `phone418` rollup input pointing at one specific file. Each version
   bump requires editing `vite.config.js` manually — forgetting that step
@@ -1145,35 +1165,41 @@ that N-1 just established.
 
 ## Terminology
 
-- **Cross-platform terminology + naming sweep (post-T-1 / post-P-2
-  follow-on).** Session T-1 (2026-05-01) shipped the "victory round" /
-  "bonus moves" rename on 3 of 8 platforms: tablet, tablet-verses,
-  phone-verses (formerly phone-418-verses). Session P-2 (shipped
-  2026-05-02) renamed phone-418 → phone, phone-418-verses →
-  phone-verses, and retired phone-341. This entry tracks what remains
-  for the future sweep so the codebase eventually returns to uniform
-  terminology AND uniform platform-naming on disk.
+- **Cross-platform terminology + naming sweep — T-3 (data event)
+  remaining.** Originally scoped as a single post-T-1/post-P-2
+  follow-on; in T-2 scoping (2026-05-02) split into T-2 (code only)
+  + T-3 (data event). T-1 (2026-05-01) renamed 3 platforms; P-2
+  (2026-05-02) renamed the phone paths and retired phone-341; T-2
+  (2026-05-02) completed the code-coherence sweep — all 8 platforms
+  now use the new bonus-moves identifier scheme + user-visible
+  strings, core's constant is `BONUS_MOVES_KEY`, derived stats field
+  is `victoryRoundRate`, AdminPanel labels say "Victory Round" /
+  "Bonus moves". T-3 is the data event: storage-string value
+  migrations + stats-schema rename + one-time idempotent migration
+  code that runs at platform mount.
 
-  **Scope of the future sweep:**
+  **Scope of T-3 (data event):**
 
-  1. **Four deferred platforms** still on "banked" / "bonus round"
-     (after P-2 retires phone-341): campaign tablet (currently v1.27),
-     phone arcade (P-2-renamed from phone-418, currently v13.3.1),
-     desktop (v12.1), time-attack (v12.1). Each gets the same
-     identifier + user-visible-string rename T-1 applied to the
-     first 3 platforms. Deferred per locked T-1 decision #6 to keep
-     the original session manageable.
+  1. ~~**Four deferred platforms** still on "banked" / "bonus round"~~
+     **DONE in T-2.** Desktop v12.2, time-attack v12.2, phone arcade
+     v13.4, campaign tablet v1.28 all shipped the identifier +
+     user-visible-string rename. Plus 4 importer-only version bumps
+     for the T-1 platforms whose imports referenced core's renamed
+     `BANKED_KEY`: tablet v11.15, tablet-verses v1.11,
+     tablet-rewardmode v1.2, tablet-sim v1.4.
 
-  2. **Core (`core/AdminPanel.jsx`) renames.** Per locked T-1 decision
-     #5, core stayed unchanged because renaming it would force every
-     importer to follow in lockstep — including the 5 deferred
-     platforms. The core sweep covers:
-     - `BANKED_KEY` constant → renamed (e.g., `BONUS_KEY` or
-       `CARRY_KEY`; pick during scoping). Its storage-string value
-       `'match3_bankedMoves'` migrates in lockstep.
+  2. ~~**Core (`core/AdminPanel.jsx`) renames** — name side.~~ **DONE
+     in T-2.** `BANKED_KEY` constant → `BONUS_MOVES_KEY`. Derived
+     stats field `bonusRoundRate` → `victoryRoundRate`. AdminPanel
+     display labels updated. **REMAINING for T-3** (storage values +
+     stats-schema name):
+     - `BONUS_MOVES_KEY` value `'match3_bankedMoves'` →
+       `'match3_bonusMoves'` migration. Migration code in core reads
+       old key, writes new, deletes old. Idempotent.
      - `defaultStats()` schema: `bonusRoundsTaken` → `victoryRoundsTaken`.
-     - AdminPanel display: `bonusRoundRate` → `victoryRoundRate`,
-       label "Bonus Round Rate" → "Victory Round Rate".
+     - AdminPanel JSON export key `bankedMoves` → `bonusMoves` (T-2
+       deliberately preserved for backward compatibility with prior
+       export files; T-3 closes this).
 
   3. **Stats data layer migration** (one-time, runs in core on first
      load after the sweep ships). The `match3_stats` localStorage blob
@@ -1256,18 +1282,29 @@ that N-1 just established.
      migrations to one event instead of multiple — fewer
      opportunities for player-data edge cases.
 
-  6. **Session shape — likely T-2 / T-3 / etc.** Per locked T-1
-     decision #5 ("a future T-1d / T-2 / similar session"). Suggested
-     split: one session for the 5 platforms + core + stats migration
-     (same scope as T-1 but for the deferred half), or split by
-     platform pair if any one of the 5 has unusual scope.
+  6. **Session shape — T-3 (decided 2026-05-02 during T-2 scoping).**
+     The T-2/T-3 split locks: T-2 (shipped 2026-05-02) handled all
+     code-coherence work — identifier renames, user-visible strings,
+     constant names, AdminPanel display labels. T-3 is the data event:
+     all storage-string value migrations + stats-blob field migration +
+     the one-time idempotent migration code in core that walks
+     localStorage and re-keys everything at module load. Migration
+     code lives centrally in core (recommendation A from T-2 scoping
+     #5) and runs at platform mount (every platform's entry imports
+     core, so one trigger covers all 8 platforms; idempotent — re-runs
+     are no-ops). Lockstep constraint for the shared phone keys
+     (`bankedMoves`, carry-receipt) requires both phone arcade AND
+     phone-verses to update their constant *values* in the same T-3
+     commit so future writes stay aligned with the migrated keys.
 
-  7. **Stats data note (Option A continuation).** T-1 shipped Option
-     A for the stats layer — leave `endType: 'bonusRound'` and
-     `stats.bonusRoundsTaken` untouched in the 3 T-1 platforms, on
-     the basis that the deferred 5 still write old strings. After
-     this sweep ships, all 8 platforms write the new strings, and
-     the migration in core (above) cleans up historical data once.
+  7. **Stats data note (Option A continuation through T-2).** T-1
+     and T-2 both shipped Option A for the stats layer — left
+     `endType: 'bonusRound'` and `stats.bonusRoundsTaken` untouched
+     in all 8 platforms (writers all still write old strings). T-3
+     ships the schema rename + the migration in core that walks
+     existing stats blobs and re-keys the fields. All 8 platforms'
+     `recordGameResult()` calls also flip to write new field names in
+     T-3, in lockstep with the migration.
 
   **Open questions for scoping the future session:**
   - Does the BANKED_KEY rename in core warrant a single-purpose session,

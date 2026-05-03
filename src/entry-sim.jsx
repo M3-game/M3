@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Match3Sim from '../platforms/tablet-sim/match3-v1.3-tablet-sim.jsx'
+import Match3Sim from '../platforms/tablet-sim/match3-v1.4-tablet-sim.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

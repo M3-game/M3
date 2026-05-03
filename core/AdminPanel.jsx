@@ -11,12 +11,24 @@ import React, { useState, useEffect } from 'react';
 //
 // localStorage keys read:
 //   match3_stats       — JSON stats object (see schema below)
-//   match3_bankedMoves — integer
+//   match3_bankedMoves — integer (storage VALUE — see BONUS_MOVES_KEY note)
 //   match3_highScore, match3_highCombo, match3_highTurnScore — legacy keys
+//
+// Session T-2 (2026-05-02): code-coherence rename for the bonus-moves
+// terminology migration. Constant `BONUS_MOVES_KEY` → `BONUS_MOVES_KEY`
+// (name only; storage VALUE 'match3_bankedMoves' intentionally preserved
+// — value migrates in T-3 in lockstep with all platform constants).
+// Derived stats field `victoryRoundRate` → `victoryRoundRate`. Display
+// labels "Bonus round uptake" → "Victory round uptake" and "Banked
+// moves" → "Bonus moves". State var `bankedMoves` → `bonusMoves`. The
+// stats-blob field `bonusRoundsTaken` is intentionally NOT renamed in
+// T-2 (defers to T-3 along with the one-time stats-blob migration).
+// JSON export key `bankedMoves` intentionally NOT renamed in T-2 (data
+// format; preserves backward compatibility with prior export files).
 // =============================================================================
 
-const STATS_KEY   = 'match3_stats';
-const BANKED_KEY  = 'match3_bankedMoves';
+const STATS_KEY        = 'match3_stats';
+const BONUS_MOVES_KEY  = 'match3_bankedMoves';
 
 function defaultStats() {
   return {
@@ -58,7 +70,7 @@ function computeDerived(stats) {
     ? Math.round(losses.reduce((s, g) => s + g.finalScore / g.levelTarget, 0) / losses.length * 100)
     : null;
 
-  const bonusRoundRate = wins.length > 0 ? Math.round(bonusRoundsTaken / wins.length * 100) : 0;
+  const victoryRoundRate = wins.length > 0 ? Math.round(bonusRoundsTaken / wins.length * 100) : 0;
   const earlyEndRate   = wins.length > 0 ? Math.round(earlyEnds / wins.length * 100) : 0;
 
   const recent10 = history.slice(-10);
@@ -82,7 +94,7 @@ function computeDerived(stats) {
 
   return {
     winRateAll, winRateRecent, avgPctWin, avgPctLoss,
-    bonusRoundRate, earlyEndRate,
+    victoryRoundRate, earlyEndRate,
     avgTarget10, avgDifficulty10,
     winsCount: wins.length, lossesCount: losses.length,
     flag,
@@ -93,19 +105,19 @@ function computeDerived(stats) {
 
 function AdminPanel({ onClose, constants = {} }) {
   const [stats, setStats]             = useState(null);
-  const [bankedMoves, setBankedMoves] = useState(0);
+  const [bonusMoves, setBonusMoves] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     setStats(loadStats());
-    setBankedMoves(parseInt(localStorage.getItem(BANKED_KEY) || '0', 10));
+    setBonusMoves(parseInt(localStorage.getItem(BONUS_MOVES_KEY) || '0', 10));
   }, []);
 
   const handleExport = () => {
     const data = {
       stats: loadStats(),
-      bankedMoves: parseInt(localStorage.getItem(BANKED_KEY) || '0', 10),
+      bankedMoves: parseInt(localStorage.getItem(BONUS_MOVES_KEY) || '0', 10),
       highScore: localStorage.getItem('match3_highScore'),
       highCombo: localStorage.getItem('match3_highCombo'),
       exportedAt: new Date().toISOString(),
@@ -189,8 +201,8 @@ function AdminPanel({ onClose, constants = {} }) {
               <span style={S.val}>{derived.avgPctLoss !== null ? `${derived.avgPctLoss}%` : '—'} <span style={S.dim}>({derived.lossesCount} games)</span></span>
             </div>
             <div style={S.row}>
-              <span style={S.dim}>Bonus round uptake (of wins)</span>
-              <span style={S.val}>{derived.bonusRoundRate}% <span style={S.dim}>({stats.bonusRoundsTaken})</span></span>
+              <span style={S.dim}>Victory round uptake (of wins)</span>
+              <span style={S.val}>{derived.victoryRoundRate}% <span style={S.dim}>({stats.bonusRoundsTaken})</span></span>
             </div>
             <div style={S.rowLast}>
               <span style={S.dim}>Early end rate (of wins)</span>
@@ -215,8 +227,8 @@ function AdminPanel({ onClose, constants = {} }) {
               <span style={S.val}>{derived.avgDifficulty10?.toLocaleString() ?? '—'}</span>
             </div>
             <div style={S.rowLast}>
-              <span style={S.dim}>🏦 Banked moves (current)</span>
-              <span style={S.val}>{bankedMoves}</span>
+              <span style={S.dim}>🏦 Bonus moves (current)</span>
+              <span style={S.val}>{bonusMoves}</span>
             </div>
           </div>
 
@@ -299,5 +311,5 @@ function AdminPanel({ onClose, constants = {} }) {
 }
 
 // Export the defaultStats factory so host files can initialise match3_stats safely
-export { defaultStats, STATS_KEY, BANKED_KEY };
+export { defaultStats, STATS_KEY, BONUS_MOVES_KEY };
 export default AdminPanel;
