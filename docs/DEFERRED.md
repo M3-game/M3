@@ -1191,30 +1191,26 @@ that N-1 just established.
   2. ~~**Core (`core/AdminPanel.jsx`) renames** — name side.~~ **DONE
      in T-2.** `BANKED_KEY` constant → `BONUS_MOVES_KEY`. Derived
      stats field `bonusRoundRate` → `victoryRoundRate`. AdminPanel
-     display labels updated. **REMAINING for T-3** (storage values +
-     stats-schema name):
+     display labels updated. **REMAINING for T-3b** (storage values
+     only — schema-name half done in T-3a):
      - `BONUS_MOVES_KEY` value `'match3_bankedMoves'` →
        `'match3_bonusMoves'` migration. Migration code in core reads
        old key, writes new, deletes old. Idempotent.
-     - `defaultStats()` schema: `bonusRoundsTaken` → `victoryRoundsTaken`.
      - AdminPanel JSON export key `bankedMoves` → `bonusMoves` (T-2
        deliberately preserved for backward compatibility with prior
-       export files; T-3 closes this).
+       export files; T-3b closes this).
 
-  3. **Stats data layer migration** (one-time, runs in core on first
-     load after the sweep ships). The `match3_stats` localStorage blob
-     contains:
-     - Top-level counter `bonusRoundsTaken: N` → migrate to
-       `victoryRoundsTaken: N`.
-     - Per-game history entries `history[].endType === 'bonusRound'`
-       → migrate to `'victoryRound'`. AdminPanel renders the raw
-       string, so without migration old entries display the old name
-       indefinitely (cosmetic, not functional).
-     - Migration happens once in core (since the blob is shared across
-       all platforms via the `STATS_KEY` import). Idempotent — read
-       old value, write new, delete/zero old.
-     - `recordGameResult()` calls in every platform get updated to
-       write the new endType string + increment the new counter.
+  3. ~~**Stats data layer migration**~~ **DONE in T-3a (2026-05-02).**
+     Top-level counter `bonusRoundsTaken` → `victoryRoundsTaken`,
+     per-game history `endType: 'bonusRound'` → `'victoryRound'`.
+     Migration code `migrateStatsBlob()` in core/AdminPanel.jsx runs
+     at module load, idempotent via field-presence checks. 5 platforms
+     with `recordGameResult()` writes versioned to write new field
+     names: tablet v11.16, tablet-verses v1.12, phone-verses v1.5,
+     tablet-rewardmode v1.3, tablet-sim v1.5. Existing player data
+     migrates automatically on next platform visit. Discovery:
+     campaign tablet does NOT call `recordGameResult()` (pre-existing
+     gap; not addressed in T-3a).
 
   4. **HARD sync requirement — phone shared storage key.** This
      was surfaced during T-1 and is the trickiest part of the future
@@ -1282,29 +1278,24 @@ that N-1 just established.
      migrations to one event instead of multiple — fewer
      opportunities for player-data edge cases.
 
-  6. **Session shape — T-3 (decided 2026-05-02 during T-2 scoping).**
-     The T-2/T-3 split locks: T-2 (shipped 2026-05-02) handled all
-     code-coherence work — identifier renames, user-visible strings,
-     constant names, AdminPanel display labels. T-3 is the data event:
-     all storage-string value migrations + stats-blob field migration +
-     the one-time idempotent migration code in core that walks
-     localStorage and re-keys everything at module load. Migration
-     code lives centrally in core (recommendation A from T-2 scoping
-     #5) and runs at platform mount (every platform's entry imports
-     core, so one trigger covers all 8 platforms; idempotent — re-runs
-     are no-ops). Lockstep constraint for the shared phone keys
-     (`bankedMoves`, carry-receipt) requires both phone arcade AND
-     phone-verses to update their constant *values* in the same T-3
-     commit so future writes stay aligned with the migrated keys.
+  6. **Session shape — T-3a/T-3b split (decided 2026-05-02; T-3a
+     shipped same day, T-3b remains).** T-3 split into two truly
+     orthogonal halves so the lower-risk half could ship without
+     gating on the higher-risk lockstep work. T-3a (shipped) =
+     stats-blob field rename + idempotent migration code in core.
+     T-3b (remains) = the 6 storage-string value migrations + phone
+     arcade ↔ phone-verses lockstep constraint. Migration code
+     pattern from T-3a (`migrateStatsBlob()` in core, runs at module
+     load, idempotent via presence checks) extends naturally for
+     T-3b — likely a generic `migrateLocalStorageKey()` helper +
+     per-key calls.
 
-  7. **Stats data note (Option A continuation through T-2).** T-1
-     and T-2 both shipped Option A for the stats layer — left
-     `endType: 'bonusRound'` and `stats.bonusRoundsTaken` untouched
-     in all 8 platforms (writers all still write old strings). T-3
-     ships the schema rename + the migration in core that walks
-     existing stats blobs and re-keys the fields. All 8 platforms'
-     `recordGameResult()` calls also flip to write new field names in
-     T-3, in lockstep with the migration.
+  7. ~~**Stats data note (Option A continuation)**~~ **CLOSED in
+     T-3a (2026-05-02).** Both T-1 and T-2 shipped Option A; T-3a
+     ships the schema rename + migration. All 5 platforms with
+     `recordGameResult()` calls now write new field names; existing
+     blobs migrate automatically on first load via core's
+     `migrateStatsBlob()`.
 
   **Open questions for scoping the future session:**
   - Does the BANKED_KEY rename in core warrant a single-purpose session,

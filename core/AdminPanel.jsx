@@ -15,20 +15,64 @@ import React, { useState, useEffect } from 'react';
 //   match3_highScore, match3_highCombo, match3_highTurnScore — legacy keys
 //
 // Session T-2 (2026-05-02): code-coherence rename for the bonus-moves
-// terminology migration. Constant `BONUS_MOVES_KEY` → `BONUS_MOVES_KEY`
-// (name only; storage VALUE 'match3_bankedMoves' intentionally preserved
-// — value migrates in T-3 in lockstep with all platform constants).
-// Derived stats field `victoryRoundRate` → `victoryRoundRate`. Display
-// labels "Bonus round uptake" → "Victory round uptake" and "Banked
-// moves" → "Bonus moves". State var `bankedMoves` → `bonusMoves`. The
-// stats-blob field `bonusRoundsTaken` is intentionally NOT renamed in
-// T-2 (defers to T-3 along with the one-time stats-blob migration).
-// JSON export key `bankedMoves` intentionally NOT renamed in T-2 (data
-// format; preserves backward compatibility with prior export files).
+// terminology migration. Core constant formerly `BANKED_KEY` is now
+// `BONUS_MOVES_KEY` (name only; storage VALUE 'match3_bankedMoves'
+// intentionally preserved — value migrates in T-3b in lockstep with
+// all platform constants). Derived stats field formerly `bonusRoundRate`
+// is now `victoryRoundRate`. Display labels "Bonus round uptake" →
+// "Victory round uptake" and "Banked moves" → "Bonus moves". State
+// var `bankedMoves` → `bonusMoves`. JSON export key `bankedMoves`
+// intentionally NOT renamed (data format; preserves backward
+// compatibility with prior export files).
+//
+// Session T-3a (2026-05-02): stats-blob field rename (data half, A
+// part of T-3 split). Top-level counter formerly `bonusRoundsTaken`
+// is now `victoryRoundsTaken` (defaultStats schema, computeDerived
+// destructure, AdminPanel display reads). Per-game history entries
+// formerly `endType: 'bonusRound'` are now `endType: 'victoryRound'`
+// (writers updated in each platform's recordGameResult). Existing
+// player data migrated by `migrateStatsBlob()` below — runs once at
+// module load, idempotent. T-3b (still pending) handles the storage-
+// value renames + lockstep on phone keys (see DEFERRED.md).
 // =============================================================================
 
 const STATS_KEY        = 'match3_stats';
 const BONUS_MOVES_KEY  = 'match3_bankedMoves';
+
+// T-3a (2026-05-02): one-time stats-blob field migration. Runs at
+// module load — every platform's entry imports core, so this fires
+// once per browser session per platform visit. Idempotent: checks
+// presence of new field before migrating, so re-runs are no-ops.
+function migrateStatsBlob() {
+  if (typeof localStorage === 'undefined') return;
+  let raw;
+  try { raw = localStorage.getItem(STATS_KEY); } catch { return; }
+  if (!raw) return;
+  let stats;
+  try { stats = JSON.parse(raw); } catch { return; }
+  if (!stats || typeof stats !== 'object') return;
+
+  let changed = false;
+  // Top-level field rename: bonusRoundsTaken → victoryRoundsTaken
+  if ('bonusRoundsTaken' in stats && !('victoryRoundsTaken' in stats)) {
+    stats.victoryRoundsTaken = stats.bonusRoundsTaken;
+    delete stats.bonusRoundsTaken;
+    changed = true;
+  }
+  // History entries: endType 'bonusRound' → 'victoryRound'
+  if (Array.isArray(stats.history)) {
+    for (const entry of stats.history) {
+      if (entry && entry.endType === 'bonusRound') {
+        entry.endType = 'victoryRound';
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {}
+  }
+}
+migrateStatsBlob();
 
 function defaultStats() {
   return {
@@ -36,7 +80,7 @@ function defaultStats() {
     gamesPlayed: 0,
     gamesWon: 0,
     gamesLost: 0,
-    bonusRoundsTaken: 0,
+    victoryRoundsTaken: 0,
     earlyEnds: 0,
     movesSaved: 0,
     history: [],   // ring buffer, max 50 entries
@@ -53,7 +97,7 @@ function loadStats() {
 }
 
 function computeDerived(stats) {
-  const { gamesPlayed, gamesWon, history, bonusRoundsTaken, earlyEnds } = stats;
+  const { gamesPlayed, gamesWon, history, victoryRoundsTaken, earlyEnds } = stats;
 
   const recent20    = history.slice(-20);
   const recentWins20 = recent20.filter(g => g.won).length;
@@ -70,7 +114,7 @@ function computeDerived(stats) {
     ? Math.round(losses.reduce((s, g) => s + g.finalScore / g.levelTarget, 0) / losses.length * 100)
     : null;
 
-  const victoryRoundRate = wins.length > 0 ? Math.round(bonusRoundsTaken / wins.length * 100) : 0;
+  const victoryRoundRate = wins.length > 0 ? Math.round(victoryRoundsTaken / wins.length * 100) : 0;
   const earlyEndRate   = wins.length > 0 ? Math.round(earlyEnds / wins.length * 100) : 0;
 
   const recent10 = history.slice(-10);
@@ -202,7 +246,7 @@ function AdminPanel({ onClose, constants = {} }) {
             </div>
             <div style={S.row}>
               <span style={S.dim}>Victory round uptake (of wins)</span>
-              <span style={S.val}>{derived.victoryRoundRate}% <span style={S.dim}>({stats.bonusRoundsTaken})</span></span>
+              <span style={S.val}>{derived.victoryRoundRate}% <span style={S.dim}>({stats.victoryRoundsTaken})</span></span>
             </div>
             <div style={S.rowLast}>
               <span style={S.dim}>Early end rate (of wins)</span>
