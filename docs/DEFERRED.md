@@ -217,25 +217,25 @@ touches it next.
 
 ## Build / deploy
 
-- **In-game version-label drift — audit + fix (surfaced 2026-05-02).**
-  Several active platform files render an `<h1>` or `<span>` showing
-  `vX.Y` in the in-game header; that label is hardcoded inline in
-  the JSX and easy to forget when bumping versions. P-2 found two
-  silent drifts: phone arcade rendering `v13.1-418px` while the
-  active file was v13.3 (3 versions behind), and phone-verses
-  rendering `v1.5` since v1.0 (a dormant fallback that's never
-  user-visible but still wrong in code). Tablet flagged by user
-  on 2026-05-02 still rendering `v11.11` while active file is
-  v11.14 (3 versions behind; not addressed yet because the user
-  asked to plan the fix rather than bundle it). Other candidates
-  not yet inspected: campaign tablet, desktop, time-attack,
-  rewardmode, sim. Fix shape: one-time audit pass — for each
+- **In-game version-label drift — audit + fix (surfaced 2026-05-02;
+  partially addressed 2026-05-03).** Several active platform files
+  render an `<h1>` or `<span>` showing `vX.Y` in the in-game header;
+  that label is hardcoded inline in the JSX and easy to forget when
+  bumping versions. P-2 found two silent drifts; T-3b (2026-05-03)
+  bumped labels for the 4 files it versioned (phone v13.4 → v13.5,
+  phone-verses dormant `v1.4.1` → `v1.6`, desktop `v12` → `v12.3`,
+  time-attack `v12` → `v12.3`). Tablet flagged by user on 2026-05-02
+  **still rendering `v11.11` while active file is v11.16 (5 versions
+  behind);** not addressed because user asked to plan the fix rather
+  than bundle it. Other candidates not yet inspected: campaign
+  tablet, rewardmode, sim. Fix shape: one-time audit pass — for each
   active platform, grep its in-game header text and confirm the
-  label string matches the active file version. Bump any stale
-  ones. Add the CLAUDE.md "Checklist before every commit" line
-  added 2026-05-02 ("In-game header label inside the new file
-  updated to match the new version") prevents re-drift going
-  forward, but doesn't auto-fix the existing backlog.
+  label string matches the active file version. Bump any stale ones.
+  CLAUDE.md "Checklist before every commit" line added 2026-05-02
+  ("In-game header label inside the new file updated to match the
+  new version") prevents re-drift going forward — proven in T-3b
+  (4 versioned files, 4 labels bumped, no drift). Doesn't auto-fix
+  the existing backlog.
 
 - **Auto-copy all phone-418 versions into dist.** Today `vite.config.js` has a
   single `phone418` rollup input pointing at one specific file. Each version
@@ -1165,147 +1165,55 @@ that N-1 just established.
 
 ## Terminology
 
-- **Cross-platform terminology + naming sweep — T-3 (data event)
-  remaining.** Originally scoped as a single post-T-1/post-P-2
-  follow-on; in T-2 scoping (2026-05-02) split into T-2 (code only)
-  + T-3 (data event). T-1 (2026-05-01) renamed 3 platforms; P-2
+- ~~**Cross-platform terminology + naming sweep — T-3 (data event).**~~
+  **FULLY DONE 2026-05-03.** T-1 (2026-05-01) renamed 3 platforms; P-2
   (2026-05-02) renamed the phone paths and retired phone-341; T-2
-  (2026-05-02) completed the code-coherence sweep — all 8 platforms
-  now use the new bonus-moves identifier scheme + user-visible
-  strings, core's constant is `BONUS_MOVES_KEY`, derived stats field
-  is `victoryRoundRate`, AdminPanel labels say "Victory Round" /
-  "Bonus moves". T-3 is the data event: storage-string value
-  migrations + stats-schema rename + one-time idempotent migration
-  code that runs at platform mount.
+  (2026-05-02) completed the code-coherence sweep across all 8
+  platforms; T-3a (2026-05-02) shipped the stats-blob schema rename +
+  migration; T-3b (2026-05-03) shipped the storage-string VALUE
+  migrations + the phone arcade ↔ phone-verses lockstep + desktop +
+  time-attack additions. Full historical record below for posterity.
 
-  **Scope of T-3 (data event):**
+  **Final state after T-3b ship 2026-05-03:**
+  - Core constant: `BONUS_MOVES_KEY = 'match3_bonusMoves'` (name +
+    value both updated). Migration `migrateBonusMovesKeys()` in
+    `core/AdminPanel.jsx` covers all 8 storage keys, runs at module
+    load alongside `migrateStatsBlob()`. Stricter idempotency than
+    T-3a — always removes the old key after attempting migration.
+  - All 8 storage keys flipped values:
+    - `'match3_bankedMoves'` → `'match3_bonusMoves'` (core)
+    - `'match3_desktop_bankedMoves'` → `'match3_desktop_bonusMoves'` (desktop)
+    - `'match3_timeattack_bankedMoves'` → `'match3_timeattack_bonusMoves'` (time-attack)
+    - `'match3_phone418_currentRun'` → `'match3_phone_currentRun'` (phone arcade only)
+    - `'match3_phone418_longestRun'` → `'match3_phone_longestRun'` (phone arcade only)
+    - `'match3_phone418_bankedMoves'` → `'match3_phone_bonusMoves'` (phone arcade ↔ phone-verses LOCKSTEP)
+    - `'m3_arcade_carry_from_verses_phone418'` → `'m3_arcade_carry_from_verses_phone'` (phone arcade ↔ phone-verses LOCKSTEP)
+    - `'m3_phone418_verses_*'` → `'m3_phone_verses_*'` (phone-verses prefix; prefix-walk migration)
+  - AdminPanel JSON export key `bankedMoves` → `bonusMoves`. (No
+    JSON-import path exists; old export files on user disks stay
+    frozen as-is.)
+  - Phone arcade v13.5, phone-verses v1.6, desktop v12.3, time-attack
+    v12.3 each versioned in T-3b. Phone arcade / desktop / time-attack
+    each added a new core import (`import { migrateBonusMovesKeys }`)
+    + explicit top-level call (none of them otherwise import core).
+    Phone-verses already imports core; migration runs transitively
+    via that existing import.
+  - Tablet, tablet-verses, tablet-rewardmode, tablet-sim, campaign
+    tablet — UNBUMPED in T-3b. Their source files are byte-identical;
+    they inherit core's new migration code at runtime via existing
+    core imports (per T-3a precedent — only platforms with substantive
+    file changes get versioned).
 
-  1. ~~**Four deferred platforms** still on "banked" / "bonus round"~~
-     **DONE in T-2.** Desktop v12.2, time-attack v12.2, phone arcade
-     v13.4, campaign tablet v1.28 all shipped the identifier +
-     user-visible-string rename. Plus 4 importer-only version bumps
-     for the T-1 platforms whose imports referenced core's renamed
-     `BANKED_KEY`: tablet v11.15, tablet-verses v1.11,
-     tablet-rewardmode v1.2, tablet-sim v1.4.
+  **Historical scope detail (kept for reference):**
 
-  2. ~~**Core (`core/AdminPanel.jsx`) renames** — name side.~~ **DONE
-     in T-2.** `BANKED_KEY` constant → `BONUS_MOVES_KEY`. Derived
-     stats field `bonusRoundRate` → `victoryRoundRate`. AdminPanel
-     display labels updated. **REMAINING for T-3b** (storage values
-     only — schema-name half done in T-3a):
-     - `BONUS_MOVES_KEY` value `'match3_bankedMoves'` →
-       `'match3_bonusMoves'` migration. Migration code in core reads
-       old key, writes new, deletes old. Idempotent.
-     - AdminPanel JSON export key `bankedMoves` → `bonusMoves` (T-2
-       deliberately preserved for backward compatibility with prior
-       export files; T-3b closes this).
-
-  3. ~~**Stats data layer migration**~~ **DONE in T-3a (2026-05-02).**
-     Top-level counter `bonusRoundsTaken` → `victoryRoundsTaken`,
-     per-game history `endType: 'bonusRound'` → `'victoryRound'`.
-     Migration code `migrateStatsBlob()` in core/AdminPanel.jsx runs
-     at module load, idempotent via field-presence checks. 5 platforms
-     with `recordGameResult()` writes versioned to write new field
-     names: tablet v11.16, tablet-verses v1.12, phone-verses v1.5,
-     tablet-rewardmode v1.3, tablet-sim v1.5. Existing player data
-     migrates automatically on next platform visit. Discovery:
-     campaign tablet does NOT call `recordGameResult()` (pre-existing
-     gap; not addressed in T-3a).
-
-  4. **HARD sync requirement — phone shared storage key.** This
-     was surfaced during T-1 and is the trickiest part of the future
-     sweep. Phone-verses (P-2-renamed from phone-418-verses) and
-     phone arcade (P-2-renamed from phone-418) share one localStorage
-     key for their bonus-moves pool — both files declare a constant
-     pointing at the SAME string `'match3_phone418_bankedMoves'`, and
-     the verses → arcade carry-out flow writes to it so arcade can
-     pick up the merged total on entry.
-     - **In T-1 (already shipped):** phone-418-verses' constant *name*
-       was renamed `PHONE418_BANKED_MOVES_KEY` →
-       `PHONE418_BONUS_MOVES_KEY`. Its *value* was deliberately KEPT
-       as `'match3_phone418_bankedMoves'`. Otherwise the carry-out
-       would have written to a key arcade doesn't read.
-     - **In P-2 (scoped, ships next session):** the constant *name*
-       in arcade gets implicit name-update via the platform rename
-       (the `BANKED_MOVES_KEY` constant in `match3-v13.3.1-phone.jsx`
-       still has the value `'match3_phone418_bankedMoves'`). The
-       string value preservation extends. Same constraint, same
-       resolution.
-     - **In the future sweep:** phone arcade and phone-verses MUST
-       migrate together in the same commit. Both constants get new
-       values (e.g., `'match3_phone_bonusMoves'` — combines the
-       banked → bonus terminology rename AND the phone418 → phone
-       platform-name rename in one migration step). Migration code
-       reads the old key and writes the new one (in arcade only,
-       since both platforms share the same key). The storage-string
-       value match between the two files is a hard correctness
-       contract.
-     - Comment block at phone-verses' constant declaration (was
-       lines ~877-886 in v1.4; same lines in the renamed v1.4.1)
-       calls this requirement out so the future sweep can't miss it.
-
-  5. **Phone-platform storage strings (P-2 scoping 2026-05-01 +
-     mid-session 2026-05-02 expansion).** Beyond the terminology
-     rename, P-2 deferred FIVE `phone418`-bearing localStorage key
-     strings to this future sweep so all on-disk migrations happen
-     as one coordinated event:
-     - `'match3_phone418_currentRun'` → `'match3_phone_currentRun'`
-       (run tracking; used only by phone arcade)
-     - `'match3_phone418_longestRun'` → `'match3_phone_longestRun'`
-       (run tracking; used only by phone arcade)
-     - `'match3_phone418_bankedMoves'` → `'match3_phone_bonusMoves'`
-       (bonus pool; SHARED between phone arcade + phone-verses;
-       combined with the banked → bonus terminology rename per #4
-       above)
-     - `'m3_arcade_carry_from_verses_phone418'` →
-       `'m3_arcade_carry_from_verses_phone'` (carry-receipt; SHARED
-       between phone arcade reads it, phone-verses writes it)
-     - `'m3_phone418_verses_*'` → `'m3_phone_verses_*'` (verses
-       progress prefix — `VERSES_PROGRESS_KEY_PREFIX` in phone-verses;
-       used to namespace per-game level-completion data; surfaced
-       during P-2 mid-session inspection of phone-verses, was NOT on
-       the original P-2 inventory; preserved for the same reason as
-       the others — renaming orphans player progress without a
-       migration). This one's a prefix used as `${prefix}${gameId}`
-       at runtime, so the migration walks `localStorage` keys matching
-       the old prefix and re-keys each one with the new prefix.
-     The shared keys (#3 and #4 in this list) require the same
-     lockstep migration constraint as the bankedMoves key: both
-     readers and writers update at the same time, otherwise the
-     verses → arcade carry-out breaks. The arcade-only keys (#1, #2)
-     and the verses-only prefix (#5) could in principle migrate
-     independently, but bundling them with the others keeps
-     migrations to one event instead of multiple — fewer
-     opportunities for player-data edge cases.
-
-  6. **Session shape — T-3a/T-3b split (decided 2026-05-02; T-3a
-     shipped same day, T-3b remains).** T-3 split into two truly
-     orthogonal halves so the lower-risk half could ship without
-     gating on the higher-risk lockstep work. T-3a (shipped) =
-     stats-blob field rename + idempotent migration code in core.
-     T-3b (remains) = the 6 storage-string value migrations + phone
-     arcade ↔ phone-verses lockstep constraint. Migration code
-     pattern from T-3a (`migrateStatsBlob()` in core, runs at module
-     load, idempotent via presence checks) extends naturally for
-     T-3b — likely a generic `migrateLocalStorageKey()` helper +
-     per-key calls.
-
-  7. ~~**Stats data note (Option A continuation)**~~ **CLOSED in
-     T-3a (2026-05-02).** Both T-1 and T-2 shipped Option A; T-3a
-     ships the schema rename + migration. All 5 platforms with
-     `recordGameResult()` calls now write new field names; existing
-     blobs migrate automatically on first load via core's
-     `migrateStatsBlob()`.
-
-  **Open questions for scoping the future session:**
-  - Does the BANKED_KEY rename in core warrant a single-purpose session,
-    or bundle with the 5-platform sweep? (Probably bundle — core +
-    all importers need to land together.)
-  - Does desktop / time-attack / phone-341 see playtest before this
-    sweep? If so, scoping pass may pick up additional renames.
-  - Does the new constant name for `BANKED_KEY` get decided here in
-    DEFERRED.md or at scoping time? (Lean: at scoping time, since
-    candidate names depend on what other constants exist by then.)
+  1. ~~**Four deferred platforms** on "banked" / "bonus round"~~ **DONE in T-2 (2026-05-02).**
+  2. ~~**Core renames — name side.**~~ **DONE in T-2 (2026-05-02);** value side (core's `BONUS_MOVES_KEY` value flip + JSON export key flip) **DONE in T-3b (2026-05-03).**
+  3. ~~**Stats data layer migration.**~~ **DONE in T-3a (2026-05-02).**
+  4. ~~**HARD sync requirement — phone shared storage key.**~~ **DONE in T-3b (2026-05-03).** Phone arcade v13.5 and phone-verses v1.6 versioned in same commit; both `'match3_phone418_bankedMoves'` and `'m3_arcade_carry_from_verses_phone418'` flipped together. Migration in core handles existing-data rename for both platforms in one orchestrator function. Comment blocks at constant declarations updated.
+  5. ~~**Phone-platform storage strings (5 strings).**~~ **DONE in T-3b (2026-05-03).** All 5 phone storage strings migrated as part of the 8-string sweep. Prefix walk for `VERSES_PROGRESS_KEY_PREFIX` works as scoped (helper `migrateLocalStoragePrefix()` walks localStorage and re-keys matching entries).
+  6. ~~**Session shape — T-3a/T-3b split.**~~ **CLOSED.** Both halves shipped 2026-05-02 / 2026-05-03 respectively.
+  7. ~~**Stats data note (Option A continuation).**~~ **CLOSED in T-3a (2026-05-02).**
+  8. **Mid-T-3b-scoping addition (2026-05-03):** desktop's `'match3_desktop_bankedMoves'` and time-attack's `'match3_timeattack_bankedMoves'` were not on the original DEFERRED enumeration but were promised in the in-file T-2 comments ("T-3 migrates this"). User chose to bundle them into T-3b rather than defer to a follow-on. Added 2 platform version bumps (desktop + time-attack to v12.3 each) and 2 single-key migration calls.
 
 ---
 
@@ -1333,6 +1241,59 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Session T-3b — storage-string VALUE migrations + lockstep
+  (closes T-3 data event).** 2026-05-03. First (and only) session of
+  2026-05-03. 8 storage keys flipped values via core's new
+  `migrateBonusMovesKeys()` orchestrator (helper-based: 7 single-key
+  + 1 prefix-walk). Phone arcade ↔ phone-verses lockstep on 2 shared
+  keys (bonus-moves pool + carry receipt) — both files versioned in
+  same commit. Desktop + time-attack added to T-3b mid-scoping (their
+  local `bankedMoves`-suffixed values were T-3 promised but missing
+  from original DEFERRED inventory). Phone arcade, desktop, time-attack
+  each added a new core import + explicit `migrateBonusMovesKeys()`
+  call at module load. AdminPanel JSON export key `bankedMoves` →
+  `bonusMoves` (no JSON-import path; safe). Stricter idempotency than
+  T-3a — always removes the old key after attempting migration;
+  preserves new value if both exist; never leaves orphans.
+  - **Files versioned (4 platforms + core in-place):** phone arcade
+    v13.4 → v13.5, phone-verses v1.5 → v1.6, desktop v12.2 → v12.3,
+    time-attack v12.2 → v12.3. Tablet, tablet-verses, tablet-rewardmode,
+    tablet-sim, campaign tablet — UNBUMPED (T-3a precedent: only
+    platforms with substantive file changes get versioned; importing
+    platforms inherit core's new behavior at runtime).
+  - **In-game header labels bumped per CLAUDE.md commit checklist:**
+    desktop `v12` → `v12.3`, time-attack `v12` → `v12.3`, phone arcade
+    `v13.4` → `v13.5`, phone-verses dormant fallback `v1.4.1` → `v1.6`.
+    Tablet's stale `v11.11` not addressed (out of scope; remains in
+    "In-game version-label drift" entry).
+  - **Bundle-size reorganization:** Vite merged React client runtime
+    into the AdminPanel chunk (10.38 kB → 152.77 kB / 48.94 kB gzip)
+    when phone arcade / desktop / time-attack joined the core-importer
+    set. Per-platform bundles unchanged. Total bytes downloaded by any
+    user roughly the same — Vite re-evaluates code-splitting based on
+    the dependency graph. Not a regression.
+  - **Mid-session pitfall.** Initial `replace_all` flip of the
+    carry-receipt string in phone arcade caught the OLD-value reference
+    inside the new T-3b banner (the doc-line literally read "old →
+    new"). Restored manually. Lesson for future bulk renames: scan for
+    the rename string in any context, including comments added in the
+    same edit pass.
+  - **Build verifies (per platform).** Clean after each step. Final
+    build clean. AdminPanel chunk reorganization noted above is the
+    only sizable bundle-size delta.
+  - **Files touched:** 5 platform files (4 new + 1 in-place core) +
+    4 archive copies + 4 entry-file imports + `index.html` (4 landing
+    cards) + `docs/PROGRESS-2026-05-03.md` (new) + `docs/PROGRESS-2026-05-02.md`
+    rotated to archive + `docs/DEFERRED.md` (this entry + T-3 sweep
+    entry marked fully done + version-label drift entry updated). One
+    commit per scope-discipline + lockstep constraint.
+  - **What remains after T-3b ship.** "In-game version-label drift"
+    backlog (tablet v11.11 stale; campaign / rewardmode / sim
+    uninspected). Real-device verification of T-2 + T-3a + T-3b.
+    Phone arcade `recordGameResult()` port (pre-existing M-1 gap; now
+    half-wired since arcade pulls in AdminPanel via the migration
+    import). Verses content drafts (waiting on user).
 
 - **Phone-418 arcade v13.3 — responsive board sizing (Session P-1).**
   2026-05-01. Second session of 2026-05-01 after T-1. Verbatim N-6

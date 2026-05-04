@@ -10,20 +10,16 @@ import React, { useState, useEffect } from 'react';
 //   2. Secret gesture: long-press score counter for 1.5s
 //
 // localStorage keys read:
-//   match3_stats       — JSON stats object (see schema below)
-//   match3_bankedMoves — integer (storage VALUE — see BONUS_MOVES_KEY note)
+//   match3_stats      — JSON stats object (see schema below)
+//   match3_bonusMoves — integer (storage VALUE — see BONUS_MOVES_KEY note)
 //   match3_highScore, match3_highCombo, match3_highTurnScore — legacy keys
 //
 // Session T-2 (2026-05-02): code-coherence rename for the bonus-moves
 // terminology migration. Core constant formerly `BANKED_KEY` is now
-// `BONUS_MOVES_KEY` (name only; storage VALUE 'match3_bankedMoves'
-// intentionally preserved — value migrates in T-3b in lockstep with
-// all platform constants). Derived stats field formerly `bonusRoundRate`
+// `BONUS_MOVES_KEY`. Derived stats field formerly `bonusRoundRate`
 // is now `victoryRoundRate`. Display labels "Bonus round uptake" →
 // "Victory round uptake" and "Banked moves" → "Bonus moves". State
-// var `bankedMoves` → `bonusMoves`. JSON export key `bankedMoves`
-// intentionally NOT renamed (data format; preserves backward
-// compatibility with prior export files).
+// var `bankedMoves` → `bonusMoves`.
 //
 // Session T-3a (2026-05-02): stats-blob field rename (data half, A
 // part of T-3 split). Top-level counter formerly `bonusRoundsTaken`
@@ -32,12 +28,96 @@ import React, { useState, useEffect } from 'react';
 // formerly `endType: 'bonusRound'` are now `endType: 'victoryRound'`
 // (writers updated in each platform's recordGameResult). Existing
 // player data migrated by `migrateStatsBlob()` below — runs once at
-// module load, idempotent. T-3b (still pending) handles the storage-
-// value renames + lockstep on phone keys (see DEFERRED.md).
+// module load, idempotent.
+//
+// Session T-3b (2026-05-03): storage-string VALUE migrations (data
+// half, B part of T-3 split). Eight localStorage keys flip values:
+//   1. core              'match3_bankedMoves'                → 'match3_bonusMoves'
+//   2. desktop (local)   'match3_desktop_bankedMoves'        → 'match3_desktop_bonusMoves'
+//   3. time-attack       'match3_timeattack_bankedMoves'     → 'match3_timeattack_bonusMoves'
+//   4. phone (local)     'match3_phone418_currentRun'        → 'match3_phone_currentRun'
+//   5. phone (local)     'match3_phone418_longestRun'        → 'match3_phone_longestRun'
+//   6. phone arcade ↔
+//      phone-verses      'match3_phone418_bankedMoves'       → 'match3_phone_bonusMoves'   [LOCKSTEP]
+//   7. phone arcade ↔
+//      phone-verses      'm3_arcade_carry_from_verses_phone418'
+//                                                            → 'm3_arcade_carry_from_verses_phone'  [LOCKSTEP]
+//   8. phone-verses      'm3_phone418_verses_*'              → 'm3_phone_verses_*'  [PREFIX]
+// All migrations live in `migrateBonusMovesKeys()` below. Runs at
+// module load alongside `migrateStatsBlob()`. Idempotent: stricter
+// rule than T-3a — always removes the old key after attempting
+// migration (preserves new value if both exist; never leaves orphans).
+// Phone arcade, desktop, and time-attack don't otherwise import core,
+// so each adds an explicit `import { migrateBonusMovesKeys }` + call
+// at module load to ensure the migration runs on those platforms too.
+// JSON export key `bankedMoves` flipped to `bonusMoves` (no import
+// path exists; harmless to user disk files which stay frozen as-is).
 // =============================================================================
 
 const STATS_KEY        = 'match3_stats';
-const BONUS_MOVES_KEY  = 'match3_bankedMoves';
+const BONUS_MOVES_KEY  = 'match3_bonusMoves';
+
+// T-3b (2026-05-03): generic single-key migration helper.
+// Stricter idempotency than T-3a: always removes the old key after
+// attempting migration. If new key is absent, copies old → new then
+// deletes old. If new key is present, deletes old without overwriting
+// (preserves user's most recent value, no orphans either way). Re-runs
+// after the first successful migration are no-ops because old key is
+// gone. SSR-safe and try/catch wrapped, same shape as migrateStatsBlob.
+function migrateLocalStorageKey(oldKey, newKey) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const oldVal = localStorage.getItem(oldKey);
+    if (oldVal === null) return;
+    if (localStorage.getItem(newKey) === null) {
+      localStorage.setItem(newKey, oldVal);
+    }
+    localStorage.removeItem(oldKey);
+  } catch {}
+}
+
+// T-3b (2026-05-03): prefix-walk migration helper for namespaced keys
+// (e.g., 'm3_phone418_verses_<gameId>' → 'm3_phone_verses_<gameId>').
+// Walks localStorage keys matching the old prefix and re-keys each
+// with the new prefix. Same stricter idempotency: removes old after
+// migrating; preserves new if both exist.
+function migrateLocalStoragePrefix(oldPrefix, newPrefix) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const oldKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(oldPrefix)) oldKeys.push(k);
+    }
+    for (const oldKey of oldKeys) {
+      const newKey = newPrefix + oldKey.slice(oldPrefix.length);
+      const oldVal = localStorage.getItem(oldKey);
+      if (oldVal === null) continue;
+      if (localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, oldVal);
+      }
+      localStorage.removeItem(oldKey);
+    }
+  } catch {}
+}
+
+// T-3b (2026-05-03): one-time storage-string VALUE migrations. Runs
+// at module load alongside migrateStatsBlob. Covers all 8 keys (7
+// single-key + 1 prefix). Phone arcade ↔ phone-verses lockstep keys
+// (#6, #7) are migrated unconditionally here; both platform files
+// also flip their constant VALUES in the same commit, so post-T-3b
+// reads/writes use the new key names and the migration is a no-op
+// on subsequent loads (old key gone after first run).
+function migrateBonusMovesKeys() {
+  migrateLocalStorageKey('match3_bankedMoves',                  'match3_bonusMoves');
+  migrateLocalStorageKey('match3_desktop_bankedMoves',          'match3_desktop_bonusMoves');
+  migrateLocalStorageKey('match3_timeattack_bankedMoves',       'match3_timeattack_bonusMoves');
+  migrateLocalStorageKey('match3_phone418_currentRun',          'match3_phone_currentRun');
+  migrateLocalStorageKey('match3_phone418_longestRun',          'match3_phone_longestRun');
+  migrateLocalStorageKey('match3_phone418_bankedMoves',         'match3_phone_bonusMoves');
+  migrateLocalStorageKey('m3_arcade_carry_from_verses_phone418','m3_arcade_carry_from_verses_phone');
+  migrateLocalStoragePrefix('m3_phone418_verses_',              'm3_phone_verses_');
+}
 
 // T-3a (2026-05-02): one-time stats-blob field migration. Runs at
 // module load — every platform's entry imports core, so this fires
@@ -73,6 +153,7 @@ function migrateStatsBlob() {
   }
 }
 migrateStatsBlob();
+migrateBonusMovesKeys();
 
 function defaultStats() {
   return {
@@ -161,7 +242,7 @@ function AdminPanel({ onClose, constants = {} }) {
   const handleExport = () => {
     const data = {
       stats: loadStats(),
-      bankedMoves: parseInt(localStorage.getItem(BONUS_MOVES_KEY) || '0', 10),
+      bonusMoves: parseInt(localStorage.getItem(BONUS_MOVES_KEY) || '0', 10),
       highScore: localStorage.getItem('match3_highScore'),
       highCombo: localStorage.getItem('match3_highCombo'),
       exportedAt: new Date().toISOString(),
@@ -354,6 +435,8 @@ function AdminPanel({ onClose, constants = {} }) {
   );
 }
 
-// Export the defaultStats factory so host files can initialise match3_stats safely
-export { defaultStats, STATS_KEY, BONUS_MOVES_KEY };
+// Export the defaultStats factory so host files can initialise match3_stats safely.
+// migrateBonusMovesKeys is exported so platforms that don't otherwise import core
+// (phone arcade, desktop, time-attack) can call it explicitly at module load.
+export { defaultStats, STATS_KEY, BONUS_MOVES_KEY, migrateBonusMovesKeys };
 export default AdminPanel;
