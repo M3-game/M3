@@ -3885,7 +3885,7 @@ const Match3Rewardmode = () => {
         </button>
         
         <h1 style={{ margin: '0', color: '#333', fontSize: '20px', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
-          🎮 Match-3 Reward <span style={{ fontSize: '12px', color: '#ccc' }}>v1.1-sandbox</span>
+          🎮 Match-3 Reward <span style={{ fontSize: '12px', color: '#ccc' }}>v1.3-sandbox</span>
         </h1>
         <div style={{
           display: 'flex',

@@ -3585,7 +3585,7 @@ const Match3Game = () => {
         </button>
         
         <h1 style={{ margin: '0', color: '#333', fontSize: '20px', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
-          🎮 Match-3 <span style={{ fontSize: '12px', color: '#ccc' }}>v11.11</span>
+          🎮 Match-3 <span style={{ fontSize: '12px', color: '#ccc' }}>v11.16</span>
         </h1>
         <div style={{
           display: 'flex',

@@ -2290,7 +2290,7 @@ const CampaignGame = ({ levelIndex, onLevelComplete, onBackToMap, highScore, bes
         <h1 style={{ margin: '0', color: '#333', fontSize: '18px' }}>
           Campaign — Level {cfg.level}
           {IS_TIME_ATTACK && ' (Time Attack)'}
-          <span style={{ fontSize: '11px', color: '#ccc', marginLeft: '6px' }}>v1.26</span>
+          <span style={{ fontSize: '11px', color: '#ccc', marginLeft: '6px' }}>v1.28</span>
         </h1>
 
         <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '15px', fontWeight: 'bold', color: '#555' }}>

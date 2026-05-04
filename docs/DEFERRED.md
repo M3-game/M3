@@ -217,25 +217,22 @@ touches it next.
 
 ## Build / deploy
 
-- **In-game version-label drift — audit + fix (surfaced 2026-05-02;
-  partially addressed 2026-05-03).** Several active platform files
-  render an `<h1>` or `<span>` showing `vX.Y` in the in-game header;
-  that label is hardcoded inline in the JSX and easy to forget when
-  bumping versions. P-2 found two silent drifts; T-3b (2026-05-03)
-  bumped labels for the 4 files it versioned (phone v13.4 → v13.5,
-  phone-verses dormant `v1.4.1` → `v1.6`, desktop `v12` → `v12.3`,
-  time-attack `v12` → `v12.3`). Tablet flagged by user on 2026-05-02
-  **still rendering `v11.11` while active file is v11.16 (5 versions
-  behind);** not addressed because user asked to plan the fix rather
-  than bundle it. Other candidates not yet inspected: campaign
-  tablet, rewardmode, sim. Fix shape: one-time audit pass — for each
-  active platform, grep its in-game header text and confirm the
-  label string matches the active file version. Bump any stale ones.
-  CLAUDE.md "Checklist before every commit" line added 2026-05-02
-  ("In-game header label inside the new file updated to match the
-  new version") prevents re-drift going forward — proven in T-3b
-  (4 versioned files, 4 labels bumped, no drift). Doesn't auto-fix
-  the existing backlog.
+- ~~**In-game version-label drift — audit + fix.**~~ **CLOSED 2026-05-03.**
+  Surfaced 2026-05-02 (P-2 found two silent drifts). T-3b (2026-05-03)
+  bumped labels for the 4 files it versioned. Standalone audit ship
+  same day (2026-05-03) corrected the remaining 5 stale labels in
+  place: tablet `v11.11` → `v11.16` (5 stale), tablet-verses `v1.5`
+  → `v1.12` (7 stale), tablet-rewardmode `v1.1-sandbox` →
+  `v1.3-sandbox` (2 stale), tablet-sim `v1.0 (base: tablet v11.11)`
+  → `v1.5 (base: tablet v11.16)` (5 stale + base-ref drift), campaign
+  tablet `v1.26` → `v1.28` (2 stale). In-place edits, no version
+  bumps (clerical fix to bring labels into agreement with their own
+  filenames; not a meaningful state change worth preserving as a new
+  version). CLAUDE.md "Checklist before every commit" line added
+  2026-05-02 ("In-game header label inside the new file updated to
+  match the new version") prevents future drift on any version-bump
+  going forward — proven in T-3b (4 versioned files, 4 labels
+  bumped) + F-1 (1 versioned file, 1 label bumped).
 
 - **Auto-copy all phone-418 versions into dist.** Today `vite.config.js` has a
   single `phone418` rollup input pointing at one specific file. Each version
@@ -1229,9 +1226,15 @@ that N-1 just established.
   so the whole composition floats inside the viewport with natural
   margin on every iPhone. v1.2's padding values were preserved into
   v1.3 (still comfortable inside the smaller card).
-- **Time attack: score undercounted if timer fires mid-cascade** — partially
-  fixed in v1.14 via `pendingTimeExpiry` + `isAnimating`/`combo` check.
-  v1.25 extends with the 1.5s grace window. Verify in playtest.
+- ~~**Time attack: score undercounted if timer fires mid-cascade.**~~
+  **FIXED in F-1 (2026-05-03), time-attack v12.4.** Ported the 1.5s
+  grace window from campaign v1.25 to time-attack — late
+  `addTimeExtension` calls (specials, combo 5+, score milestones)
+  firing during the cascade now re-arm the timer. Implementation
+  mirrors campaign v1.28 verbatim (TIME_ATTACK_GRACE_MS = 1500,
+  graceActive useState, timer effect pauses during grace + sets
+  graceActive instead of immediately resolving, new grace-watcher
+  useEffect handles cancel-on-extension or fall-through resolution).
 - **Time-attack arcade timer dep array includes `score`** — pre-existing,
   low severity. File: `platforms/timeattack/match3-v12.1-desktop-timeattack.jsx`.
 - **`bonusMoveFlashPendingRef` vestigial** — declared and reset in campaign
@@ -1241,6 +1244,51 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Session F-1 — time-attack 1.5s grace window port + version-label
+  drift audit closure.** 2026-05-03. Second session of 2026-05-03
+  (after T-3b earlier the same day). Two pieces bundled into one
+  commit because both relate to "make active code match its stated
+  version" and both are small. **F-1:** ported the campaign v1.25
+  grace window pattern to time-attack v12.4 — closes the long-
+  standing "score undercounted if timer fires mid-cascade" bug. New
+  TIME_ATTACK_GRACE_MS = 1500 constant, new graceActive useState,
+  timer effect modified to pause during grace + use grace instead of
+  the previous 100ms setTimeout, new grace-watcher useEffect.
+  Mirrors campaign v1.28's pattern verbatim. Bundle 50.21 → 50.38 kB
+  (+0.17 kB for the constant + state + watcher). **Version-label
+  drift audit:** in-place label corrections to 5 active platform
+  files — tablet v11.16 (`v11.11` → `v11.16`), tablet-verses v1.12
+  (`v1.5` → `v1.12`, 7-stale silent drift across N-1/N-5/T-1/T-2/T-3a),
+  tablet-rewardmode v1.3 (`v1.1-sandbox` → `v1.3-sandbox`),
+  tablet-sim v1.5 (`v1.0 (base: tablet v11.11)` → `v1.5 (base: tablet
+  v11.16)`), campaign tablet v1.28 (`v1.26` → `v1.28`). No version
+  bumps — clerical fix to bring labels into agreement with their own
+  filenames. CLAUDE.md commit-checklist line added 2026-05-02
+  prevents future drift. Closes the "In-game version-label drift"
+  DEFERRED entry above.
+  - **F-1 scoping (6 decisions, locked one-at-a-time per CLAUDE.md
+    discipline).** Pre-flight verified addTimeExtension calls
+    setTimeRemaining (re-arm works); port shape Option A (full pattern,
+    not just bumping the 100ms timeout); 1500ms duration matches
+    campaign; bonus-moves prompt edge case bunked-not-prompted matches
+    campaign; patch bump v12.3 → v12.4; commit shape bundles label
+    drift fix.
+  - **Version-label drift scope decision.** User picked in-place
+    over per-file version bump: "we aren't changing anything, just
+    updating the v# to correct it." A stale label is a clerical
+    error, not a meaningful state change. Strict-versioning rule
+    exists to preserve archived history across meaningful changes;
+    self-correction doesn't fit that case.
+  - **Build verifies.** Clean after each edit + final clean build.
+  - **Files touched:** time-attack v12.4 (new) + v12.3 archive copy
+    + 5 in-place label edits across active tablet/tablet-verses/
+    tablet-rewardmode/tablet-sim/campaign files + entry-timeattack.jsx
+    + index.html (1 landing card update) + docs/PROGRESS-2026-05-03.md
+    (F-1 row + label-drift row added; Time Attack platform-status
+    row updated; addendum) + docs/DEFERRED.md (this entry +
+    Time-attack score-undercount bug struck + Version-label drift
+    entry struck).
 
 - **Session T-3b — storage-string VALUE migrations + lockstep
   (closes T-3 data event).** 2026-05-03. First (and only) session of

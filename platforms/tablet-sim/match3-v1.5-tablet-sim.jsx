@@ -4077,7 +4077,7 @@ const Match3Sim = () => {
         </button>
         
         <h1 style={{ margin: '0', color: '#333', fontSize: '20px', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
-          🤖 Match-3 Sim <span style={{ fontSize: '12px', color: '#ccc' }}>v1.0 (base: tablet v11.11)</span>
+          🤖 Match-3 Sim <span style={{ fontSize: '12px', color: '#ccc' }}>v1.5 (base: tablet v11.16)</span>
         </h1>
         <div style={{
           display: 'flex',

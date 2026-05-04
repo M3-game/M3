@@ -4342,7 +4342,7 @@ const VersesGame = ({
               )}
             </>
           ) : (
-            <>Verses <span style={{ fontSize: '12px', color: '#ccc' }}>v1.5</span></>
+            <>Verses <span style={{ fontSize: '12px', color: '#ccc' }}>v1.12</span></>
           )}
         </h1>
         <div style={{
