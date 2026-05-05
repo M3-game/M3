@@ -3,19 +3,19 @@
 // =============================================================================
 //
 // Multi-level memorize game. Authored 2026-04-25.
+// Expanded 2026-05-04 — Levels 6–7 added; now covers full Matt 5:1–48.
 //
-// PARTIAL — currently covers Matt 5:1–30 across five levels.
-// Remaining sections (5:31–48) are planned and will be added additively
-// in future sessions; the wrapper engine has no notion of "complete"
-// beyond the levels[] array length, so adding more entries Just Works.
+// COMPLETE — covers Matt 5:1–48 across seven levels.
 //
-//   Level 1 — Matt 5:1–12   Intro + Beatitudes        25 chunks / 24 moves
-//   Level 2 — Matt 5:13–16  Salt and light            12 chunks / 11 moves
-//   Level 3 — Matt 5:17–20  Fulfilling the Law        13 chunks / 12 moves
-//   Level 4 — Matt 5:21–26  Murder / anger            25 chunks / 24 moves
-//   Level 5 — Matt 5:27–30  Adultery                  15 chunks / 14 moves
+//   Level 1 — Matt 5:1–12   Intro + Beatitudes         25 chunks / 24 moves
+//   Level 2 — Matt 5:13–16  Salt and light             12 chunks / 11 moves
+//   Level 3 — Matt 5:17–20  Fulfilling the Law         13 chunks / 12 moves
+//   Level 4 — Matt 5:21–26  Murder / anger             25 chunks / 24 moves
+//   Level 5 — Matt 5:27–30  Adultery                   15 chunks / 14 moves
+//   Level 6 — Matt 5:31–37  Divorce / oaths            20 chunks / 19 moves
+//   Level 7 — Matt 5:38–48  Retaliation / love enemies 29 chunks / 28 moves
 //
-// Total: 90 chunks / 85 moves across 5 levels.
+// Total: 139 chunks / 132 moves across 7 levels.
 //
 // Reference format "Matt. 5:N" mirrors Psalm 91's "Ps. 91:N" abbreviation
 // pattern to fit the existing 110px reference column on the in-game text
@@ -298,6 +298,155 @@ export default {
             "for it is more profitable for you",
             "that one of your members perish,",
             "than for your whole body to be cast into hell.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Matthew 5:31–37",
+      verses: [
+        {
+          reference: "Matt. 5:31",
+          chunks: [
+            "Furthermore it has been said,",
+            "'Whoever divorces his wife,",
+            "let him give her a certificate of divorce.'",
+          ],
+        },
+        {
+          reference: "Matt. 5:32",
+          chunks: [
+            "But I say to you that whoever divorces his wife",
+            "for any reason except sexual immorality",
+            "causes her to commit adultery;",
+            "and whoever marries a woman who is divorced",
+            "commits adultery.",
+          ],
+        },
+        {
+          reference: "Matt. 5:33",
+          chunks: [
+            "Again you have heard that it was said to those of old,",
+            "'You shall not swear falsely,",
+            "but shall perform your oaths to the Lord.'",
+          ],
+        },
+        {
+          reference: "Matt. 5:34",
+          chunks: [
+            "But I say to you, do not swear at all:",
+            "neither by heaven, for it is God's throne;",
+          ],
+        },
+        {
+          reference: "Matt. 5:35",
+          chunks: [
+            "nor by the earth, for it is His footstool;",
+            "nor by Jerusalem, for it is the city of the great King.",
+          ],
+        },
+        {
+          reference: "Matt. 5:36",
+          chunks: [
+            "Nor shall you swear by your head,",
+            "because you cannot make one hair white or black.",
+          ],
+        },
+        {
+          reference: "Matt. 5:37",
+          chunks: [
+            "But let your 'Yes' be 'Yes,'",
+            "and your 'No,' 'No.'",
+            "For whatever is more than these is from the evil one.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Matthew 5:38–48",
+      verses: [
+        {
+          reference: "Matt. 5:38",
+          chunks: [
+            "You have heard that it was said,",
+            "'An eye for an eye",
+            "and a tooth for a tooth.'",
+          ],
+        },
+        {
+          reference: "Matt. 5:39",
+          chunks: [
+            "But I tell you not to resist an evil person.",
+            "But whoever slaps you on your right cheek,",
+            "turn the other to him also.",
+          ],
+        },
+        {
+          reference: "Matt. 5:40",
+          chunks: [
+            "If anyone wants to sue you and take away your tunic,",
+            "let him have your cloak also.",
+          ],
+        },
+        {
+          reference: "Matt. 5:41",
+          chunks: [
+            "And whoever compels you to go one mile,",
+            "go with him two.",
+          ],
+        },
+        {
+          reference: "Matt. 5:42",
+          chunks: [
+            "Give to him who asks you,",
+            "and from him who wants to borrow from you",
+            "do not turn away.",
+          ],
+        },
+        {
+          reference: "Matt. 5:43",
+          chunks: [
+            "You have heard that it was said,",
+            "'You shall love your neighbor and hate your enemy.'",
+          ],
+        },
+        {
+          reference: "Matt. 5:44",
+          chunks: [
+            "But I say to you, love your enemies,",
+            "bless those who curse you,",
+            "do good to those who hate you,",
+            "and pray for those who spitefully use you and persecute you,",
+          ],
+        },
+        {
+          reference: "Matt. 5:45",
+          chunks: [
+            "that you may be sons of your Father in heaven;",
+            "for He makes His sun rise on the evil and on the good,",
+            "and sends rain on the just and the unjust.",
+          ],
+        },
+        {
+          reference: "Matt. 5:46",
+          chunks: [
+            "For if you love those who love you, what reward have you?",
+            "Do not even the tax collectors do the same?",
+          ],
+        },
+        {
+          reference: "Matt. 5:47",
+          chunks: [
+            "And if you greet your brethren only,",
+            "what do you do more than others?",
+            "Do not even the tax collectors do so?",
+          ],
+        },
+        {
+          reference: "Matt. 5:48",
+          chunks: [
+            "Therefore you shall be perfect,",
+            "just as your Father in heaven is perfect.",
           ],
         },
       ],

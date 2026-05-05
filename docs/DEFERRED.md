@@ -657,22 +657,27 @@ surface.
 
 **Planned content (authoring queue, no engine work expected):**
 
-**Pending user edits (added 2026-04-26):** Drafts for **Matt 5:31–48**
-(NKJV, three sections) and **Isaiah 52:13–53:12 ESV** (Servant Song,
-multi-level) were presented in chat 2026-04-26 and the user took them
-to edit externally. **At the start of any new coding session, ask the
-user to paste their edited drafts before doing any verses-content
-work.** Do not regenerate drafts from scratch — the user has human-
-edited versions ready. (See also: `project_pending_verses_drafts.md`
-in user memory.) Remove this note once both passages have shipped.
+**Pending user edits (added 2026-04-26; Matt 5 portion shipped
+2026-05-04):** Drafts for **Matt 5:31–48** (NKJV) and **Isaiah
+52:13–53:12 ESV** (Servant Song, multi-level) were presented in chat
+2026-04-26 and the user took them to edit externally. **Matt 5:31–48
+shipped 2026-05-04** as Levels 6–7 of the existing Matthew 5 game file
+(see Done section). **Isaiah 52:13–53:12 ESV remains pending — at the
+start of any new coding session, ask the user to paste their edited
+draft before doing Isaiah content work.** Do not regenerate that
+draft from scratch — the user has a human-edited version ready.
+(See also: `project_pending_verses_drafts.md` in user memory.) Remove
+this note once Isaiah ships.
 
-- **Matthew 5 future levels — additive to existing game file.** Per
-  scoping 2026-04-25, remaining sections are: **5:31–37 (combined
-  divorce + oaths — user thematic decision: "Jesus treats marriage as
-  an oath")**, 5:38–42 (turn the other cheek), 5:43–48 (love your
-  enemies). Append entries to the existing `levels[]` array; picker
-  auto-updates. Same chunk-authoring pattern as v1.0 + sections 4 + 5
-  (I draft per-section, user edits toward thematic-phrase chunks).
+- ~~**Matthew 5 future levels — additive to existing game file.**~~
+  **Shipped 2026-05-04.** Levels 6 (5:31–37 Divorce / oaths,
+  20 chunks / 19 moves) + 7 (5:38–48 Retaliation / love enemies,
+  29 chunks / 28 moves) appended to `content/verses/matthew-5/game.js`.
+  User chose combined-level structure (one level for each "You have
+  heard / But I say to you" pair-block) over the alternative of
+  splitting 5:31–32 + 5:33–37 + 5:38–42 + 5:43–48 into four. Footnote
+  markers stripped per existing convention. Total now 139 chunks /
+  132 moves across 7 levels. See Done section for full entry.
 
 - **Isaiah 52:13–53:12 — ESV.** First non-NKJV game in the project.
   User preference noted 2026-04-25: ESV, not NKJV. The Servant Song
@@ -1244,6 +1249,59 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Verses content — Matt 5:31–48 (full Matt 5 NKJV complete).**
+  2026-05-04. Single content-only session. Adds Level 6 (5:31–37
+  Divorce / oaths, 20 chunks / 19 moves) + Level 7 (5:38–48
+  Retaliation / love enemies, 29 chunks / 28 moves) to
+  `content/verses/matthew-5/game.js`. Closes the Matt 5 half of the
+  long-pending "Matt 5:31–48 + Isaiah 52:13–53:12 ESV" verses-content
+  thread (since 2026-04-26). Total now **139 chunks / 132 moves
+  across 7 levels.** Both verses platforms (tablet-verses + phone-verses)
+  inherit the new levels at next page load — no platform code changes,
+  no version bumps, edit-in-place per CLAUDE.md `content/verses/`
+  exception.
+  - **Scoping (decisions, multi-message per CLAUDE.md discipline).**
+    (1) **Range correction** — user pasted 5:31–37 first (after a
+    "5:31–38" typo) then 5:38–48 separately; final scope = the full
+    planned 5:31–48. (2) **Level structure for 5:31–37** — user chose
+    **option B (combined "Divorce and Oaths" level)** over option A
+    (split 5:31–32 + 5:33–37). 2-verse level would have been shorter
+    than any existing level (current min = 4 verses). Combined level
+    keeps it substantial. (3) **Level structure for 5:38–48** — same
+    combined-level rationale; one level for the "Retaliation / love
+    enemies" pair-block. 11 verses / 29 chunks is the largest level
+    by both metrics, but reasonable. (4) **Footnote markers
+    stripped** ([a] at v.32 "sexual immorality", [b] at v.37 "your")
+    per existing convention. (5) **Chunking pattern** — user
+    confirmed the existing pattern. Two user tweaks during chunk
+    review: (a) v.37 split "and your 'No,' 'No.'" as its own chunk;
+    (b) v.38 split "and a tooth for a tooth.'" as its own chunk.
+    (6) **Header comment update** — dropped "PARTIAL" framing,
+    replaced with "COMPLETE — covers Matt 5:1–48 across seven levels."
+    Added "Expanded 2026-05-04 — Levels 6–7 added" line below the
+    "Authored 2026-04-25" timestamp. Level table grew 5→7 rows.
+    (7) **Edit + version handling** — `content/verses/` files are
+    edited in place per CLAUDE.md (shared content; both verses
+    platforms import; versioning would force cascading platform
+    renames for trivial content additions). No platform version
+    bumps; both verses platforms inherit at next page load.
+  - **Implementation.** Two `Edit` calls: header comment block
+    rewrite + append two level entries before levels[] array close.
+    File grew 306 → 455 lines (+149 lines for 18 new verses).
+    Sanity check post-edit: 7 `title:` rows + 48 `reference:`
+    entries + 48 `chunks: [` arrays. Build clean. Verses bundle
+    78.06 → 78.03 kB / 23.46 kB gz; phoneVerses 78.09 kB / 23.54 kB
+    gz (essentially flat).
+  - **Files touched.** 1 content file (in-place) + new
+    `docs/PROGRESS-2026-05-04.md` + `docs/PROGRESS-2026-05-03.md`
+    rotated to archive + this DEFERRED entry + Pending-user-edits
+    note above updated to reflect Matt 5 done / Isaiah still
+    pending. One commit.
+  - **Memory hygiene.** Pending verses memory updated post-commit
+    to show Matt 5 done, Isaiah still pending. Claude-code-quickstart
+    explanatory note added to top of PROGRESS-2026-05-04 (per
+    pending-doc-note memory entry); that memory deleted post-commit.
 
 - **Session F-1 — time-attack 1.5s grace window port + version-label
   drift audit closure.** 2026-05-03. Second session of 2026-05-03
