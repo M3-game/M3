@@ -1,9 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Match3Rewardmode from '../platforms/tablet-rewardmode/match3-v1.4-tablet-rewardmode.jsx'
+import Match3VersesSandbox from '../platforms/phone-verses-sandbox/match3-v1.0-phone-verses-sandbox.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Match3Rewardmode />
+    <Match3VersesSandbox />
   </StrictMode>
 )

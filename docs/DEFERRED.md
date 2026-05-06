@@ -1250,6 +1250,82 @@ that N-1 just established.
 
 ## Done
 
+- **Session VS-1 — Phone Verses Sandbox v1.0 + tablet-rewardmode
+  big-turn popup-delay fix.** 2026-05-05. Single coding session.
+  Forks phone-verses v1.6 → phone-verses-sandbox v1.0 with three
+  experimental mechanic additions (neighbor-match bias 10%, big-turn
+  special drops with 12-tile threshold + hyper 10% / super 15%
+  rolls, target `moves × 1000`). All 9 storage values isolated via
+  `_sandbox` suffix; carry-out write goes to sandbox-scoped
+  `m3_arcade_carry_from_verses_phone_sandbox` (write-only; future
+  phone-arcade-sandbox or enhanced phone arcade reads it). Bundled
+  side-fix: tablet-rewardmode v1.3 → v1.4 with
+  `BIG_TURN_POPUP_DELAY_MS = 400` deferring the big-turn popup +
+  roll until cascade tile-drop animations settle visually. Bundling
+  rationale: user explicitly chose to bundle for token conservation
+  and reduced doc/build/commit overhead vs. a separate micro-
+  session for the rewardmode fix.
+  - **Scoping (11 decisions, locked one-at-a-time per CLAUDE.md
+    discipline).** Session label VS-1 / platform structure /
+    storage isolation principle (`_sandbox` suffix) / carry key
+    (sandbox-scoped, no reader yet) / pre-flight research on
+    rewardmode-sandbox patterns / Mechanic A hardcoded constant /
+    Mechanic B hardcoded constants + popup wording / target
+    `moves × 1000` / version label / build wiring / doc updates.
+  - **Implementation pattern.** New top comment block (preserves
+    v1.6 history below); 9 storage VALUE strings flipped (mix of
+    targeted Edit + replace_all on quoted literals); target
+    multiplier 250 → 1000; VS-1 constants block + module-level
+    `_pendingSpecialDrop`; component-side `turnTileCountRef` +
+    `bigTurnPopup` state + accumulator in processMatches + reset
+    in attemptSwap; neighbor-bias loop + special-drop consumer in
+    fillEmptySpaces (phone-verses splits gravity into compact +
+    refill — refill is the right insertion point); two new
+    useEffects (big-turn watcher with 400ms timer + popup auto-
+    dismiss); popup render after target-toast overlay; restartGame
+    clears VS-1 state; in-game header label `VERSES-SANDBOX v1.0`.
+    Tablet-rewardmode v1.4 = v1.3 + new constant + useEffect
+    rewritten with setTimeout wrapper + cleanup. Rewardmode entry
+    file repointed to v1.4.
+  - **Refined hypothesis on "same-turn nova" perception (post-
+    implementation, 2026-05-05).** With neighbor-bias active,
+    refilled tiles cluster by color, raising the rate of natural
+    5+/7+ matches landing in the new tiles. Hypernova requires 7+
+    connected tiles (`HYPERNOVA_MIN_TILES`), and a big turn (≥12
+    cleared) means lots of refill cells = lots of natural-cluster
+    opportunities. The "hypernova appearing same turn as popup"
+    perception may be regular special-creation off a bias-clustered
+    cascade, NOT the queued big-turn drop firing early. The
+    popup-delay fix is still defensible as general "popups appear
+    after animations settle" hygiene; it neither caused nor cures
+    the natural-spawn case. Captured in code comment in
+    phone-verses-sandbox near NEIGHBOR_BIAS_PCT and in
+    PROGRESS-2026-05-05 addendum.
+  - **Build verifies.** New `phoneVersesSandbox` bundle 79.93 kB /
+    24.20 kB gz (vs. main phoneVerses 78.09 / 23.54 — +1.84 kB).
+    Rewardmode bundle 72.49 → 72.55 kB / +60 bytes after entry
+    repoint to v1.4.
+  - **Files touched.** New: `platforms/phone-verses-sandbox/...
+    v1.0-phone-verses-sandbox.jsx`,
+    `platforms/tablet-rewardmode/match3-v1.4-tablet-rewardmode.jsx`
+    (v1.3 archived), `src/entry-phone-verses-sandbox.jsx`,
+    `phone-verses-sandbox.html`, `docs/PROGRESS-2026-05-05.md` (this
+    rotation), this DEFERRED entry. Modified:
+    `src/entry-rewardmode.jsx` (v1.3 → v1.4),
+    `vite.config.js` (`phoneVersesSandbox` rollup input),
+    `index.html` (new Admin/Sandbox card + rewardmode card desc
+    update), `CLAUDE.md` (Phone Verses Sandbox row in file-naming
+    table), `docs/PROGRESS-2026-05-04.md` rotated to archive.
+  - **Next steps after VS-1 ship.** Real-device playtest of all
+    three mechanics on iPhone — including verifying the popup-
+    delay fix and observing the Mechanic A × natural-special-creation
+    interaction. Iterate constants if values feel off (`NEIGHBOR_BIAS_PCT`,
+    `BIG_TURN_*_PCT`, `BIG_TURN_THRESHOLD`, `TARGET_PER_MOVE_DEFAULT`)
+    and bump v1.0 → v1.1. After tunables settle, possible follow-on
+    is phone-arcade-sandbox VS-2 (or directly enhance main phone
+    arcade) to keep arcade parity with the more-generous sandbox
+    feel.
+
 - **Verses content — Matt 5:31–48 (full Matt 5 NKJV complete).**
   2026-05-04. Single content-only session. Adds Level 6 (5:31–37
   Divorce / oaths, 20 chunks / 19 moves) + Level 7 (5:38–48

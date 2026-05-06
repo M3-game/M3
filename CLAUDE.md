@@ -120,6 +120,7 @@ Every change to a platform file — no matter how small — requires:
 | Campaign | `platforms/campaign/tablet/match3-vX.Y-campaign-tablet.jsx` | `platforms/campaign/tablet/archive/` |
 | Phone (arcade) | `platforms/phone/match3-vX.Y-phone.jsx` | `platforms/phone/archive/` |
 | Phone Verses | `platforms/phone-verses/match3-vX.Y-phone-verses.jsx` | `platforms/phone-verses/archive/` |
+| Phone Verses Sandbox | `platforms/phone-verses-sandbox/match3-vX.Y-phone-verses-sandbox.jsx` | `platforms/phone-verses-sandbox/archive/` |
 | Desktop | `platforms/desktop/...` | `platforms/desktop/archive/` |
 
 Phone-341 was retired in Session P-2 (2026-05-02). Its files remain in `platforms/phone-341/archive/` for historical reference but no longer build.

@@ -18,6 +18,7 @@ export default defineConfig({
         verses:     resolve(__dirname, 'verses.html'),
         phone:      resolve(__dirname, 'phone.html'),
         phoneVerses: resolve(__dirname, 'phone-verses.html'),
+        phoneVersesSandbox: resolve(__dirname, 'phone-verses-sandbox.html'),
       },
     },
   },
