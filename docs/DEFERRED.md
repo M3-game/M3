@@ -1250,6 +1250,59 @@ that N-1 just established.
 
 ## Done
 
+- **Session VS-1 v1.1 — Phone Verses Sandbox neighbor-match bias
+  10% → 14% tuning bump.** 2026-05-07. Single-line code change at
+  `NEIGHBOR_BIAS_PCT` (line 1326 of v1.0, now line 1346 of v1.1
+  after the new top comment block). v1.0 → v1.1. All other VS-1
+  mechanics (Mechanic B big-turn special drops with 12-tile
+  threshold + hyper 10% / super 15% / 400ms popup delay, target
+  `moves × 1000`, storage isolation via `_sandbox` suffix on all
+  9 values) unchanged.
+  - **Rationale.** ~20 games of v1.0 playtest on real iPhone (small
+    but meaningful sample). User built external analysis/spreadsheet
+    of score distribution, decided 10% felt too sparse for fun-first
+    experience. Two options discussed with Claude.ai: 12% (smaller
+    bump, ceiling-skewed effect — Claude.ai's pick) vs. 14% (larger
+    bump, clearer signal per playtest cycle). User chose 14% on
+    exploratory-tuning rationale; back off to 12 or 13 in v1.2 if
+    14 overshoots, push higher if still too sparse.
+  - **Watch on next playtest.** v1.0 addendum noted that neighbor-
+    bias creates clustered refills, raising natural 5+/7+ match rate
+    in refills (and thus natural special creation) independent of
+    the queued big-turn drop. At 14% that compounding gets stronger.
+    The user explicitly named more-natural-cluster-specials as one
+    of the things they're tuning for. If chaotic, dial bias back
+    before touching the big-turn-drop mechanism.
+  - **Implementation.** Archived v1.0 to
+    `platforms/phone-verses-sandbox/archive/`. New v1.1 file as
+    copy with new top comment block (rationale + watch-for, all
+    v1.0 + v1.6 ancestor history preserved below). Constant
+    bumped: `const NEIGHBOR_BIAS_PCT = 10;` →
+    `const NEIGHBOR_BIAS_PCT = 14;` with inline change-note
+    comment. In-game header label JSX `v1.0` → `v1.1`. Repointed
+    `src/entry-phone-verses-sandbox.jsx` import. `index.html`
+    landing-card description leads with v1.1 blurb (v1.0 retained
+    after).
+  - **Build verifies.** Clean. `phoneVersesSandbox` bundle 79.93 kB
+    / 24.20 kB gz — same size as v1.0 (single-digit + comment-block
+    fits within minifier rounding).
+  - **Files touched.** New:
+    `platforms/phone-verses-sandbox/match3-v1.1-phone-verses-sandbox.jsx`,
+    `docs/PROGRESS-2026-05-07.md`, this DEFERRED entry. Modified:
+    `src/entry-phone-verses-sandbox.jsx` (v1.0 → v1.1 import),
+    `index.html` (landing card description bumped),
+    `docs/PROGRESS-2026-05-05.md` rotated to archive.
+  - **Process note.** User explicitly waived the
+    "Ready for me to start coding now?" final-check gate after the
+    14%-vs-12% discussion ("go ahead, you don't need to check again,
+    I understand"). One-shot waiver scoped to this session — future
+    coding sessions still default to the gate.
+  - **Items not addressed.** IDE flagged 9 pre-existing unused-var
+    "Hint" warnings in v1.0 that carried into v1.1. Not from this
+    edit, low severity, out of scope per scope-adherence. Future
+    in-place hygiene pass could clean them up without a version
+    bump.
+
 - **Session VS-1 — Phone Verses Sandbox v1.0 + tablet-rewardmode
   big-turn popup-delay fix.** 2026-05-05. Single coding session.
   Forks phone-verses v1.6 → phone-verses-sandbox v1.0 with three
