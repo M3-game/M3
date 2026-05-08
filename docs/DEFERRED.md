@@ -1250,6 +1250,89 @@ that N-1 just established.
 
 ## Done
 
+- **Session VS-1 v1.2 — Phone Verses Sandbox bias 14% → 13% +
+  new Mechanic C "Floor-raise drop."** 2026-05-07 (second ship of
+  the day). Two changes bundled. v1.1 → v1.2.
+  - **Bias change.** `NEIGHBOR_BIAS_PCT` 14 → 13. Single-line
+    pullback to ease compounding pressure on already-good boards
+    while retaining most of v1.1's ceiling lift.
+  - **Mechanic C — Floor-raise drop (NEW).** Per-level rescue for
+    boards that produce no ≥5-tile match (bomb / cross /
+    supernova / hypernova) by move 5. Mechanism: at end of move
+    5, if no ≥5-match yet, arm a 4-turn rescue window. Each
+    end-of-turn while armed: roll 50%; on hit, weighted-pick
+    bomb 25 / cross 25 / supernova 30 / hypernova 20 and queue
+    via the same `_pendingSpecialDrop` slot Mechanic B uses.
+    Cancels if a natural ≥5-match happens during the window.
+    Skips (no decrement) if Mechanic B already queued a drop on
+    the same turn-complete (rare 12+-tile-no-≥5 edge). Silent —
+    no popup. Refs reset per-level via component remount;
+    explicit reset in `restartGame`.
+  - **Constants added.** `FLOOR_RAISE_TRIGGER_MOVE = 5`,
+    `FLOOR_RAISE_WINDOW_TURNS = 4`, `FLOOR_RAISE_ROLL_PCT = 50`,
+    `FLOOR_RAISE_BOMB_PCT = 25`, `FLOOR_RAISE_CROSS_PCT = 25`,
+    `FLOOR_RAISE_SUPER_PCT = 30`, `FLOOR_RAISE_HYPER_PCT = 20`.
+    Last four sum to 100 (validated mentally; not asserted in
+    code — sum-deviation would manifest as an `undefined` kind
+    in the consumer's lookup table fallback).
+  - **Refs added (component-level).** `movesUsedRef`,
+    `bigMatchMadeRef`, `floorRaiseArmedRef`,
+    `floorRaiseFiredRef`, `floorRaiseRollsRemainingRef`. All
+    five reset on level remount (automatic via VersesGame's
+    `slug:levelIndex` key) and in restartGame (explicit).
+  - **Hook sites.** `attemptSwap` increments `movesUsedRef`
+    alongside the existing `turnTileCountRef = 0`. `processMatches`
+    sets `bigMatchMadeRef = true` at all three special-creation
+    sites when group size ≥ 5. New useEffect on `[turnComplete]`
+    after Mechanic B's watcher implements satisfied → arm → roll
+    flow. Consumer in `fillEmptySpaces` widened from
+    `kind === 'hyper' ? 'hypernova' : 'supernova'` to a four-key
+    lookup table.
+  - **Instrumentation.** Six new console-log sites:
+    `floor_raise_arm`, `floor_raise_fire`, `floor_raise_miss`,
+    `floor_raise_giveup`, `floor_raise_cancel`,
+    `floor_raise_skip`. Mechanic B's `[VS-1 big_turn_drop]`
+    renamed to `[VS-1 special_drop]` since it's now shared with
+    Mechanic C drops.
+  - **Scoping pass.** Six decisions worked through one at a time
+    over multiple messages per CLAUDE.md scoping discipline:
+    trigger definition (≥5 unique tiles → big match — the user
+    correctly noted that `cross` is 5-tile, correcting my initial
+    miscategorization), rescue cancel (yes), drop weights
+    (25/25/30/20), silent (yes), version (v1.2 patch), name
+    (Floor-raise). Sub-decision on Mechanic B / Mechanic C
+    overlap: rescue skips without decrement when queue is
+    populated. The user explicitly invited "any thoughts" on the
+    bias change between v1.1 and v1.2 — I noted that bigger
+    jumps give clearer playtest signals in exploration mode and
+    flagged the natural-cluster-spawn compounding effect as one
+    to watch.
+  - **Build verifies.** Clean. `phoneVersesSandbox` bundle 79.93
+    → 81.23 kB / 24.20 → 24.61 kB gz. +1.30 kB.
+  - **Files touched.** New:
+    `platforms/phone-verses-sandbox/match3-v1.2-phone-verses-sandbox.jsx`,
+    this DEFERRED entry. Modified:
+    `src/entry-phone-verses-sandbox.jsx` (v1.1 → v1.2 import),
+    `index.html` (landing card description bumped),
+    `docs/PROGRESS-2026-05-07.md` (v1.2 addendum added above
+    the v1.1 addendum). v1.1 archived to
+    `platforms/phone-verses-sandbox/archive/`.
+  - **Items not addressed.** Pre-existing IDE unused-var "Hint"
+    warnings carry forward (low severity, out of scope). The
+    active platform directory now contains v1.0 + v1.1 + v1.2
+    alongside their archive copies — pre-existing drift from the
+    v1.1 ship pattern. Worth a future hygiene pass; flagged in
+    the v1.2 PROGRESS addendum so it surfaces in a future
+    session.
+  - **Next steps after v1.2 ship.** Real-device playtest of
+    both changes together. Specific watch on the floor-raise
+    instrumentation: if `floor_raise_arm` fires on roughly 30%
+    of levels, the trigger threshold is well-calibrated; if much
+    higher or lower, tune `FLOOR_RAISE_TRIGGER_MOVE`. If many
+    bad boards still feel bad after rescue, raise
+    `FLOOR_RAISE_ROLL_PCT` or rebalance the drop-weight
+    distribution.
+
 - **Session VS-1 v1.1 — Phone Verses Sandbox neighbor-match bias
   10% → 14% tuning bump.** 2026-05-07. Single-line code change at
   `NEIGHBOR_BIAS_PCT` (line 1326 of v1.0, now line 1346 of v1.1
