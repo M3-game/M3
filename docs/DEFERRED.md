@@ -1219,6 +1219,34 @@ that N-1 just established.
 
 ---
 
+## Phone Verses Sandbox (VS-1 track) — next iteration
+
+Items surfaced during the v1.3 ship (2026-05-09) for a future
+sandbox version (likely v1.4):
+
+- **Mechanic B (huge-turn drop) — suppress when no moves remain.**
+  Currently fires unconditionally when `BIG_TURN_THRESHOLD = 12` tiles
+  clear in a single turn. If that turn ends the level (no moves remain),
+  the queued special drops onto a board the player can't act on. Reads
+  as pointless and annoying. Fix: gate the Mechanic B fire path on
+  `moves > 0` (or equivalent turn-remaining check).
+- **Mechanic B (huge-turn drop) — suppress on the very first turn.**
+  A huge bonus immediately at game start feels unnatural / unearned —
+  even on a particularly active first board. Fix: gate the Mechanic B
+  fire path on `movesUsedRef.current > 0` (or equivalent first-turn
+  guard). Note: rescue-window `_pendingSpecialDrop` shared queue means
+  Mechanic C (floor-raise) wouldn't be affected — it has its own
+  trigger-move logic that already handles per-level timing.
+- **Stale-versions cleanup pattern.** Active platform directory now
+  contains `match3-v1.2-phone-verses-sandbox.jsx` alongside v1.3 (and
+  the `archive/` copies). Same drift pattern as the v1.0 + v1.1 + v1.2
+  ships — `cp` to archive leaves the original in active. Could be
+  cleaned up in a follow-up commit like
+  [fe5adf1](git log fe5adf1) which removed v1.0 + v1.1 from active in
+  the v1.2 ship cycle.
+
+---
+
 ## Known bugs (carried forward)
 
 - ~~**Phone-418-verses v1.2 padding bump not visibly different on real
@@ -1249,6 +1277,156 @@ that N-1 just established.
 ---
 
 ## Done
+
+- **Session VS-1 v1.3 — Phone Verses Sandbox rescue redesign + new
+  Mechanic D "Hypernova bias suppression."** 2026-05-09. Five
+  mechanic changes bundled with a doc rewrite. v1.2 → v1.3 +
+  design-notes-v1 → v2.
+  - **Mechanic C trigger move → DYNAMIC per level.** Replaces fixed
+    `FLOOR_RAISE_TRIGGER_MOVE = 5` with
+    `computeFloorRaiseTriggerMove(versesLevel.moves) = max(0, totalMoves − 9)`.
+    On a 12-move level → trigger after move 3. On a 24-move level →
+    trigger after move 15. Short levels (≤9 moves) → trigger
+    immediately at game start. Verses-game level lengths range from 5
+    to 28 moves (Matt 5 levels), so a single constant didn't fit.
+    Short levels need rescue more, not less, since they have less
+    room for natural big scoring.
+  - **Mechanic C window expanded 4 → 7 turn-completes.**
+    `FLOOR_RAISE_WINDOW_TURNS = 7`. With per-turn 50% rolls, eventual
+    fire rate when armed climbs from ~94% (4 turns) to ~99% (7 turns).
+    Wider window protects against unlucky early misses leaving the
+    player without help in the back half of the game.
+  - **Mechanic C drop weights rebalanced 25/25/30/20 → 35/35/20/10**
+    (`FLOOR_RAISE_BOMB_PCT` 25→35, `FLOOR_RAISE_CROSS_PCT` 25→35,
+    `FLOOR_RAISE_SUPER_PCT` 30→20, `FLOOR_RAISE_HYPER_PCT` 20→10).
+    Combined super-special rate drops 50% → 30% to preserve
+    super-special rarity now that rescue fires more reliably.
+  - **Mechanic C bias spike on rescue-drop turn (NEW).** New constant
+    `FLOOR_RAISE_BIAS_SPIKE_PCT = 30`. When rescue fires (queues a
+    drop), the upcoming player turn — including the drop fill that
+    brings the rescue special in, plus any same-turn cascade refills
+    if the player activates the rescue special — uses 30% neighbor-bias
+    instead of the 13% global. Targets the v1.2 placement-usability
+    problem (rescue specials landing in barren 3-tile match craters).
+    Replaces the rejected companion-tile mechanic (companion tiles
+    were pattern-recognizable / immersion-eroding; bias spike reuses
+    the existing bias system).
+  - **Mechanic D — Hypernova bias suppression (NEW).** New constant
+    `HYPERNOVA_BIAS_SUPPRESS_PCT = 8`. When a hypernova fires (single
+    via `activateSpecialTile`, or any combo via
+    `activateSpecialCombination` `isHypernovaEvent` branch),
+    neighbor-bias is suppressed to 8% for the rest of that player turn
+    — including all cascade refills triggered by the hypernova clear.
+    Dampens the runaway loop where a hypernova clears 70-80% of the
+    board, the high-bias refill spawns many new specials, and a
+    follow-on hypernova ignites. Surgical alternative to reducing
+    hypernova clear-area; preserves the dramatic single-event feel
+    while preventing chains.
+  - **Implementation — turn-scoped bias-override (two refs).**
+    `biasOverridePctRef` (live, read by `fillEmptySpaces`) +
+    `pendingBiasOverridePctRef` (queued by Mechanic C rescue fire,
+    transferred to live at end of turnComplete). Two refs handle the
+    timing-mismatch — rescue sets at end of turn N (must apply to
+    turn N+1), hypernova sets mid-turn during fills (must apply to
+    rest of same turn). End-of-turnComplete transfer wipes the live
+    ref before queuing the next turn's value, so an override "lives"
+    for exactly one player turn. Hypernova-suppression overwrites a
+    rescue-spike if both fire same turn (intentional — chain
+    prevention takes priority over placement help once the hypernova
+    is firing). `fillEmptySpaces` snapshots the live override at the
+    start of each fill cycle in
+    `biasPct = biasOverridePctRef.current ?? NEIGHBOR_BIAS_PCT`.
+  - **Implementation — useEffect restructure.** Floor-raise
+    useEffect's branches (1)(2)(3) restructured from early-returns
+    to if/else if so the bias-override transfer at the bottom always
+    runs. The "skip without decrement" sub-branch was also restructured
+    from `return` to `else` for the same reason. Caught one
+    intermediate syntax-error state from incomplete brace pairing;
+    fixed before build verify.
+  - **Constants summary.** Removed: `FLOOR_RAISE_TRIGGER_MOVE = 5`
+    (replaced by dynamic function). Changed: `FLOOR_RAISE_WINDOW_TURNS`
+    4 → 7, four `FLOOR_RAISE_*_PCT` weights rebalanced. Added:
+    `FLOOR_RAISE_BIAS_SPIKE_PCT = 30`, `HYPERNOVA_BIAS_SUPPRESS_PCT = 8`,
+    `computeFloorRaiseTriggerMove` arrow function.
+  - **Refs added.** `biasOverridePctRef`, `pendingBiasOverridePctRef`.
+    Both reset on level remount (automatic via VersesGame's
+    `slug:levelIndex` key) and in restartGame (explicit, alongside
+    the existing floor-raise refs).
+  - **Hook sites — hypernova suppression.** Two: single hypernova in
+    `activateSpecialTile` at `tile.special === 'hypernova'` branch
+    (line ~3956), and combo hypernova in `activateSpecialCombination`
+    after `isHypernovaEvent = combo.includes('hypernova')` (line
+    ~4034).
+  - **Instrumentation.** Console-log prefixes renamed VS-1.2 → VS-1.3
+    throughout the floor-raise effect. New fields:
+    `[VS-1.3 floor_raise_arm]` includes `triggerMove` and `totalMoves`;
+    `[VS-1.3 floor_raise_fire]` includes `biasSpike: 30`. New log:
+    `[VS-1.3 hypernova_bias_suppress]` with `source: 'single'` or
+    `'combo'` + combo string.
+  - **Doc work bundled.** `verses-game-design-notes-v1.md` rewritten
+    as v2:
+    - v1's §2 "Rescue-seed mechanic" had been authored in claude.ai
+      without code access and described the mechanic as "trigger N=6
+      → 50% one-shot fire → 50%/50% split." That didn't match shipped
+      v1.2 ("trigger move 5 → 4-turn window → per-turn 50% roll →
+      25/25/30/20 weights"). v2 §2 now describes shipped behavior
+      correctly with explicit errata callout in v2's version-history
+      entry pointing to the discrepancy.
+    - v2 layered v1.3 changes into §2 (Mechanic C v1.3 redesign + new
+      Mechanic D), §3 (v1.3 ship entry), §6 (active levers updated),
+      §7 (resolved questions marked, untested hypotheses noted as
+      shipped/awaiting playtest data).
+    - v2 added a **§0 Mechanic glossary** at the top per user
+      mid-ship request — user flagged "Mechanic B" as opaque
+      shorthand they didn't remember ("we came up with the Mechanics
+      days ago, so I don't remember who she is"). Same issue noted
+      in the v1.2 ship process notes; this time addressed structurally.
+      Glossary maps A/B/C/D to descriptive names (neighbor-match
+      bias / big-turn drop / floor-raise drop / hypernova bias
+      suppression). v2 also pairs every "Mechanic X" reference with
+      the descriptive name throughout prose.
+    - v1 archived to `docs/archive/verses-game-design-notes-v1.md`.
+  - **Scoping pass.** Six decisions worked through one at a time over
+    multiple messages per CLAUDE.md scoping discipline + chunking
+    memory: (1) trigger N reduction, (2) post-hypernova bias
+    suppression value, (3) drop-weight rebalance, (4) bias spike on
+    rescue-fire turn (initially skipped, then bundled on follow-up;
+    timing = drop turn, scope = whole turn-cycle), (5) trigger
+    dynamic vs. static, (6) rescue window 4 → 7. Mid-scope discovery
+    (Q1): doc-vs-shipped discrepancy in v1's §2 → resolved by v2
+    rewrite. Mid-implementation refactor: bias-override single-ref
+    approach had ordering issues → switched to two-ref pattern.
+  - **Build verifies.** Clean. `phoneVersesSandbox` bundle 81.23 →
+    81.71 kB / 24.61 → 24.78 kB gz. +0.48 kB.
+  - **Files touched.** New:
+    `platforms/phone-verses-sandbox/match3-v1.3-phone-verses-sandbox.jsx`,
+    `docs/verses-game-design-notes-v2.md`,
+    `docs/PROGRESS-2026-05-09.md`, this DEFERRED entry, new DEFERRED
+    section "Phone Verses Sandbox (VS-1 track) — next iteration."
+    Modified: `src/entry-phone-verses-sandbox.jsx` (v1.2 → v1.3
+    import), `index.html` (landing card description bumped). Moved:
+    `docs/verses-game-design-notes-v1.md` → `docs/archive/`,
+    `docs/PROGRESS-2026-05-07.md` → `docs/archive/`. v1.2 archived
+    to `platforms/phone-verses-sandbox/archive/`.
+  - **Items not addressed.** Pre-existing IDE unused-var "Hint"
+    warnings carry forward (low severity, out of scope per
+    scope-adherence). Active platform dir now contains v1.2 +
+    v1.3 alongside archive copies — same drift pattern as the
+    v1.0/v1.1/v1.2 ships; flagged in new "Phone Verses Sandbox
+    (VS-1 track) — next iteration" section above for future cleanup.
+    Mechanic B follow-ups (suppress on no-moves-remaining, suppress
+    on first turn) deferred to v1.4 — also flagged in same new
+    section.
+  - **Process notes.** User explicitly waived ratification for
+    in-flight scoping ("go ahead — one note for the next set of
+    updates" mid-ship; "Please include in v1.3" on the bias-spike
+    decision). Mid-conversation memory decay: user flagged
+    "Mechanic B" as opaque shorthand requiring definition — same
+    issue from the v1.2 ship; resolved structurally this time via
+    glossary in design-notes-v2 + paired naming in v1.3 comment
+    block + new memory `feedback_design_pov.md` written earlier
+    in session updated context (the player-experience-POV memory
+    is a related-but-distinct rule).
 
 - **Session VS-1 v1.2 — Phone Verses Sandbox bias 14% → 13% +
   new Mechanic C "Floor-raise drop."** 2026-05-07 (second ship of
