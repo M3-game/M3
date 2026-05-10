@@ -1221,29 +1221,28 @@ that N-1 just established.
 
 ## Phone Verses Sandbox (VS-1 track) — next iteration
 
-Items surfaced during the v1.3 ship (2026-05-09) for a future
-sandbox version (likely v1.4):
+Items surfaced during ship cycles for a future sandbox version. The
+three v1.4 items (both Mechanic B suppression cases + stale-versions
+cleanup) shipped 2026-05-09 — see "Done" section.
 
-- **Mechanic B (huge-turn drop) — suppress when no moves remain.**
-  Currently fires unconditionally when `BIG_TURN_THRESHOLD = 12` tiles
-  clear in a single turn. If that turn ends the level (no moves remain),
-  the queued special drops onto a board the player can't act on. Reads
-  as pointless and annoying. Fix: gate the Mechanic B fire path on
-  `moves > 0` (or equivalent turn-remaining check).
-- **Mechanic B (huge-turn drop) — suppress on the very first turn.**
-  A huge bonus immediately at game start feels unnatural / unearned —
-  even on a particularly active first board. Fix: gate the Mechanic B
-  fire path on `movesUsedRef.current > 0` (or equivalent first-turn
-  guard). Note: rescue-window `_pendingSpecialDrop` shared queue means
-  Mechanic C (floor-raise) wouldn't be affected — it has its own
-  trigger-move logic that already handles per-level timing.
-- **Stale-versions cleanup pattern.** Active platform directory now
-  contains `match3-v1.2-phone-verses-sandbox.jsx` alongside v1.3 (and
-  the `archive/` copies). Same drift pattern as the v1.0 + v1.1 + v1.2
-  ships — `cp` to archive leaves the original in active. Could be
-  cleaned up in a follow-up commit like
-  [fe5adf1](git log fe5adf1) which removed v1.0 + v1.1 from active in
-  the v1.2 ship cycle.
+- **Remove bonus moves from verses entirely (discussion).** Surfaced
+  during v1.4 scoping. The milder alternative — raising
+  `BONUS_MOVE_INTERVAL` from 10K to 25K — shipped in v1.4 (median
+  games no longer accumulate bonus moves; ~1-in-4 games earn 1; hot
+  streaks earn 2-4). If 25K still feels too generous in playtest,
+  revisit removing bonus moves entirely from verses. Removal touches:
+  the "Use bonus moves vs. End and carry forward" prompt UI, the
+  victory round mechanism (1.5× multiplier), the
+  `match3_phone_bonusMoves_sandbox` localStorage persistence, and the
+  carry-banner system. Bigger refactor than a tunable bump — worth its
+  own scoping session.
+- **Drift-prevention for stale-versions cleanup.** Both v1.2 ship
+  cycle (cleaned up in fe5adf1) and v1.3 ship cycle (cleaned up in
+  v1.4) involved a `cp` to archive that left the original in active,
+  requiring a follow-up cleanup. Could be prevented going forward
+  by using `git mv` (atomic rename) or by adding a "remove old active"
+  step to the versioning checklist in CLAUDE.md. Not urgent — flagged
+  here so it surfaces when someone touches CLAUDE.md next.
 
 ---
 
@@ -1277,6 +1276,76 @@ sandbox version (likely v1.4):
 ---
 
 ## Done
+
+- **Session VS-1 v1.4 — Phone Verses Sandbox Mech B (huge-turn drop)
+  edge-case suppression + bonus-moves threshold bump + stale-versions
+  cleanup.** 2026-05-09 (second ship of the day, same-day patch after
+  v1.3). Three small changes bundled with a chore. v1.3 → v1.4.
+  - **Mech B (huge-turn drop) — suppress on first turn of level.**
+    When `movesUsedRef.current === 1` at the watcher fire (the
+    qualifying ≥12-tile turn was the player's first swap), skip the
+    roll. A huge bonus on the very first swap of a level reads as
+    unearned / unnatural. New log `[VS-1.4 big_turn_skip]` with
+    `reason: 'first_turn'`.
+  - **Mech B — suppress when no playable turns remain.** When
+    `moves <= 0 && bonusMoves <= 0` at the watcher fire, skip the
+    roll. Bonus-moves-aware: if the player has bonus moves remaining
+    and could continue via the prompt or victory round, the drop is
+    still valid and Mech B fires normally. Same new
+    `[VS-1.4 big_turn_skip]` log with `reason: 'no_moves_left'`.
+  - **Bonus-moves threshold raised: `BONUS_MOVE_INTERVAL` 10000 → 25000.**
+    Aligns earning with the "great game" tier from
+    design-notes-v2 §5 ("Some games (15-25%) land in a 'great game'
+    range, 25K+"). Median games (~14K) earn 0; ~1-in-4 games earn 1;
+    hot-streak games (40K-110K) earn 2-4. Larger
+    "remove bonus moves from verses entirely" question deferred —
+    see DEFERRED "Phone Verses Sandbox (VS-1 track) — next
+    iteration" section above.
+  - **Stale-versions cleanup bundled.** Removed v1.2 + v1.3 from
+    active dir (archive copies preserved). Same pattern as
+    [fe5adf1](https://github.com/M3-game/M3/commit/fe5adf1) which
+    cleaned up v1.0 + v1.1 in the v1.2 ship cycle.
+  - **Implementation.** Mech B watcher useEffect: two new
+    early-return checks after the existing `count < BIG_TURN_THRESHOLD`
+    and `_pendingSpecialDrop.kind !== null` guards. Dep array
+    expanded `[turnComplete]` → `[turnComplete, moves, bonusMoves]`
+    so the closure captures fresh values for the suppression check
+    (spurious re-runs on moves/bonusMoves changes during
+    turnComplete=false short-circuit at the first guard).
+    `BONUS_MOVE_INTERVAL` 10000 → 25000 with inline comment
+    explaining the rationale. Existing fire/miss logs keep
+    `[VS-1 ...]` prefix since the roll behavior itself is unchanged
+    from v1.0 — only the new skip log uses VS-1.4.
+  - **Scoping pass.** Six decisions worked through one at a time per
+    CLAUDE.md scoping discipline: (1) first-turn definition
+    (`movesUsedRef.current === 1`); (2) end-of-level definition
+    (`moves <= 0`); (3) bonus-moves interaction (verified bonus moves
+    ARE wired in verses-sandbox; bonus-moves-aware suppression check
+    + raise threshold to 25K instead of removing entirely);
+    (4) instrumentation (new skip log with reason field);
+    (5) version bump (v1.4 patch); (6) stale-versions cleanup bundled.
+    Mid-scope discovery (decision 3): I had assumed bonus moves might
+    not be wired in verses-sandbox; verified in code that they ARE
+    (earned at 1 per 10K, persistent, spent via prompt or victory
+    round). This unlocked the milder threshold-bump alternative to
+    the bigger remove-entirely question.
+  - **Build verifies.** Clean. `phoneVersesSandbox` bundle 81.71 →
+    81.97 kB / 24.78 → 24.87 kB gz. +0.26 kB.
+  - **Files touched.** New:
+    `platforms/phone-verses-sandbox/match3-v1.4-phone-verses-sandbox.jsx`,
+    this DEFERRED entry. Modified:
+    `src/entry-phone-verses-sandbox.jsx` (v1.3 → v1.4 import),
+    `index.html` (landing card description bumped),
+    `docs/PROGRESS-2026-05-09.md` (v1.4 addendum added above
+    the v1.3 addendum), `docs/DEFERRED.md` (this entry + cleared
+    shipped items from the next-iteration section). Archived from
+    active: `match3-v1.3-phone-verses-sandbox.jsx`. REMOVED from
+    active: v1.2 + v1.3 (stale-versions cleanup; archive copies
+    preserved).
+  - **Items not addressed.** Pre-existing IDE unused-var "Hint"
+    warnings carry forward (low severity, out of scope per
+    scope-adherence). Larger "remove bonus moves from verses
+    entirely" question deferred to separate scoping session.
 
 - **Session VS-1 v1.3 — Phone Verses Sandbox rescue redesign + new
   Mechanic D "Hypernova bias suppression."** 2026-05-09. Five

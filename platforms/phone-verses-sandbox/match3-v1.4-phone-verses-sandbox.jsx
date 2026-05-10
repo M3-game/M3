@@ -7,6 +7,133 @@ import AdminPanel, { defaultStats, STATS_KEY } from '../../core/AdminPanel.jsx';
 // at runtime — left inert per scope discipline.
 
 // =============================================================================
+// MATCH-3 GAME v1.4 — PHONE VERSES SANDBOX (Mech B edge-case suppression
+// + bonus-moves threshold bump, 2026-05-09 — same-day patch after v1.3)
+//
+// Three changes vs. v1.3:
+//
+//   (1) Mechanic B (huge-turn drop) — suppress on the very first turn of
+//       the level. When `movesUsedRef.current === 1` at the watcher fire
+//       (i.e., the qualifying ≥12-tile turn was the player's first swap),
+//       skip the roll. Rationale: a huge bonus on the very first swap of
+//       a level reads as unearned / unnatural. New log
+//       `[VS-1.4 big_turn_skip]` with `reason: 'first_turn'`.
+//
+//   (2) Mechanic B — suppress when no playable turns remain. Check
+//       `moves <= 0 && bonusMoves <= 0` at the watcher fire. If the
+//       player has 0 regular moves AND 0 bonus moves, the queued drop
+//       would never appear in play (no future swap → no fillEmptySpaces
+//       call to consume it). Bonus-moves-aware: if the player has bonus
+//       moves remaining and could continue via the prompt or victory
+//       round, the drop is still valid and Mech B fires normally. Same
+//       new log `[VS-1.4 big_turn_skip]` with `reason: 'no_moves_left'`.
+//       (Larger "remove bonus moves from verses entirely" question
+//       deferred — see change (3) for the milder adjustment.)
+//
+//   (3) Bonus-moves earning threshold raised: BONUS_MOVE_INTERVAL
+//       10000 → 25000. Rationale: at 10K, median ~14K games earn 1
+//       bonus move on every play, accumulating across games. Verses is
+//       per-level discrete (memorize a passage), so accumulated bonus
+//       moves don't fit the design intent and inflate the score
+//       distribution (already 40K-110K with hypernova chains). 25K
+//       aligns with the "great game" tier from design-notes-v2 §5
+//       ("Some games (15-25%) land in a 'great game' range, 25K+"),
+//       so bonus moves become a "great game" reward (~1-in-4 games
+//       earn 1) rather than a near-guaranteed accumulation. Hot-streak
+//       games (40K-110K) still earn 2-4, preserving the carry-forward
+//       benefit for longer Matt passages. Held-in-reserve alternative:
+//       remove bonus moves from verses entirely (touches prompt UI,
+//       victory round, persistence wiring) — deferred unless 25K
+//       proves insufficient in playtest.
+//
+// Mech B fire/miss logs keep the existing `[VS-1 big_turn_fire]` /
+// `[VS-1 big_turn_miss]` prefixes since the roll behavior itself is
+// unchanged from v1.0. Only the new skip log uses VS-1.4.
+//
+// Mech B watcher useEffect dep array expanded to include `moves` and
+// `bonusMoves` so the closure captures fresh values for the suppression
+// check. Spurious re-runs on moves/bonusMoves changes during
+// turnComplete=false are short-circuited by the existing
+// `if (!turnComplete) return;` guard.
+//
+// Header label bumps to VERSES-SANDBOX v1.4.
+//
+// =============================================================================
+// MATCH-3 GAME v1.3 — PHONE VERSES SANDBOX (rescue redesign + hypernova
+// suppression, 2026-05-09)
+//
+// Five mechanic changes in one ship after the v1.2 design notes were captured
+// in `docs/verses-game-design-notes-v2.md` and a scoping discussion locked
+// the next-step adjustments. Bias rate (NEIGHBOR_BIAS_PCT) stays at 13%.
+//
+//   (1) Mechanic C trigger move is now DYNAMIC per level.
+//       computeFloorRaiseTriggerMove(versesLevel.moves) = max(0, totalMoves − 9).
+//       Replaces the constant FLOOR_RAISE_TRIGGER_MOVE = 5. On a 12-move
+//       level → trigger after move 3; on a 24-move level → after move 15.
+//       Verses-game level lengths range from 5 to 28 moves (Matt 5 levels),
+//       so a single constant didn't fit. Short levels (≤9 moves) arm
+//       immediately at game start — they have less room for natural big
+//       scoring, so rescue is more important, not less.
+//
+//   (2) Mechanic C window expanded 4 → 7 turn-completes.
+//       FLOOR_RAISE_WINDOW_TURNS bumped. With per-turn 50% rolls, eventual
+//       fire rate when armed climbs from ~94% (4 turns) to ~99% (7 turns).
+//       In practice rescue almost always fires when armed; the wider window
+//       protects against unlucky early misses leaving the player without
+//       help in the back half of the game.
+//
+//   (3) Mechanic C drop weights rebalanced 25/25/30/20 → 35/35/20/10
+//       (bomb/cross/super/hyper). Now that rescue fires more reliably (#2),
+//       this preserves super-special rarity. Combined super-special rate
+//       drops from 50% (super 30 + hyper 20) to 30% (super 20 + hyper 10).
+//
+//   (4) Mechanic C bias spike on rescue-fire turn (NEW).
+//       FLOOR_RAISE_BIAS_SPIKE_PCT = 30. When rescue fires (queues a drop),
+//       the next player turn — including drop-fill and any same-turn
+//       cascade refills if the player activates the rescue special — uses
+//       30% neighbor-bias instead of the 13% global. Rationale: bad boards
+//       have small matched areas; rescue specials often land in tight
+//       3-tile match craters with limited usability. The spike gives the
+//       rescue special extra-clustering neighbors so it's more useful when
+//       the player gets to it.
+//
+//   (5) Mechanic D — "Hypernova bias suppression" (NEW).
+//       HYPERNOVA_BIAS_SUPPRESS_PCT = 8. When a hypernova fires (single via
+//       activateSpecialTile, or any combo via activateSpecialCombination
+//       isHypernovaEvent), neighbor-bias is suppressed to 8% for the rest
+//       of that turn — including all cascade refills triggered by the
+//       hypernova clear. Dampens the runaway loop where a hypernova clears
+//       70-80% of the board, the high-bias refill spawns many new specials,
+//       and a follow-on hypernova ignites. Surgical alternative to reducing
+//       hypernova clear-area; preserves the dramatic single-event feel.
+//
+// Implementation notes for #4 + #5: turn-scoped bias-override uses two refs
+// (biasOverridePctRef live + pendingBiasOverridePctRef queued) to handle the
+// timing-mismatch — rescue sets the queued ref at end of turn N (transferred
+// to live at end of the same turnComplete useEffect, applies during turn N+1
+// fills), while hypernova sets the live ref directly mid-turn (applies
+// immediately to any further fills in the same turn). End-of-turnComplete
+// transfer wipes the live ref before queuing the next turn's value, so an
+// override "lives" for exactly one player turn. Hypernova-suppression
+// overwrites a rescue-spike if both fire in the same turn — chain prevention
+// takes priority over placement help once the hypernova is firing.
+//
+// fillEmptySpaces snapshots the live override at the start of each fill cycle
+// in `biasPct = biasOverridePctRef.current ?? NEIGHBOR_BIAS_PCT` and reads
+// from biasPct in place of the global constant.
+//
+// Rescue-fire branch (3) and the bias-override transfer at the end of the
+// floor-raise useEffect required restructuring (1)(2)(3) as if/else if (was
+// early-returns) so the transfer at the bottom always runs. The
+// "skip without decrement" sub-branch was also restructured from `return`
+// to `else` for the same reason.
+//
+// Header label bumps to VERSES-SANDBOX v1.3. Console logs renamed VS-1.2 →
+// VS-1.3 throughout the floor-raise effect; new logs floor_raise_fire (with
+// biasSpike field) and hypernova_bias_suppress (with source: 'single' or
+// 'combo' + combo string).
+//
+// =============================================================================
 // MATCH-3 GAME v1.2 — PHONE VERSES SANDBOX (VS-1 floor-raise, 2026-05-07)
 //
 // Two changes vs. v1.1:
@@ -1376,8 +1503,13 @@ const VICTORY_ROUND_MULTIPLIER = 1.5;   // v8.10: Points multiplier during victo
 const DIFFICULTY_INCREMENT_MIN = 200;
 const DIFFICULTY_INCREMENT_MAX = 500;
 
-// v10.4: Award one bonus move for every BONUS_MOVE_INTERVAL points scored
-const BONUS_MOVE_INTERVAL = 10000;
+// v10.4: Award one bonus move for every BONUS_MOVE_INTERVAL points scored.
+// v1.4 (2026-05-09): 10000 → 25000 in verses-sandbox. Aligns with the
+// "great game" tier from design-notes-v2 §5 ("Some games (15-25%) land in
+// a 'great game' range, 25K+"). Median games (~14K) earn 0 bonus moves
+// → no accumulation creep. Hot-streak games (40K-110K) still earn 2-4 →
+// preserves the carry-across-passages benefit for longer Matt levels.
+const BONUS_MOVE_INTERVAL = 25000;
 
 // v11.2 / v11.9: Bonus moves — persistent move savings across games.
 // v11.9 bumped cap 25 → 99 (match campaign v1.25) and warn threshold 20 → 90.
@@ -1442,21 +1574,48 @@ const _pendingSpecialDrop = { kind: null }; // 'super' | 'hyper' | 'bomb' | 'cro
 
 // VS-1.2 Mechanic C — "Floor-raise drop." Per-level rescue mechanism for
 // boards where no big match (≥5 connected tiles → bomb / cross / supernova /
-// hypernova) emerges in the early moves. After move FLOOR_RAISE_TRIGGER_MOVE
-// completes without a ≥5-tile match, arm the rescue. On each of the next
+// hypernova) emerges in the early moves. After the trigger move completes
+// without a ≥5-tile match, arm the rescue. On each of the next
 // FLOOR_RAISE_WINDOW_TURNS turn-completes, roll FLOOR_RAISE_ROLL_PCT% — on
 // hit, weighted-pick across bomb / cross / supernova / hypernova (the four
 // percentage constants total 100). Cancels if a natural ≥5-tile match
 // happens during the rescue window. Skips the roll (without decrementing)
 // if Mechanic B has already queued a drop on the same turn-complete.
-// Silent — no popup. See top comment block for full lifecycle.
-const FLOOR_RAISE_TRIGGER_MOVE  = 5;
-const FLOOR_RAISE_WINDOW_TURNS  = 4;
-const FLOOR_RAISE_ROLL_PCT      = 50;
-const FLOOR_RAISE_BOMB_PCT      = 25;
-const FLOOR_RAISE_CROSS_PCT     = 25;
-const FLOOR_RAISE_SUPER_PCT     = 30;
-const FLOOR_RAISE_HYPER_PCT     = 20;
+// Silent — no popup.
+//
+// v1.3 (2026-05-09):
+//   - Trigger move is now DYNAMIC per level: computeFloorRaiseTriggerMove(totalMoves)
+//     = max(0, totalMoves − 9). On a 12-move level → trigger after move 3.
+//     Verses-game level lengths vary (5–28 moves), so a constant doesn't fit;
+//     short levels need rescue more, not less (less room for big scoring).
+//   - Window expanded 4 → 7 turn-completes (rescue almost always fires when armed).
+//   - Drop weights rebalanced bomb/cross/super/hyper 25/25/30/20 → 35/35/20/10
+//     to preserve super-special rarity now that rescue fires more reliably.
+//   - On rescue-fire (drop turn), neighbor-match bias is temporarily spiked to
+//     FLOOR_RAISE_BIAS_SPIKE_PCT (30%) for the rest of that player turn —
+//     including the cascade refills if the player activates the rescued
+//     special. Improves placement usability so the rescue special lands with
+//     extra-clustering neighbors instead of in a barren patch from a 3-tile
+//     match crater. See bias-override ref + clear-on-turn-complete logic.
+const FLOOR_RAISE_WINDOW_TURNS    = 7;   // v1.3: 4 → 7
+const FLOOR_RAISE_ROLL_PCT        = 50;
+const FLOOR_RAISE_BOMB_PCT        = 35;  // v1.3: 25 → 35
+const FLOOR_RAISE_CROSS_PCT       = 35;  // v1.3: 25 → 35
+const FLOOR_RAISE_SUPER_PCT       = 20;  // v1.3: 30 → 20
+const FLOOR_RAISE_HYPER_PCT       = 10;  // v1.3: 20 → 10
+const FLOOR_RAISE_BIAS_SPIKE_PCT  = 30;  // v1.3: new — bias on rescue-drop turn
+const computeFloorRaiseTriggerMove = (totalMoves) => Math.max(0, totalMoves - 9);
+
+// v1.3 Mechanic D — "Hypernova bias suppression." When a hypernova fires
+// (player-activated or combo), neighbor-match bias is suppressed to
+// HYPERNOVA_BIAS_SUPPRESS_PCT (8%) for the rest of that player turn —
+// including all cascade refills triggered by the hypernova clear. Dampens
+// the runaway feedback loop where a hypernova clears 70–80% of the board,
+// the refill brings in many new tiles, and high bias spawns more specials
+// (potentially another hypernova) in the refill. Surgical alternative to
+// reducing hypernova clear-area; preserves the dramatic single-event feel
+// while preventing chains. Same turn-scoped bias-override ref as Mechanic C.
+const HYPERNOVA_BIAS_SUPPRESS_PCT = 8;   // v1.3: new — bias on hypernova-fire turn
 
 
 // v11.7: Special-formation thresholds (connected-match size → special type).
@@ -2542,6 +2701,35 @@ const VersesGame = ({
   const floorRaiseFiredRef          = useRef(false);
   const floorRaiseRollsRemainingRef = useRef(0);
 
+  // v1.3 Mechanic C+D: turn-scoped neighbor-bias override. Two refs to
+  // handle the timing-mismatch between rescue (set at end of turn N, must
+  // apply to turn N+1) and hypernova (set mid-turn during fills, must apply
+  // to rest of same turn).
+  //
+  //   biasOverridePctRef        — LIVE override read by fillEmptySpaces
+  //                                 in place of NEIGHBOR_BIAS_PCT. null =
+  //                                 use global. Set directly by hypernova
+  //                                 activation (mid-turn). Replaced from
+  //                                 pendingBiasOverridePctRef at the END
+  //                                 of every turnComplete useEffect run
+  //                                 (so rescue's pending value becomes
+  //                                 live for the upcoming player turn,
+  //                                 and any prior live value is wiped).
+  //
+  //   pendingBiasOverridePctRef — QUEUED override set by rescue fire (end
+  //                                 of turn N). Transferred to live at end
+  //                                 of the same turnComplete useEffect; the
+  //                                 transfer makes it apply during turn N+1
+  //                                 fills. Reset to null after transfer.
+  //
+  // Net effect: an override "lives" for exactly one player turn after
+  // being set. Hypernova-suppression set mid-turn during cascades will
+  // overwrite a rescue-spike if both fire in the same turn (intentional —
+  // chain prevention takes priority over placement help once the
+  // hypernova is firing).
+  const biasOverridePctRef        = useRef(null);
+  const pendingBiasOverridePctRef = useRef(null);
+
   // v11.8: sync playback speed state → ref so pipeline timers pick up changes
   // without needing every function to close over the state variable.
   useEffect(() => { playbackSpeedRef.current = playbackSpeed; }, [playbackSpeed]);
@@ -2937,11 +3125,36 @@ const VersesGame = ({
   // roll hyper FIRST and super second. On hit, queue _pendingSpecialDrop
   // (consumed by next fillEmptySpaces refill) and show popup. Cleanup
   // clears the timer if the player swaps before it fires.
+  //
+  // v1.4: two suppression cases skip the roll entirely:
+  //   (a) First turn of the level (movesUsedRef.current === 1 at watcher
+  //       fire). A huge-turn bonus on the very first swap reads as
+  //       unearned / unnatural.
+  //   (b) No future playable turns (moves <= 0 && bonusMoves <= 0). The
+  //       drop would never appear in play (or would appear on a final
+  //       turn the player can barely use). Bonus-moves-aware: if the
+  //       player has bonus moves remaining and could continue via the
+  //       prompt or victory round, the drop is still valid.
+  // Suppression logs to `[VS-1.4 big_turn_skip]` with a `reason` field;
+  // the existing fire/miss logs keep the VS-1 prefix since the roll
+  // behavior itself is unchanged.
   useEffect(() => {
     if (!turnComplete) return;
     const count = turnTileCountRef.current;
     if (count < BIG_TURN_THRESHOLD) return;
     if (_pendingSpecialDrop.kind !== null) return; // don't overwrite an un-consumed drop
+
+    // v1.4 (a): suppress on the very first turn of the level
+    if (movesUsedRef.current === 1) {
+      console.log('[VS-1.4 big_turn_skip]', { count, threshold: BIG_TURN_THRESHOLD, reason: 'first_turn', movesUsed: movesUsedRef.current });
+      return;
+    }
+
+    // v1.4 (b): suppress when no playable turns remain. Bonus-moves-aware.
+    if (moves <= 0 && bonusMoves <= 0) {
+      console.log('[VS-1.4 big_turn_skip]', { count, threshold: BIG_TURN_THRESHOLD, reason: 'no_moves_left', moves, bonusMoves });
+      return;
+    }
 
     const timer = setTimeout(() => {
       let kind = null;
@@ -2957,7 +3170,7 @@ const VersesGame = ({
       }
     }, BIG_TURN_POPUP_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [turnComplete]);
+  }, [turnComplete, moves, bonusMoves]);
 
   // VS-1: auto-dismiss the big-turn popup after ~2.5s.
   useEffect(() => {
@@ -2970,52 +3183,58 @@ const VersesGame = ({
   // true. Order of operations:
   //   (1) If a ≥5-tile match was made anywhere in this level (bigMatchMadeRef
   //       set in processMatches), rescue is satisfied — disarm + mark fired.
-  //   (2) Else if not yet armed and movesUsed has reached
-  //       FLOOR_RAISE_TRIGGER_MOVE, arm with FLOOR_RAISE_WINDOW_TURNS rolls
-  //       remaining.
+  //   (2) Else if not yet armed and movesUsed has reached the trigger move,
+  //       arm with FLOOR_RAISE_WINDOW_TURNS rolls remaining.
   //   (3) Else if armed, not fired, rolls > 0:
   //       - Skip (no decrement) if Mechanic B already queued a drop on this
   //         turn-complete (rare 12+-tile-no-≥5 edge — three 4-tile cascades).
   //       - Otherwise roll FLOOR_RAISE_ROLL_PCT. On hit, weighted-pick
-  //         bomb/cross/super/hyper, queue via _pendingSpecialDrop, mark
-  //         fired. On miss, decrement rolls; give up at 0.
+  //         bomb/cross/super/hyper, queue via _pendingSpecialDrop, arm
+  //         bias-spike for the drop turn, mark fired. On miss, decrement
+  //         rolls; give up at 0.
   // Silent throughout. Refs reset per-level via component remount.
+  //
+  // v1.3: trigger move is now DYNAMIC per level via
+  // computeFloorRaiseTriggerMove(versesLevel.moves) = max(0, totalMoves − 9).
+  // On a 12-move level → trigger after move 3. Short levels (≤9 moves) → arm
+  // immediately. On rescue-fire (path 3 hit), set biasOverridePctRef so the
+  // upcoming player turn (drop turn + same-turn cascades) gets neighbor-bias
+  // spiked to FLOOR_RAISE_BIAS_SPIKE_PCT.
   useEffect(() => {
     if (!turnComplete) return;
+
+    const triggerMove = computeFloorRaiseTriggerMove(versesLevel?.moves ?? 0);
+
+    // v1.3: branches restructured as if/else if (was early-returns) so the
+    // bias-override transfer at the bottom always runs.
 
     // (1) Rescue satisfied by natural ≥5-tile match
     if (bigMatchMadeRef.current && !floorRaiseFiredRef.current) {
       if (floorRaiseArmedRef.current) {
-        console.log('[VS-1.2 floor_raise_cancel]', { reason: 'natural_big_match', movesUsed: movesUsedRef.current });
+        console.log('[VS-1.3 floor_raise_cancel]', { reason: 'natural_big_match', movesUsed: movesUsedRef.current });
       }
       floorRaiseArmedRef.current = false;
       floorRaiseFiredRef.current = true; // satisfied — prevent re-arming
       floorRaiseRollsRemainingRef.current = 0;
-      return;
     }
-
-    // (2) Arm at end of move FLOOR_RAISE_TRIGGER_MOVE
-    if (
+    // (2) Arm at end of trigger move (dynamic per level)
+    else if (
       !floorRaiseArmedRef.current &&
       !floorRaiseFiredRef.current &&
-      movesUsedRef.current >= FLOOR_RAISE_TRIGGER_MOVE
+      movesUsedRef.current >= triggerMove
     ) {
       floorRaiseArmedRef.current = true;
       floorRaiseRollsRemainingRef.current = FLOOR_RAISE_WINDOW_TURNS;
-      console.log('[VS-1.2 floor_raise_arm]', { movesUsed: movesUsedRef.current, rolls: FLOOR_RAISE_WINDOW_TURNS });
-      return;
+      console.log('[VS-1.3 floor_raise_arm]', { movesUsed: movesUsedRef.current, triggerMove, totalMoves: versesLevel?.moves, rolls: FLOOR_RAISE_WINDOW_TURNS });
     }
-
     // (3) Roll if armed, not fired, rolls remaining
-    if (floorRaiseArmedRef.current && !floorRaiseFiredRef.current && floorRaiseRollsRemainingRef.current > 0) {
+    else if (floorRaiseArmedRef.current && !floorRaiseFiredRef.current && floorRaiseRollsRemainingRef.current > 0) {
       // Skip without decrement if Mech B already queued a drop this turn
       if (_pendingSpecialDrop.kind !== null) {
-        console.log('[VS-1.2 floor_raise_skip]', { reason: 'mech_b_queued', kind: _pendingSpecialDrop.kind });
-        return;
-      }
-
-      const hit = Math.random() * 100 < FLOOR_RAISE_ROLL_PCT;
-      if (hit) {
+        console.log('[VS-1.3 floor_raise_skip]', { reason: 'mech_b_queued', kind: _pendingSpecialDrop.kind });
+      } else {
+        const hit = Math.random() * 100 < FLOOR_RAISE_ROLL_PCT;
+        if (hit) {
         // Weighted pick across the four constants (must sum to 100)
         const r = Math.random() * 100;
         let kind;
@@ -3028,16 +3247,31 @@ const VersesGame = ({
         floorRaiseFiredRef.current = true;
         floorRaiseArmedRef.current = false;
         floorRaiseRollsRemainingRef.current = 0;
-        console.log('[VS-1.2 floor_raise_fire]', { movesUsed: movesUsedRef.current, kind });
+        // v1.3: queue bias spike for the upcoming player turn (transferred
+        // to live ref at end of this useEffect run). Applies to the drop
+        // turn — initial fill that brings the rescue special in, plus any
+        // same-turn cascade refills if the player activates it that turn.
+        pendingBiasOverridePctRef.current = FLOOR_RAISE_BIAS_SPIKE_PCT;
+        console.log('[VS-1.3 floor_raise_fire]', { movesUsed: movesUsedRef.current, kind, biasSpike: FLOOR_RAISE_BIAS_SPIKE_PCT });
       } else {
         floorRaiseRollsRemainingRef.current -= 1;
-        console.log('[VS-1.2 floor_raise_miss]', { movesUsed: movesUsedRef.current, rollsLeft: floorRaiseRollsRemainingRef.current });
-        if (floorRaiseRollsRemainingRef.current === 0) {
-          floorRaiseArmedRef.current = false;
-          console.log('[VS-1.2 floor_raise_giveup]', { movesUsed: movesUsedRef.current });
+        console.log('[VS-1.3 floor_raise_miss]', { movesUsed: movesUsedRef.current, rollsLeft: floorRaiseRollsRemainingRef.current });
+          if (floorRaiseRollsRemainingRef.current === 0) {
+            floorRaiseArmedRef.current = false;
+            console.log('[VS-1.3 floor_raise_giveup]', { movesUsed: movesUsedRef.current });
+          }
         }
       }
     }
+
+    // v1.3 Mechanic C+D: bias-override turn transition. Transfer the queued
+    // override (set by rescue fire above, if any) into the live ref. Any
+    // prior live override (e.g., a hypernova-suppression set during the
+    // turn that just completed) is wiped here. Net effect: each turn
+    // starts with whatever was queued for it; mid-turn hypernovas may
+    // overwrite during fills; end-of-turn wipe clears the slate.
+    biasOverridePctRef.current        = pendingBiasOverridePctRef.current;
+    pendingBiasOverridePctRef.current = null;
   }, [turnComplete]);
 
   // v10.4/v10.5: Award +1 move for every 10,000 points crossed.
@@ -3877,6 +4111,14 @@ const VersesGame = ({
       points = 2000;
       message = `🌌 SUPERNOVA! +${points}`;
     } else if (tile.special === 'hypernova') {
+      // v1.3 Mechanic D: suppress neighbor-bias for the rest of this turn
+      // (initial cleared-tile refill + any cascade refills triggered by
+      // chained specials in the footprint). Dampens the runaway loop where
+      // a hypernova clears 70-80% of the board, the high-bias refill spawns
+      // many new specials, and a follow-on hypernova ignites. Cleared at
+      // end of next turnComplete via the bias-override transfer logic.
+      biasOverridePctRef.current = HYPERNOVA_BIAS_SUPPRESS_PCT;
+      console.log('[VS-1.3 hypernova_bias_suppress]', { suppressPct: HYPERNOVA_BIAS_SUPPRESS_PCT, source: 'single' });
       // v11.7: 5×5 + row + col footprint FIRES specials (was: skipped them).
       // Specials caught in the footprint chain and cascade like any other
       // special sweep. Outside the footprint: half of non-special tiles
@@ -3955,6 +4197,16 @@ const VersesGame = ({
     // v11.7: Hypernova events get slower cascade stagger + longer match
     // transition for extra visual impact.
     const isHypernovaEvent = combo.includes('hypernova');
+
+    // v1.3 Mechanic D: same suppression as the single-hypernova path —
+    // any combo involving a hypernova gets bias dampened for the rest of
+    // this turn. Combos can clear even more of the board than a single
+    // hypernova (dual hypernova, hypernova+bomb spreads, etc.), so the
+    // chain-prevention motivation applies at least as strongly here.
+    if (isHypernovaEvent) {
+      biasOverridePctRef.current = HYPERNOVA_BIAS_SUPPRESS_PCT;
+      console.log('[VS-1.3 hypernova_bias_suppress]', { suppressPct: HYPERNOVA_BIAS_SUPPRESS_PCT, source: 'combo', combo });
+    }
 
     // v11.7: Hypernova combo helpers. Hypernova footprint = 5×5 + row + col
     // (same shape as supernova) including specials, which will be picked up by
@@ -4760,6 +5012,12 @@ const VersesGame = ({
     // can pick one to upgrade after the loop.
     const refilledCells = [];
 
+    // v1.3 Mechanic C+D: snapshot bias-override for this fill cycle. Reads the
+    // live override ref (set by hypernova activation mid-turn, or transferred
+    // from the rescue queue at end of prior turnComplete). null = use global
+    // NEIGHBOR_BIAS_PCT.
+    const biasPct = biasOverridePctRef.current ?? NEIGHBOR_BIAS_PCT;
+
     for (let col = 0; col < COLS; col++) {
       let emptyCount = 0;
       for (let row = 0; row < ROWS; row++) {
@@ -4772,7 +5030,7 @@ const VersesGame = ({
           // inherit the type of a random non-null neighbor (up/down/left/right).
           // On miss (or no neighbors), fall through to the fresh-random fallback.
           let type = null;
-          if (NEIGHBOR_BIAS_PCT > 0 && Math.random() * 100 < NEIGHBOR_BIAS_PCT) {
+          if (biasPct > 0 && Math.random() * 100 < biasPct) {
             const neighbors = [];
             if (row > 0       && newGrid[row - 1][col] != null) neighbors.push(newGrid[row - 1][col].type);
             if (row < ROWS-1  && newGrid[row + 1][col] != null) neighbors.push(newGrid[row + 1][col].type);
@@ -4975,6 +5233,9 @@ const VersesGame = ({
     floorRaiseArmedRef.current = false;
     floorRaiseFiredRef.current = false;
     floorRaiseRollsRemainingRef.current = 0;
+    // v1.3 Mechanic C+D: clear bias-override refs on restart
+    biasOverridePctRef.current = null;
+    pendingBiasOverridePctRef.current = null;
     // v8.10: Reset victory round state
     setShowVictoryPrompt(false);
     setVictoryRoundActive(false);
@@ -5150,7 +5411,7 @@ const VersesGame = ({
               )}
             </>
           ) : (
-            <>VERSES-SANDBOX <span style={{ fontSize: '12px', color: '#ccc' }}>v1.2</span></>
+            <>VERSES-SANDBOX <span style={{ fontSize: '12px', color: '#ccc' }}>v1.4</span></>
           )}
         </h1>
         {/* v1.1: Two-row score zone for phone-verses.
