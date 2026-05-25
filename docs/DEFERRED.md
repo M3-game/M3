@@ -657,17 +657,12 @@ surface.
 
 **Planned content (authoring queue, no engine work expected):**
 
-**Pending user edits (added 2026-04-26; Matt 5 portion shipped
-2026-05-04):** Drafts for **Matt 5:31–48** (NKJV) and **Isaiah
-52:13–53:12 ESV** (Servant Song, multi-level) were presented in chat
-2026-04-26 and the user took them to edit externally. **Matt 5:31–48
-shipped 2026-05-04** as Levels 6–7 of the existing Matthew 5 game file
-(see Done section). **Isaiah 52:13–53:12 ESV remains pending — at the
-start of any new coding session, ask the user to paste their edited
-draft before doing Isaiah content work.** Do not regenerate that
-draft from scratch — the user has a human-edited version ready.
-(See also: `project_pending_verses_drafts.md` in user memory.) Remove
-this note once Isaiah ships.
+**Pending user edits (added 2026-04-26; both shipped):**
+Drafts for **Matt 5:31–48** (NKJV, shipped 2026-05-04 as Matt 5
+Levels 6–7) and **Isaiah 52:13–53:12 ESV** (Servant Song, shipped
+2026-05-24 as a new 5-level game) were presented in chat 2026-04-26
+and the user took them to edit externally. Both halves of that
+pending-edits pair are now landed; see Done section.
 
 - ~~**Matthew 5 future levels — additive to existing game file.**~~
   **Shipped 2026-05-04.** Levels 6 (5:31–37 Divorce / oaths,
@@ -679,11 +674,12 @@ this note once Isaiah ships.
   markers stripped per existing convention. Total now 139 chunks /
   132 moves across 7 levels. See Done section for full entry.
 
-- **Isaiah 52:13–53:12 — ESV.** First non-NKJV game in the project.
-  User preference noted 2026-04-25: ESV, not NKJV. The Servant Song
-  unit (52:13–15 lead-in + all of ch. 53). 15 verses; multi-level.
-  Data file's existing `translation` field already supports per-game
-  translation choice; just a content choice. No engine impact.
+- ~~**Isaiah 52:13–53:12 — ESV.**~~ **Shipped 2026-05-24.** First
+  non-NKJV game in the project. 5-level Servant Song; 71 chunks /
+  66 moves total across the classical 3-verse stanzas (52:13–15 /
+  53:1–3 / 53:4–6 / 53:7–9 / 53:10–12). New
+  `content/verses/isaiah-52-13-53/game.js`; auto-discovered by all
+  three verses platforms via `import.meta.glob`. See Done section.
 - **James 1 — NKJV.** Whole chapter, 27 verses; multi-level. Sequence
   TBD; expect to author after Matt 5 progresses meaningfully.
 
@@ -1276,6 +1272,80 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 ---
 
 ## Done
+
+- **Isaiah 52:13–53:12 ESV verses content — first non-NKJV game in
+  the project.** 2026-05-24. New
+  `content/verses/isaiah-52-13-53/game.js`. The 5-level Servant Song
+  authored from a user-edited ESV draft that had been pending since
+  2026-04-26 (the Matt 5:31–48 half of that pending pair shipped
+  2026-05-04; this is the second and final half).
+  - **Five levels matching the classical 3-verse stanza structure**,
+    derived directly from blank-line breaks in the user's edited
+    source draft:
+    - Level 1 — Isa. 52:13–15 — Exalted / disfigured / sprinkles
+      nations — 13 chunks / 12 moves
+    - Level 2 — Isa. 53:1–3 — Who has believed / despised, rejected
+      — 13 chunks / 12 moves
+    - Level 3 — Isa. 53:4–6 — Borne our griefs / pierced for us —
+      12 chunks / 11 moves
+    - Level 4 — Isa. 53:7–9 — Oppressed / lamb to slaughter / grave
+      — 14 chunks / 13 moves
+    - Level 5 — Isa. 53:10–12 — Will of the LORD / vindication —
+      19 chunks / 18 moves
+    - Total: 71 chunks / 66 moves
+  - **Chunking** follows the user's line-by-line breaks in the source
+    draft (each line in the edited doc = one chunk). Verse-number
+    prefixes stripped to the `reference` field; indentation and
+    trailing whitespace stripped from chunk text. Several chunks
+    (52:15 lines, 53:2, 53:7, 53:8, 53:11, 53:12) exceed ~40 chars
+    and will wrap to two lines at 20px Georgia bold by design —
+    line breaks preserve the source's poetic phrasing. Per-chunk
+    font override remains parked above as the fallback if wrapping
+    height-shift proves jarring in playtest.
+  - **Translation: ESV** — first non-NKJV game. Data model's
+    `translation` field already supported per-game translation
+    choice; just a content choice. No engine impact.
+  - **Reference format** `"Isa. 52:N"` / `"Isa. 53:N"` mirrors the
+    abbreviation pattern used by Matt 5 (`"Matt. 5:N"`) and Psalm 91
+    (`"Ps. 91:N"`) to fit the 110px reference column on the in-game
+    text bar.
+  - **Top-level title** `"Isaiah 52:13–53:12"` reflects the
+    cross-chapter range (Matt 5 and Psalm 91 use chapter-only titles
+    because they sit within one chapter; this passage crosses two).
+  - **Slug** `isaiah-52-13-53` chosen by user over Claude's
+    `isaiah-52-53` suggestion — signals the 52:13 start point while
+    reading naturally (Isa. 53 has no v. 13).
+  - **Per-level targets** default to `moves × 300` via the runtime
+    formula (no per-level overrides). Section 5 target = 18 × 300 =
+    5,400 — the longest of the five; watch in playtest.
+  - **Auto-discovery.** All three verses platforms (tablet-verses
+    v1.12, phone-verses v1.6, phone-verses-sandbox v1.4) load games
+    via `import.meta.glob('../../content/verses/*/game.js')`. The
+    new directory + file is picked up at build time — no
+    platform-file edit, no version bump on any platform.
+  - **Scoping pass.** Five decisions worked through one at a time
+    per CLAUDE.md scoping discipline: (1) edited-draft handoff
+    (user shared file in `~/Downloads/`); (2) section count
+    (user initially said 4, corrected to 5 to match source
+    formatting); (3) slug (`isaiah-52-13-53`); (4) reference format
+    (`"Isa. 52:N"` / `"Isa. 53:N"`); (5) title structure
+    (cross-chapter top-level + per-stanza level titles).
+  - **Build verifies.** Clean. `verses` (tablet-verses) bundle
+    78.09 kB / 23.48 kB gz; `phoneVerses` 78.15 / 23.56;
+    `phoneVersesSandbox` 82.03 / 24.89. Small bumps from Isaiah
+    content auto-included in all three.
+  - **Files touched.** New:
+    `content/verses/isaiah-52-13-53/game.js`,
+    `docs/PROGRESS-2026-05-24.md` (rotated from 2026-05-09), this
+    DEFERRED entry. Modified: `docs/DEFERRED.md` (cleared
+    pending-Isaiah note from Verses planned-content section).
+    Moved: `docs/PROGRESS-2026-05-09.md` →
+    `docs/archive/PROGRESS-2026-05-09.md`.
+  - **Pending-draft memory cleared.** The
+    `project_pending_verses_drafts.md` memory entry that prompted
+    the start-of-session "ask for the edited draft" behavior is now
+    removed (Isaiah shipped, Matt 5 already shipped 2026-05-04 —
+    nothing pending).
 
 - **Session VS-1 v1.4 — Phone Verses Sandbox Mech B (huge-turn drop)
   edge-case suppression + bonus-moves threshold bump + stale-versions
