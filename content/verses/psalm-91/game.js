@@ -36,6 +36,8 @@
 export default {
   title: "Psalm 91",
   translation: "NKJV",
+  book: "Psalms",
+  chapter: 91,
   levels: [
     {
       title: "Psalm 91:1–4",

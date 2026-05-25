@@ -40,6 +40,8 @@
 export default {
   title: "Isaiah 52:13–53:12",
   translation: "ESV",
+  book: "Isaiah",
+  chapter: 52,
   levels: [
     {
       title: "Isaiah 52:13–15",

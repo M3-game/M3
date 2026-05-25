@@ -48,6 +48,8 @@
 export default {
   title: "Genesis 50:15–21",
   translation: "NKJV",
+  book: "Genesis",
+  chapter: 50,
   levels: [
     {
       title: "Genesis 50:15–17a",

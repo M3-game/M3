@@ -44,6 +44,8 @@
 export default {
   title: "2 Chronicles 7:14",
   translation: "NKJV",
+  book: "2 Chronicles",
+  chapter: 7,
   levels: [
     {
       title: "2 Chronicles 7:14",

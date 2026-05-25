@@ -36,6 +36,8 @@
 export default {
   title: "1 Thessalonians 4:13–18",
   translation: "NKJV",
+  book: "1 Thessalonians",
+  chapter: 4,
   levels: [
     {
       title: "1 Thessalonians 4:13–15",

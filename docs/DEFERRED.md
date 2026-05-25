@@ -1273,6 +1273,154 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Verses in-session ship batch — card font + biblical sort + sandbox
+  target tuning + secret-unlock long-press + Verses docs subfolder.**
+  2026-05-25. Four-item bundle across all three verses platforms
+  (tablet-verses v1.12 → v1.13, phone-verses v1.6 → v1.7,
+  phone-verses-sandbox v1.4 → v1.5), plus a new working backlog doc
+  for six remaining items.
+
+  **The four shipped items.**
+  - **#7 — Long-title card font shrink.** Picker and level-select
+    card titles longer than 20 characters render at 16 px instead of
+    18 px. Length-based check (not slug-specific) so future long
+    titles auto-shrink. Today only "1 Thessalonians 4:13–18" + its
+    two level titles cross the threshold. Three fontSize sites
+    changed per platform (picker card title, level-select locked
+    card, level-select unlocked card). All other titles unchanged at
+    18 px.
+  - **#1 — Biblical-order card sort.** Picker iterates games in
+    canonical Protestant Bible order rather than slug-alphabetical.
+    Implementation: new shared file `core/versesOrder.js` exports
+    `BIBLE_BOOKS` (66-book canon) + `sortVersesSlugs(registry)`.
+    Each game.js gains `book` (string) + `chapter` (number) fields.
+    Platform `VersesPicker` signature changes from `{ games, progress,
+    onPick }` to `{ games, slugs, progress, onPick, ... }`; caller
+    passes the module-level ordered slug array. Per-game placeholder
+    fields added to `content/verses/_template/game.js`. Today's
+    12-game sort: Gen 1 → Gen 50 → Num → 2 Chr → Ps 23 → Ps 91 →
+    Isa → Hab → Matt → 1 Thes → Titus → 1 Pet. Standalone Node-run
+    verification of the sort included in scoping.
+  - **#3 — Target-score tuning (SANDBOX ONLY).** Per-level target
+    formula split on move count: `moves < 17 → target = moves × 300`,
+    `moves ≥ 17 → target = moves × 500`. Replaces v1.4's uniform
+    `moves × 1000`, which was too punishing on short levels once
+    Mech A/B/C/D + rescue redesign raised scoring volume. Threshold
+    of 17 picks the natural gap in the level-length distribution
+    (no level currently has 15 or 16 moves; see the round-length
+    analysis in PROGRESS-2026-05-25 addendum). Old constant
+    `TARGET_PER_MOVE_DEFAULT = 1000` replaced by
+    `TARGET_PER_MOVE_THRESHOLD / SHORT / LONG`. Main phone-verses
+    (× 250) and tablet-verses (× 300) **unchanged** — revisited at
+    TODO #6 (sandbox → main port).
+  - **#2 — Secret-unlock long-press.** 1.5 s long-press on either
+    the "Verses" picker header or any game-title level-select header
+    toggles a global `m3_verses_secret_unlock` flag in localStorage.
+    When ON, every locked level in every multi-level game becomes
+    clickable. When ON, both headers gain a 🔓 prefix as a visible
+    indicator. Long-press timer parameters match the existing
+    AdminPanel gesture (1500 ms, `onPointerDown` to start,
+    `onPointerUp` / `onPointerLeave` to clear). State lives in the
+    outer `Match3Verses` wrapper, passed as `secretUnlock` +
+    `onSecretPressStart` + `onSecretPressEnd` props to both picker
+    and level-select. `isUnlocked(idx)` short-circuits to `true` when
+    flag is ON. Persisted across refresh.
+
+  **Doc work bundled.**
+  - New subfolder `docs/verses/` created. Old
+    `docs/verses-game-design-notes-v2.md` moved (via `git mv`) to
+    `docs/verses/game-design-notes-v2.md`. Reference inside
+    `match3-v1.5-phone-verses-sandbox.jsx:124` updated to the new
+    path. Historical references inside earlier archive files +
+    historical Done entries in this DEFERRED.md left frozen with
+    the old path (they describe state at the time of that ship).
+  - New `docs/verses/TODO.md` — working backlog for the 6 remaining
+    items from today's scoping pass: #8 (nova-drop timing fix),
+    #6 (sandbox → main port), #5 (arcade mode after game completion),
+    #4 (tutorial), #11 (persistent progress across browser refreshes),
+    #9 (simulation modes), #10 (reward mode at game-end). Format =
+    roster table + per-item detail sections only for items with
+    open scoping questions. Per-item effort estimates included.
+  - `docs/PROGRESS-2026-05-24.md` rotated to `docs/archive/`. New
+    `docs/PROGRESS-2026-05-25.md` carries forward session-roster,
+    platform-status, rolling priorities, plus a fresh addendum for
+    today's batch.
+
+  **Scoping pass.** Eleven discrete decisions worked one at a time
+  per CLAUDE.md scoping discipline + chunking-memory rules. The
+  session began with the user asking for a round-length distribution
+  analysis (read-only research); from there the user surfaced a
+  10-item Verses backlog (later 11 with the persistent-progress
+  item), and asked Claude to ship items #7 / #1 / #3 / #2 in-session
+  without adding them to a backlog doc, while creating a new TODO
+  for the remaining 6 (later 7). Notable mid-scope refinements:
+  - **#7 fix shape.** Claude initially offered length-based vs.
+    slug-based vs. title-abbreviation. User chose length-based on
+    title (not slug; not abbreviation) so future long titles
+    auto-shrink while keeping the full "1 Thessalonians" text.
+  - **#1 implementation path.** Three offered (slug-order array,
+    per-game `order: N`, per-game `book` + `chapter`). User chose
+    `book` + `chapter` for zero-friction onboarding of future
+    games. Initial cost = 12 game.js edits.
+  - **#3 scope.** User initially asked for the rule to apply to "the
+    verses game" — Claude flagged the 3-platform spread + sandbox's
+    intentional × 1000 vs. main's × 250 / × 300. User refined to
+    "sandbox only, for now" and revised the short-bucket multiplier
+    from × 250 (Claude's reading of the user's original ask) to
+    × 300 (matching tablet-verses precedent).
+  - **#2 gesture.** Claude proposed tap-N-times-in-2s; user flagged
+    that the existing precedent in the codebase is long-press
+    (AdminPanel uses 1.5 s long-press on the score counter). Switched
+    to long-press for consistency. User also added "global unlock
+    through the Verses header would also be good" — Claude had only
+    proposed level-select header.
+  - **Versioning judgment.** Stacking all four items into one
+    version bump per platform (vs. four sequential bumps within
+    one uncommitted session) — Claude proposed, user agreed since
+    the four items ship as one commit.
+
+  **Build verifies.** Clean.
+  - `verses` (tablet-verses): 78.63 → 79.49 kB / 23.67 → 23.92 kB gz.
+  - `phoneVerses`: 78.69 → 79.55 kB / 23.75 → 23.99 kB gz.
+  - `phoneVersesSandbox`: 82.59 → 83.45 kB / 25.10 → 25.33 kB gz.
+  - New shared chunk `versesOrder-*.js` extracted by vite at
+    23.95 kB / 8.04 kB gz (carries the new core file + shared
+    game-data modules across the three verses bundles).
+
+  **Files touched in this commit.**
+  - New platform files (active):
+    `platforms/phone-verses/match3-v1.7-phone-verses.jsx`,
+    `platforms/tablet-verses/match3-v1.13-tablet-verses.jsx`,
+    `platforms/phone-verses-sandbox/match3-v1.5-phone-verses-sandbox.jsx`.
+  - Archived: v1.6 / v1.12 / v1.4 of the same three platforms
+    (copies preserved in each platform's `archive/` folder).
+  - New shared core: `core/versesOrder.js`.
+  - Modified game data: all 12 `content/verses/*/game.js` files
+    + `content/verses/_template/game.js` (added `book` + `chapter`).
+  - Modified entries: `src/entry-phone-verses.jsx`,
+    `src/entry-verses.jsx`, `src/entry-phone-verses-sandbox.jsx`
+    (each bumped to import the new platform version).
+  - Moved: `docs/verses-game-design-notes-v2.md` →
+    `docs/verses/game-design-notes-v2.md`.
+  - New docs: `docs/verses/TODO.md`,
+    `docs/PROGRESS-2026-05-25.md`.
+  - Rotated: `docs/PROGRESS-2026-05-24.md` → `docs/archive/`.
+  - This DEFERRED.md entry.
+
+  **Items not addressed (deferred or out of scope).**
+  - Pre-existing IDE unused-var "Hint" warnings carried forward from
+    v1.6 / v1.12 / v1.4 inheritances — low severity, out of scope
+    per scope-adherence memory.
+  - Real-device playtest of all four items deferred to user — see
+    PROGRESS-2026-05-25 rolling priorities §1 for specific watches.
+  - The six TODO items live in `docs/verses/TODO.md` for next-
+    session pickup.
+  - Existing platform-root directories still carry historical
+    versioned files alongside the active one (e.g., tablet-verses
+    has v1.0 through v1.13 + archive/ has its own copies). Not
+    cleaned up this session — backlog item for a future janitorial
+    pass.
+
 - **Verses content batch — 8 new NKJV games shipped back-to-back.**
   2026-05-24 (second ship of the day, following the morning Isaiah
   ESV ship in commit c4b2965). Eight games, 11 levels, 147 chunks /

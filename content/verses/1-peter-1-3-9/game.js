@@ -29,6 +29,8 @@
 export default {
   title: "1 Peter 1:3–9",
   translation: "NKJV",
+  book: "1 Peter",
+  chapter: 1,
   levels: [
     {
       title: "1 Peter 1:3–5",

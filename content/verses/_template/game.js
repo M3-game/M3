@@ -21,6 +21,13 @@ export default {
   // Optional. Shown in the passage-reveal modal subheading.
   translation: 'KJV',
 
+  // Canonical Bible book name (exactly as listed in core/versesOrder.js
+  // BIBLE_BOOKS — e.g. 'Genesis', 'Psalms', '1 Thessalonians'). Combined
+  // with `chapter` to sort the picker in biblical order. Games missing
+  // these fields sort to the end.
+  book: 'Book',
+  chapter: 1,
+
   // Optional. Overrides the default target formula (moves × 300,
   // where moves = chunks - 1 because chunk 0 is pre-visible at game
   // start). Short passages may need a lower target since cascade setup

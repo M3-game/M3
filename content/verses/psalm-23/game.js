@@ -46,6 +46,8 @@
 export default {
   title: "Psalm 23",
   translation: "NKJV",
+  book: "Psalms",
+  chapter: 23,
   levels: [
     {
       title: "Psalm 23",

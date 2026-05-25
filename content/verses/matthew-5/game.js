@@ -36,6 +36,8 @@
 export default {
   title: "Matthew 5",
   translation: "NKJV",
+  book: "Matthew",
+  chapter: 5,
   levels: [
     {
       title: "Matthew 5:1–12",

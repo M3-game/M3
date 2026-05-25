@@ -43,6 +43,8 @@
 export default {
   title: "Numbers 14:6–9",
   translation: "NKJV",
+  book: "Numbers",
+  chapter: 14,
   levels: [
     {
       title: "Numbers 14:6–9",

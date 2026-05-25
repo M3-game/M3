@@ -41,6 +41,8 @@
 export default {
   title: "Habakkuk 3:17–19",
   translation: "NKJV",
+  book: "Habakkuk",
+  chapter: 3,
   levels: [
     {
       title: "Habakkuk 3:17–19",

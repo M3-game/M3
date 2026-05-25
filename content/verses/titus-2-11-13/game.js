@@ -11,6 +11,8 @@ export default {
   slug: 'titus-2-11-13',
   title: 'Titus 2:11–13',
   translation: 'NKJV',
+  book: 'Titus',
+  chapter: 2,
   targetScore: 3600,
   verses: [
     {
