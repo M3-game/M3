@@ -1273,6 +1273,122 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Verses content batch — 8 new NKJV games shipped back-to-back.**
+  2026-05-24 (second ship of the day, following the morning Isaiah
+  ESV ship in commit c4b2965). Eight games, 11 levels, 147 chunks /
+  136 moves total. Each authored from a user-edited source draft
+  (file in `~/Downloads/` or pasted-image text) with a condensed
+  scoping pass per CLAUDE.md discipline.
+
+  **Games in the batch.**
+  - **1 Peter 1:3–9 NKJV** (`1-peter-1-3-9`): 2 levels, 27 chunks /
+    25 moves. "Living hope" (vv. 3–5) + "Rejoicing through trials"
+    (vv. 6–9). Second epistle game in the project alongside Titus.
+  - **Genesis 1:1–5 NKJV** (`genesis-1-1-5`): 1 level, 13 chunks /
+    12 moves. Creation day one. First quoted-speech game in the
+    project — God's `"Let there be light"` uses Unicode curly
+    double quotes.
+  - **Genesis 50:15–21 NKJV** (`genesis-50-15-21`): 2 levels, 27
+    chunks / 25 moves. **First mid-verse split in the project** —
+    v. 17 splits at the blank line in the user's draft: 17a
+    (brothers' relayed speech, end of Level 1) and 17b ("And
+    Joseph wept when they spoke to him.", start of Level 2). Both
+    Level 1's last verse object and Level 2's first verse object
+    carry `reference: "Gen. 50:17"`. Scholarly level-title suffixes
+    used ("Genesis 50:15–17a" / "Genesis 50:17b–21").
+  - **Numbers 14:6–9 NKJV** (`numbers-14-6-9`): 1 level, 18 chunks /
+    17 moves. Joshua and Caleb's plea. First OT-prophetic nested
+    quotation (`'a land which flows with milk and honey.'`) using
+    single curly quotes within Joshua's outer speech.
+  - **2 Chronicles 7:14 NKJV** (`2-chronicles-7-14`): 1 level, 8
+    chunks / 7 moves. **Shortest game in the project** (single
+    verse). **First mid-speech-clip game** — the verse sits inside
+    God's address (opens back in v. 13, continues past v. 14).
+    First chunk preserves the opening curly `"if My people` to
+    mark the mid-speech entry; final chunk ends without closing
+    quote.
+  - **Habakkuk 3:17–19 NKJV** (`habakkuk-3-17-19`): 1 level, 11
+    chunks / 10 moves. "Yet I will rejoice in the LORD." Em dash
+    preserved at end of v. 17 line 6 as the syntactic pivot into
+    v. 18's affirmation.
+  - **Psalm 23 NKJV** (`psalm-23`): 1 level, 20 chunks / 19 moves.
+    **Second psalm in the project** — whole-chapter single-level
+    structure, distinct from Psalm 91's multi-level split. Shares
+    `"Ps. N:"` reference abbrev pattern.
+  - **1 Thessalonians 4:13–18 NKJV** (`1-thessalonians-4-13-18`):
+    2 levels, 23 chunks / 21 moves. "Rapture passage." Range
+    expanded mid-scoping from user's stated 4:13–17 to include
+    v. 18 ("Therefore comfort one another with these words.")
+    after the source image was found to contain v. 18. **First
+    reference-abbreviation novelty in the project** — `"1 Thes.
+    4:N"` (NKJV print abbrev, single "s") chosen over SBL `"1
+    Thess."` because the longer form would render as `"(1 Thess.
+    4:17)"` ≈ 15 chars, beyond the 110px column. Worth carrying
+    forward as a pattern: when SBL abbrevs are too long, fall
+    back to NKJV print abbrevs.
+
+  **Conventions held across the batch (carried forward from
+  earlier NKJV games like Matt 5 / Psalm 91 / Titus / 1 Peter):**
+  - **Chunking** follows the user's line-by-line breaks in the
+    source draft (each line = one chunk). Verse-number prefixes
+    stripped to the `reference` field; indentation and trailing
+    whitespace stripped from chunk text.
+  - **NKJV italics convention** for translator-supplied words
+    stripped to plain text — affects v. 15+17 ("and") in 1
+    Thessalonians, v. 1+4 in Psalm 23, v. 19 ("feet") in Habakkuk,
+    v. 6+7+9 in Numbers 14, v. 18+19+20 in Genesis 50.
+  - **"LORD" rendered all-caps in plain text** (NKJV print uses
+    small caps; source-file convention is plain all-caps) — Psalm
+    23, Numbers 14, 2 Chronicles 7:14, Habakkuk 3:17–19.
+  - **Curly typography** throughout — Unicode U+201C/U+201D for
+    double quotes, U+2018/U+2019 for single quotes and
+    apostrophes (Joseph's, deer's, name's, etc.).
+  - **Deity-pronoun capitalization** ("My", "He", "His", "You",
+    "Him") preserved per NKJV convention.
+
+  **Auto-discovery confirmed.** All three verses platforms (tablet-
+  verses v1.12, phone-verses v1.6, phone-verses-sandbox v1.4) load
+  games via `import.meta.glob('../../content/verses/*/game.js',
+  { eager: true })`. Each new directory was picked up at build
+  time without any platform-file edit.
+
+  **Build verifies.** Clean after each game. Cumulative bundle
+  growth across the 8 games: `verses` 78.09 → 78.56 kB (+0.47 kB),
+  `phoneVerses` parallel growth, `phoneVersesSandbox` parallel
+  growth. No platform version bumps.
+
+  **Picker state after batch.** 12 verses-content games total
+  selectable in the picker: Titus 2:11–13 (NKJV, prior), Matt 5
+  (NKJV, prior), Psalm 91 (NKJV, prior), Isaiah 52:13–53:12 (ESV,
+  morning ship c4b2965), plus the 8 new NKJV games from this
+  afternoon's batch.
+
+  **Files added.**
+  - `content/verses/1-peter-1-3-9/game.js`
+  - `content/verses/genesis-1-1-5/game.js`
+  - `content/verses/genesis-50-15-21/game.js`
+  - `content/verses/numbers-14-6-9/game.js`
+  - `content/verses/2-chronicles-7-14/game.js`
+  - `content/verses/habakkuk-3-17-19/game.js`
+  - `content/verses/psalm-23/game.js`
+  - `content/verses/1-thessalonians-4-13-18/game.js`
+  - `docs/PROGRESS-2026-05-24.md` (addendum + session-roster row +
+    rolling-priorities updates)
+  - `docs/DEFERRED.md` (this Done entry)
+
+  **Process notes.**
+  - Deferred-docs pattern used: user instructed *"Go ahead and do
+    the coding, but wait on the docs for the next section"* after
+    game 1; subsequent games shipped back-to-back without per-game
+    doc updates until the user signaled batch completion. Useful
+    when shipping many small related items.
+  - Scoping pass per CLAUDE.md discipline held throughout but at
+    diminishing overhead per game — items decided in earlier games
+    (italics convention, curly-quote typography, slug pattern)
+    carried as defaults into later ones, and the user could often
+    confirm a whole game's scope in a single line ("NKJV - one
+    section - N chunks").
+
 - **Isaiah 52:13–53:12 ESV verses content — first non-NKJV game in
   the project.** 2026-05-24. New
   `content/verses/isaiah-52-13-53/game.js`. The 5-level Servant Song
