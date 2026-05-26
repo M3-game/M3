@@ -1273,10 +1273,85 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **#8 — Sandbox nova-drop turn-boundary fix (ready gate on queued
+  Mech B / Mech C special drops).** 2026-05-25 (second ship of the
+  day). phone-verses-sandbox v1.5 → v1.6. Addresses player-reported
+  bug: the "Hypernova drops on your next move" popup was lying to the
+  player — the queued nova sometimes landed in the trigger turn's own
+  refills instead of the player's next deliberate match.
+
+  **Fix.** Added a new module-level flag
+  `_pendingSpecialDropReady = { value: false }` next to the existing
+  `_pendingSpecialDrop` queue. Gate semantics:
+  - Default closed.
+  - Opens at the start of the player's next `attemptSwap`, and only
+    if a drop is queued.
+  - `fillEmptySpaces` consumes the queue only when the gate is open.
+  - Gate closes immediately on consume — subsequent same-turn cascade
+    refills don't double-consume.
+
+  Net effect: any refill fired as part of the triggering turn passes
+  through with the gate closed and doesn't touch the queue. Only the
+  first refill of the player's next match can consume the queued
+  nova. Applies to both Mechanic B (big-turn drop) and Mechanic C
+  (floor-raise rescue drop) since they share the queue.
+
+  **Player-level outcome.** The popup's promise is reliably true. The
+  nova lands in the first refill of the player's next match, even if
+  that next match is the simplest possible (3-tile clear with 3 new
+  tiles falling). The previous behavior — nova mixed in with the
+  trigger turn's still-falling tiles, then no nova on the actual next
+  move — is gone.
+
+  **Bias-spike edge case discovered, NOT fixed in v1.6.** Mech C's
+  rescue bias spike (`FLOOR_RAISE_BIAS_SPIKE_PCT = 30%`) transfers
+  from `pendingBiasOverridePctRef` → `biasOverridePctRef` at the end
+  of every turn-complete cycle. An invalid swap (no-match swap-revert)
+  between trigger turn and consume turn would wipe the spike before
+  the consume turn's fill cycle reads it. The drop itself still lands
+  on the right turn under the gate fix; only the placement-help bias
+  is lost. Pre-existing edge case; cleanest fix interacts with Mech D's
+  mid-turn hypernova-suppression logic and warrants its own scoping
+  pass. Captured as TODO #12 in `docs/verses/TODO.md`, also flagged
+  as a dependency of TODO #6 (sandbox → main port).
+
+  **Scoping pass.** Five decisions per CLAUDE.md scoping discipline:
+  (1) investigate-first vs. fix-first; (2) hypothesis-framing reset
+  to player-experience mid-scope after user flagged code-centric
+  framing; (3) sandbox-only scope; (4) Mech B + Mech C bundled because
+  they share the queue; (5) bias-spike edge case captured as follow-up
+  rather than bundled into the gate fix. Process note: user's "repeat
+  back to confirm" pattern forced Claude to commit to player-
+  experience framing in plain language before proposing code, which
+  unblocked the discussion after Claude's initial code-anchored
+  framing was a blocker.
+
+  **Build verifies.** Clean. `phoneVersesSandbox`: 83.45 → 83.51 kB /
+  25.33 → 25.37 kB gz (+0.06 kB). Other bundles unchanged.
+
+  **Files touched.**
+  - New: `platforms/phone-verses-sandbox/match3-v1.6-phone-verses-sandbox.jsx`.
+  - Archived: `platforms/phone-verses-sandbox/archive/match3-v1.5-phone-verses-sandbox.jsx`.
+  - Modified: `src/entry-phone-verses-sandbox.jsx` (import v1.5 → v1.6).
+  - Modified: `docs/verses/TODO.md` (struck through #8, added #12,
+    updated #6 with v1.6 reference + #12 dependency note).
+  - Modified: `docs/PROGRESS-2026-05-25.md` (new session row, platform
+    status bump, addendum).
+  - This DEFERRED.md entry.
+
+  **Items not addressed.**
+  - TODO #12 (Mech C bias-spike invalid-swap edge case) — captured
+    for follow-up scoping pass.
+  - Main phone-verses + tablet-verses don't get the gate fix yet;
+    they'll inherit it via TODO #6 port.
+  - Pre-existing IDE unused-var "Hint" warnings carried forward
+    from v1.5 inheritance.
+  - Real-device playtest deferred to user.
+
 - **Verses in-session ship batch — card font + biblical sort + sandbox
   target tuning + secret-unlock long-press + Verses docs subfolder.**
-  2026-05-25. Four-item bundle across all three verses platforms
-  (tablet-verses v1.12 → v1.13, phone-verses v1.6 → v1.7,
+  2026-05-25 (morning ship). Four-item bundle across all three verses
+  platforms (tablet-verses v1.12 → v1.13, phone-verses v1.6 → v1.7,
   phone-verses-sandbox v1.4 → v1.5), plus a new working backlog doc
   for six remaining items.
 

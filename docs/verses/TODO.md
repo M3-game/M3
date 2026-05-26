@@ -13,7 +13,8 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 
 | # | Item | Status | Effort |
 |---|---|---|---|
-| 8 | Nova-drop timing fix (sandbox first, then main) | 📋 | M |
+| ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
+| 12 | Mech C bias-spike survives invalid-swap (sandbox) — follow-up from #8 | 📋 | S-M |
 | 6 | Port sandbox enhancements to main | 📋 | M |
 | 5 | Arcade mode after game completion | 📋 | M-L |
 | 4 | Tutorial — big-moves / combos explainer | 📋 | L |
@@ -24,30 +25,65 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 Effort order is the working "next-up" sequence — items at the top are
 the simplest / smallest to ship. #9 and #10 are deliberately held at
 the end of the list per user direction during the 2026-05-25 scoping
-pass (sims and reward-mode need other items to settle first).
+pass (sims and reward-mode need other items to settle first). #12
+discovered during #8 investigation 2026-05-25; details below.
 
 ## Details
 
-### #8 — Nova-drop timing fix (sandbox first, then main)
+### ✅ #8 — Nova-drop timing fix (sandbox)
 
-**Bug.** In sandbox mode, when a big move triggers a nova-drop the next
-turn, sometimes the drop fires while the current turn is still completing
-— a race between turn-end logic and next-drop logic.
+**SHIPPED 2026-05-25 in sandbox v1.6.** Fix shape: added a "ready gate"
+flag (`_pendingSpecialDropReady`) next to the existing `_pendingSpecialDrop`
+queue. The gate is closed by default and only opens at the start of the
+player's next `attemptSwap` (and only if a drop is queued). `fillEmptySpaces`
+consumes the queue only when the gate is open, and closes the gate
+immediately on consume. Net effect: a queued nova can only land in the
+first refill of the player's next deliberate match — never in a refill
+that's still part of the triggering turn, no matter how late.
 
-**Approach.** Reproduce, fix in sandbox first, port to main only after
-the sandbox fix has been playtested. Sequencing per user direction in
-the original 2026-05-25 ask.
+**Player-level outcome:** the popup ("Hypernova drops on your next move")
+now reliably matches what the player sees. The nova appears on the next
+match the player makes, in that match's tile-fall.
 
-**Open questions** (resolve at scoping time):
-- Is the race a `setTimeout` ordering issue, or an in-flight animation
-  vs. state-collision problem?
-- Repro recipe — what input pattern reliably triggers it?
-- Do we need a synchronization primitive (an in-flight flag, a queue),
-  or is reordering the existing calls sufficient?
+Port to main pending TODO #6.
+
+### #12 — Mech C bias-spike survives invalid-swap (sandbox)
+
+**Pre-existing edge case** uncovered during #8 investigation. Mechanic
+C's rescue drop comes with a bias spike (`FLOOR_RAISE_BIAS_SPIKE_PCT`
+= 30%) intended to apply on the drop turn so the rescued special lands
+among matchable neighbors. The spike is queued in `pendingBiasOverridePctRef`
+and transferred to the live `biasOverridePctRef` at the end of every
+turn-complete cycle.
+
+If the player makes an **invalid swap** (a swap that doesn't form a
+match, gets reverted) between the trigger turn and the consume turn,
+the spike gets wiped before the consume turn's fill cycle reads it.
+The nova drop itself still lands on the right turn (the gate fix in
+#8 handles that), but the bias-spike placement help is lost — the
+rescue special can land in a barren patch.
+
+**Why not fixed in #8.** The cleanest fix interacts with Mech D's
+mid-turn hypernova-suppression logic (Mech D also writes to
+`biasOverridePctRef`, and the end-of-turn wipe is intentional for
+Mech D's mid-turn override). Resolving cleanly needs its own scoping
+pass.
+
+**Dependency note.** #6 (port sandbox to main) should resolve or
+explicitly carry this forward, since porting Mech C to main without
+fixing the edge case carries the same bug to main.
+
+**Open questions** (resolve at scoping):
+- Should the bias-spike piggyback on the same gate as the drop (only
+  apply when the drop's gate opens)?
+- Or use a separate "queued-override survives turn-cycles while a
+  drop is pending" rule on the existing pending ref?
+- How to differentiate Mech D's mid-turn override (must wipe at
+  turn-end) from Mech C's cross-turn override (must survive)?
 
 ### #6 — Port sandbox enhancements to main
 
-Sandbox (phone-verses-sandbox v1.5) currently differs from main
+Sandbox (phone-verses-sandbox v1.6) currently differs from main
 (phone-verses v1.7, tablet-verses v1.13) on these mechanics:
 
 - Neighbor-match bias 14% (`NEIGHBOR_BIAS_PCT`)
@@ -56,10 +92,19 @@ Sandbox (phone-verses-sandbox v1.5) currently differs from main
 - Hypernova bias suppression (Mechanic D)
 - Mech B edge-case suppression (v1.4)
 - Bonus-moves threshold 25,000 (v1.4)
-- Target × 300 / × 500 split at 17 moves (v1.5 / item #3)
+- Target × 300 / × 500 split at 17 moves (v1.5 / shipped item #3)
+- Nova-drop "ready gate" so the queued drop lands only on the player's
+  next deliberate match (v1.6 / shipped item #8)
+
+**User decision (2026-05-25):** all 7 of these mechanics migrate to main.
+(Plus the v1.6 gate from #8 to keep the nova-drop turn alignment intact.)
+
+**Dependency:** TODO #12 (Mech C bias-spike invalid-swap edge case)
+should either be resolved before this port lands, or carried forward
+explicitly into main with a known-edge-case caveat. Porting Mech C
+to main without #12 carries the same bug to main.
 
 **Open questions:**
-- Port the full set, or pick a subset?
 - Tablet-verses inherits identical changes or gets its own tuning pass?
 - Main + tablet should match exactly after the port, or diverge by
   platform (e.g., target multipliers per device class)?
