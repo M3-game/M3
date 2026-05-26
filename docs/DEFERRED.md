@@ -1273,6 +1273,88 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **#12 + #6 — Mech C bias-spike survives invalid-swap (sandbox v1.7)
+  + sandbox → main port (phone-verses v1.8).** 2026-05-25 (third ship
+  of the day). Two-item paired commit.
+
+  **#12 (sandbox v1.6 → v1.7).** Follow-up to #8. Mech C's rescue drop
+  carries a placement-help bias spike (`FLOOR_RAISE_BIAS_SPIKE_PCT` =
+  30%); previously the transfer from `pendingBiasOverridePctRef` →
+  `biasOverridePctRef` ran at the end of every turn-complete cycle,
+  so an invalid swap between rescue trigger and consume turn wiped
+  the spike before it could apply. Fix: move the transfer to the
+  start of the next `attemptSwap` (only when a drop is queued); on
+  consume, clear both refs. Mech D's mid-turn hypernova-suppression
+  still wipes before the next turn's fills run, via the new
+  attemptSwap-start wipe. Three code touches.
+
+  **#6 (phone-verses v1.7 → v1.8).** Migrated all 8 sandbox-only
+  features into main phone-verses: Mechanics A/B/C/D, edge-case
+  suppressions, v1.6 ready gate, v1.7 bias-spike fix,
+  `BONUS_MOVE_INTERVAL` 10000 → 25000, target-formula split
+  (`moves < 17 → × 300`, `moves ≥ 17 → × 500`).
+
+  **Approach (option β).** Copied sandbox v1.7 wholesale as the new
+  phone-verses v1.8 baseline (sandbox is the historical descendant
+  of phone-verses, so this is the correct lineage direction). Then
+  applied phone-verses-specific edits: stripped `_sandbox` suffixes
+  from 4 storage-key constants + 4 hardcoded localStorage strings;
+  flipped header label `VERSES-SANDBOX v1.7` → `Verses v1.8`;
+  rewrote the top version-comment block.
+
+  **Verification (per user request).** Two diffs post-port:
+  - Diff vs sandbox v1.7 (~140 lines): only the intended differences
+    appear — new v1.8 comment block, 8 storage strings (constants +
+    the in-file comment that lists them), header label. Zero
+    accidental drift.
+  - Spot-check vs archived phone-verses v1.7: 102 mentions of
+    sandbox-only identifiers in v1.8, 0 in v1.7. `BONUS_MOVE_INTERVAL`
+    bumped 10000 → 25000. Full sandbox layer migrated.
+
+  **Player-state discontinuity (documented in v1.8 comment block).**
+  Bonus moves: existing players keep their count, but the next
+  earned bonus move arrives at the next 25,000-multiple above
+  current score (was per 10,000). No retroactive award for the
+  gap. Targets: levels in flight at upgrade boundary keep their
+  pre-port target snapshot; new levels use the split formula.
+
+  **Tablet-verses deferred.** Per user direction, tablet-verses
+  v1.13 stays on the pre-port state (uniform × 300 target, no
+  Mech A/B/C/D, no gate). Future port pass when there's appetite.
+
+  **Sandbox future.** Sandbox v1.7 stays as a separate testing
+  fork. At ship moment it effectively re-converges to main (same
+  mechanics + tuning) but with its own `_sandbox`-suffixed storage
+  namespace so progress doesn't mix. Next experimental change
+  diverges sandbox from main again. Option (a) per user choice.
+
+  **Scoping pass.** Six decisions: order (#12 first, then #6);
+  tablet inclusion (no); sandbox convergence (option a); localStorage
+  namespaces (keep separate); bonus-moves discontinuity (acknowledge,
+  no migration); port approach (β = copy sandbox + diff to main values
+  + verify by diff).
+
+  **Build verifies.** Clean.
+  - `phoneVerses`: 79.55 → 83.45 kB / 23.99 → 25.34 kB gz.
+  - `phoneVersesSandbox`: 83.51 → 83.55 kB / 25.37 → 25.38 kB gz.
+  - Other bundles unchanged.
+
+  **Files touched.**
+  - New: `platforms/phone-verses/match3-v1.8-phone-verses.jsx`.
+  - Archived: `platforms/phone-verses/archive/match3-v1.7-phone-verses.jsx`.
+  - New: `platforms/phone-verses-sandbox/match3-v1.7-phone-verses-sandbox.jsx`.
+  - Archived: `platforms/phone-verses-sandbox/archive/match3-v1.6-phone-verses-sandbox.jsx`.
+  - Modified: `src/entry-phone-verses.jsx`, `src/entry-phone-verses-sandbox.jsx`.
+  - Modified: `docs/verses/TODO.md`, `docs/PROGRESS-2026-05-25.md`.
+  - This DEFERRED.md entry.
+
+  **Items not addressed.**
+  - Tablet-verses inheritance of sandbox layer — captured for future.
+  - Console.log prefixes `[VS-1 ...]` etc. preserved verbatim in
+    phone-verses v1.8 — not user-visible, renaming deferred.
+  - Real-device playtest deferred. Specific watches in
+    PROGRESS-2026-05-25 addendum.
+
 - **#8 — Sandbox nova-drop turn-boundary fix (ready gate on queued
   Mech B / Mech C special drops).** 2026-05-25 (second ship of the
   day). phone-verses-sandbox v1.5 → v1.6. Addresses player-reported

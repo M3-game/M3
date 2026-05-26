@@ -14,8 +14,8 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | # | Item | Status | Effort |
 |---|---|---|---|
 | ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
-| 12 | Mech C bias-spike survives invalid-swap (sandbox) — follow-up from #8 | 📋 | S-M |
-| 6 | Port sandbox enhancements to main | 📋 | M |
+| ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
+| ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
 | 5 | Arcade mode after game completion | 📋 | M-L |
 | 4 | Tutorial — big-moves / combos explainer | 📋 | L |
 | 11 | Persistent progress across browser refreshes | 📋 | M-L (TBD) |
@@ -26,7 +26,16 @@ Effort order is the working "next-up" sequence — items at the top are
 the simplest / smallest to ship. #9 and #10 are deliberately held at
 the end of the list per user direction during the 2026-05-25 scoping
 pass (sims and reward-mode need other items to settle first). #12
-discovered during #8 investigation 2026-05-25; details below.
+discovered during #8 investigation 2026-05-25 and shipped the same day.
+
+**End-of-day 2026-05-25 state:** items #1, #2, #3, #7, #8, #6, #12 all
+shipped today across phone-verses v1.6 → v1.8, sandbox v1.4 → v1.7,
+tablet-verses v1.12 → v1.13. Remaining backlog: #5, #4, #11, #9, #10
+(see details below). Tablet-verses inheritance of sandbox mechanics
+remains deferred — phone-verses v1.8 has the full sandbox layer, but
+tablet-verses v1.13 is still on the pre-port state (uniform × 300
+target, no Mech A/B/C/D). Track as a future port pass when there's
+appetite.
 
 ## Details
 
@@ -47,70 +56,73 @@ match the player makes, in that match's tile-fall.
 
 Port to main pending TODO #6.
 
-### #12 — Mech C bias-spike survives invalid-swap (sandbox)
+### ✅ #12 — Mech C bias-spike survives invalid-swap (sandbox)
 
-**Pre-existing edge case** uncovered during #8 investigation. Mechanic
-C's rescue drop comes with a bias spike (`FLOOR_RAISE_BIAS_SPIKE_PCT`
-= 30%) intended to apply on the drop turn so the rescued special lands
-among matchable neighbors. The spike is queued in `pendingBiasOverridePctRef`
-and transferred to the live `biasOverridePctRef` at the end of every
-turn-complete cycle.
+**SHIPPED 2026-05-25 in sandbox v1.7.** Pre-existing edge case
+uncovered during #8 investigation. Mechanic C's rescue drop carries
+a bias spike (`FLOOR_RAISE_BIAS_SPIKE_PCT` = 30%) intended to apply
+on the drop turn so the rescued special lands among matchable
+neighbors. Previously the spike transferred from
+`pendingBiasOverridePctRef` → `biasOverridePctRef` at the end of
+every turn-complete cycle, which meant an invalid swap (no-match
+swap-revert) between trigger turn and consume turn would wipe the
+spike before the consume turn read it.
 
-If the player makes an **invalid swap** (a swap that doesn't form a
-match, gets reverted) between the trigger turn and the consume turn,
-the spike gets wiped before the consume turn's fill cycle reads it.
-The nova drop itself still lands on the right turn (the gate fix in
-#8 handles that), but the bias-spike placement help is lost — the
-rescue special can land in a barren patch.
+Fix shape (aligned with v1.6 ready-gate timing): the transfer
+moves from "end of every turn-cycle" → "start of the next
+`attemptSwap`, only when a drop is queued." On consume in
+`fillEmptySpaces`, both the live override and the pending ref get
+cleared. Mech D's mid-turn hypernova-suppression still gets wiped
+before the next turn's fills run, via the new attemptSwap-start
+wipe. Three code touches: `attemptSwap` block, `fillEmptySpaces`
+consume, removal of the Mech C useEffect end-of-cycle transfer.
 
-**Why not fixed in #8.** The cleanest fix interacts with Mech D's
-mid-turn hypernova-suppression logic (Mech D also writes to
-`biasOverridePctRef`, and the end-of-turn wipe is intentional for
-Mech D's mid-turn override). Resolving cleanly needs its own scoping
-pass.
+Port to main pending TODO #6 — included in the #6 port (sandbox v1.7
+includes the bias-spike fix, so phone-verses v1.8 inherits it
+automatically when sandbox copies in).
 
-**Dependency note.** #6 (port sandbox to main) should resolve or
-explicitly carry this forward, since porting Mech C to main without
-fixing the edge case carries the same bug to main.
+### ✅ #6 — Port sandbox enhancements to main
 
-**Open questions** (resolve at scoping):
-- Should the bias-spike piggyback on the same gate as the drop (only
-  apply when the drop's gate opens)?
-- Or use a separate "queued-override survives turn-cycles while a
-  drop is pending" rule on the existing pending ref?
-- How to differentiate Mech D's mid-turn override (must wipe at
-  turn-end) from Mech C's cross-turn override (must survive)?
+**SHIPPED 2026-05-25 in phone-verses v1.8.** Migrated 8 sandbox-only
+features into main phone-verses, keeping storage keys and header
+label distinct so sandbox progress doesn't bleed into main play:
 
-### #6 — Port sandbox enhancements to main
+- Mechanic A — neighbor-match bias on refill tiles (13%).
+- Mechanic B — big-turn special drop (12+ tile clear → roll for
+  hyper/super → queue) with v1.4 edge-case suppression.
+- Mechanic C — floor-raise rescue drop with v1.3 redesign (dynamic
+  trigger move, 7-turn window, weighted drop, 30% bias spike).
+- Mechanic D — hypernova bias suppression (8% for rest of fire turn).
+- v1.6 ready gate — drop consumes only on player's next deliberate match.
+- v1.7 bias-spike survives invalid-swap (#12 fix included).
+- `BONUS_MOVE_INTERVAL` 10000 → 25000.
+- Target-score formula split (`moves < 17 → × 300`, `moves ≥ 17 → × 500`).
 
-Sandbox (phone-verses-sandbox v1.6) currently differs from main
-(phone-verses v1.7, tablet-verses v1.13) on these mechanics:
+**Approach:** file copied wholesale from sandbox v1.7 as baseline
+(sandbox is the historical descendant of phone-verses, so this is the
+correct lineage direction). Then storage-key suffixes stripped, header
+label flipped, top comment block rewritten. Verification ran two
+diffs post-port: (1) v1.8 vs sandbox v1.7 showed only the intended
+differences (new comment, 8 storage strings, header); (2) v1.8 vs
+archived v1.7 confirmed 102 mentions of sandbox identifiers in v1.8
+vs 0 in v1.7 — full migration confirmed.
 
-- Neighbor-match bias 14% (`NEIGHBOR_BIAS_PCT`)
-- Big-turn drop on 12+ tile clears (Mechanic B)
-- Floor-raise drop with rescue redesign (Mechanic C, v1.3 form)
-- Hypernova bias suppression (Mechanic D)
-- Mech B edge-case suppression (v1.4)
-- Bonus-moves threshold 25,000 (v1.4)
-- Target × 300 / × 500 split at 17 moves (v1.5 / shipped item #3)
-- Nova-drop "ready gate" so the queued drop lands only on the player's
-  next deliberate match (v1.6 / shipped item #8)
+**Player-state discontinuity at the upgrade boundary:**
+- Bonus moves: existing players keep their accumulated count, but
+  the next earned bonus move arrives at the next 25,000-multiple
+  above current score (was per 10,000). No retroactive award for
+  the gap.
+- Targets: levels in flight at the upgrade keep their pre-port
+  target (snapshot at level start); new levels use the split formula.
 
-**User decision (2026-05-25):** all 7 of these mechanics migrate to main.
-(Plus the v1.6 gate from #8 to keep the nova-drop turn alignment intact.)
+**Tablet-verses deferred.** Per user direction, tablet-verses
+v1.13 stays on the pre-port state (uniform × 300 target, no Mech
+A/B/C/D, no gate). Future port pass when there's appetite.
 
-**Dependency:** TODO #12 (Mech C bias-spike invalid-swap edge case)
-should either be resolved before this port lands, or carried forward
-explicitly into main with a known-edge-case caveat. Porting Mech C
-to main without #12 carries the same bug to main.
-
-**Open questions:**
-- Tablet-verses inherits identical changes or gets its own tuning pass?
-- Main + tablet should match exactly after the port, or diverge by
-  platform (e.g., target multipliers per device class)?
-- Sandbox stays as the testing fork after the port — does its config
-  diverge from main again on the next experiment, or do main/sandbox
-  re-converge after each ported feature?
+**Sandbox future.** Sandbox v1.7 stays as a separate testing fork.
+Today it effectively re-converges to main (same mechanics + tuning)
+but with its own storage namespace so its progress doesn't mix.
+Next experimental change will diverge sandbox from main again.
 
 ### #5 — Arcade mode after game completion
 
