@@ -19,6 +19,7 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | 5 | Arcade mode after game completion | 📋 | M-L |
 | 4 | Tutorial — big-moves / combos explainer | 📋 | L |
 | 11 | Persistent progress across browser refreshes | 📋 | M-L (TBD) |
+| 13 | Port sandbox enhancements to tablet-verses | 📋 | M (TBD later) |
 | 9 | Simulation modes (one-ply + Monte Carlo) | 📋 | L |
 | 10 | Reward mode at game-end | 📋 | L (future scoping) |
 
@@ -176,6 +177,31 @@ play sessions, with no manual clear. Affects both Verses platforms
 - Backward compat: existing localStorage state needs to migrate
   into whatever storage we choose, otherwise users lose progress
   on the fix day.
+
+### #13 — Port sandbox enhancements to tablet-verses
+
+Deferred from #6 on 2026-05-25 — phone-verses got the full sandbox
+layer (Mech A/B/C/D, edge-case suppressions, ready gate, bias-spike
+fix, BONUS_MOVE_INTERVAL = 25000, target × 300 / × 500 split) but
+tablet-verses stayed on the pre-port state (uniform × 300 target,
+no Mech A/B/C/D). User direction at the time: "keep tablet and
+phone-verses separate; TBD later."
+
+If/when picked up: same approach as #6 likely applies — start from a
+copy of phone-verses v1.8 (the post-#6 main), apply tablet-specific
+edits (tablet's storage keys, board dimensions, header label, target
+multiplier if it should differ from phone). Or copy from sandbox v1.7
+with full diff verification, mirroring how #6 worked.
+
+**Open questions** (resolve at scoping time):
+- Tablet keeps × 300 / × 500 (matching phone) or its own multiplier?
+- Are there tablet-specific UI considerations for the big-turn popup
+  and 🔓 indicator at larger viewports?
+- Do tablet-verses players want a per-platform bonus-move cadence
+  (e.g., 25,000 might feel sparser on tablet's longer play sessions)?
+- localStorage keys stay tablet-specific (no merge with phone).
+
+No active timeline. Track here so we don't lose the thread.
 
 ### #9 — Simulation modes (one-ply + Monte Carlo)
 
