@@ -1273,6 +1273,31 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Bonus-move shared wallet — Verses ⇄ Arcade (update-list item a).**
+  2026-06-20. Bonus moves became a single persistent wallet shared
+  between Verses and Arcade per device family (Phone Verses ⇄ Phone
+  Arcade via `PHONE_BONUS_MOVES_KEY`; Tablet Verses ⇄ Tablet Arcade via
+  core `BONUS_MOVES_KEY`). 5 platform bumps: tablet-verses v1.14→v1.15,
+  phone-verses v1.9→v1.10, phone-verses-sandbox v1.8→v1.9, phone arcade
+  v13.5→v13.6, tablet arcade v11.16→v11.17.
+  - **Verses side:** pool now hydrates from the shared key at mount and
+    persists in both modes (was forced to 0 + non-persisted under
+    VERSES_MODE). Removed the 4 artificial resets (handlePick,
+    handleBackToPicker, restartGame VERSES_MODE block, wrapper
+    onRestartGame). "Arcade mode" handoff simplified to just-navigate
+    (carry-receipt banner retired). "Arcade mode" button added to
+    single-level passages' end screen.
+  - **Arcade side:** cap 99→999, warn 90→900 only — required so the
+    arcade earn-clamp (`Math.min(prev+earned, CAP)`) doesn't knock a
+    >99 shared pool back to 99. No gameplay edits.
+  - **Cap 999 / warn 900** applied across all 5 platforms.
+  - Sandbox wallet is self-contained (sandbox-scoped key). Desktop +
+    Time Attack untouched (separate pools).
+  - Scope grew during scoping: user flipped from a Verses-only pool to
+    a shared wallet (round-trip persistence), bumped the cap to 999, and
+    accepted extending the cap bump to the two arcade platforms. Build
+    clean. See PROGRESS-2026-06-20 addendum for full decision trail.
+
 - **Verses content batch — 3 psalms + 3-platform version bump.**
   2026-06-20. Added three new Verses content files:
   - `content/verses/psalm-46/game.js` — WEB (updated), single level,
