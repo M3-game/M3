@@ -99,6 +99,18 @@ inherit the update without needing a version bump of their own.
 Platform files (`platforms/<platform>/match3-*.jsx`) still follow the
 full versioning rule below.
 
+**Verses content adds DO bump the version (user direction,
+2026-06-20).** Adding or editing a game under `content/verses/*` is
+auto-discovered at runtime, so strictly no platform file *has* to
+change. But adding content is an updated version of the game, and the
+version label should say so. When content is added, bump **every
+Verses platform that surfaces it** (tablet-verses, phone-verses,
+phone-verses-sandbox) in lockstep — full versioning treatment (archive,
+new file, references, comment block, in-game header label), with the
+only in-file edits being the comment block + header label (no
+gameplay/engine changes). Increment the patch number. Don't propose
+skipping the bump for "content-only" adds.
+
 Every change to a platform file — no matter how small — requires:
 
 1. **Archive the current file** by copying it to `platforms/<platform>/archive/` before making any edits.
