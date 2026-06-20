@@ -1273,6 +1273,37 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Verses content batch — 3 psalms + 3-platform version bump.**
+  2026-06-20. Added three new Verses content files:
+  - `content/verses/psalm-46/game.js` — WEB (updated), single level,
+    24 chunks / 23 moves. "Yahweh" (vv. 7, 8, 11) changed to "the LORD"
+    per user direction; "Selah" (vv. 3, 7, 11) kept inline.
+  - `content/verses/psalm-97/game.js` — NKJV, 2 levels (97:1–6 / 7–12),
+    28 chunks / 26 moves. NKJV "LORD" / "Lord" distinction preserved in
+    v. 5.
+  - `content/verses/psalm-139/game.js` — WEB (updated), 4 levels
+    (139:1–6 / 7–12 / 13–18 / 19–24), 55 chunks / 51 moves. Whole psalm
+    incl. imprecatory vv. 19–22. Source renders the divine name "LORD"
+    (not standard WEB "Yahweh"); kept as supplied, labeled "WEB
+    (updated)".
+
+  All three auto-discovered via `import.meta.glob`; sort into canonical
+  order (Ps. 23 → 46 → 91 → 97 → 139). **Unlike prior content-only
+  adds, this one bumped all three Verses platform versions per user
+  direction** (adding content = an updated game, so the version label
+  should reflect it): tablet-verses v1.13 → **v1.14**, phone-verses
+  v1.8 → **v1.9**, phone-verses-sandbox v1.7 → **v1.8**. Each got the
+  full versioning treatment (archive, new file, entry import, index.html
+  label, in-game header label, comment block) with no gameplay/engine
+  edits — only the comment block + header label changed inside each
+  platform file. Build clean. Verified chunk counts + sort order via
+  standalone Node check. **Note:** discovered pre-existing index.html
+  desc-label drift (tablet showed v1.12 vs. actual v1.13; phone-verses
+  v1.6 vs. v1.8; sandbox v1.4 vs. v1.7 — the 2026-05-25 ships never
+  updated index.html). New version prepended to each; the intermediate
+  gap was left as-is (out of scope — a full index.html reconciliation
+  is the documented drift-cleanup backlog item).
+
 - **#12 + #6 — Mech C bias-spike survives invalid-swap (sandbox v1.7)
   + sandbox → main port (phone-verses v1.8).** 2026-05-25 (third ship
   of the day). Two-item paired commit.
