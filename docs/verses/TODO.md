@@ -16,7 +16,7 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
 | ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
 | ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
-| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. | 📋 | L |
+| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18); Session 2 = tutorial component next.** | 🚧 (1 of N) | L |
 | 10 | **Reward mode** — arcade reward round in **both tablet + phone arcades**; verses inherits it via the "Arcade mode" handoff. Phone needs its own enhancements (TBD in sandbox) → separate phone/tablet reward-level versions. Merges Session I; replaces the old verses-internal #10. | 📋 | XL (sandbox scoping) |
 | 9 | **Simulation modes** (one-ply + Monte Carlo) — also informs reward-level tuning + the item-(b) target multiplier | 📋 | L |
 | 11 | **Persistent progress** across browser refreshes | 📋 | M-L (TBD) |
@@ -170,11 +170,130 @@ small campaign-specific progression mini-tutorial on top.
   mechanics — the arcades use a random target and have no drill ceiling.)
 - **Campaign-only mini-tutorial:** level progression + unlock gating.
 
-Animations are **preferred** but not mandatory for v1 — a clear static
-explainer could ship first, with animations layered in later.
+**Locked scoping decisions (2026-06-23 session):**
 
-**Open questions (build-time):** trigger location (picker / first-entry /
-"?" button); skippable vs. always-on; exact per-platform copy.
+1. **v1 animation cut — hybrid.** Animate the *shared* match concepts
+   (match → 4/5-match specials → "big move" large clear → cascade/combo
+   multiplying score), because those are motion concepts a static picture
+   teaches poorly. Keep the *verses-only* and *campaign-only* panels
+   **static** for v1 — they're rules-and-numbers (target formula, 60-move
+   ceiling, unlock gating) where animation adds little. (Reasoning: the
+   risky/uncertain part of a tutorial is content/order/wording, but the
+   match concepts genuinely need motion; the existing canvas tile-drawing
+   already animates in the live game, so animation isn't a from-scratch
+   render layer.)
+2. **Trigger + skippability — opt-in button, never a forced modal.**
+   Skippable and entirely opt-in: the tutorial is opened by a **button on
+   a screen the player already passes through**, *not* an auto-appearing
+   modal they must dismiss every time they play (that would tax the most
+   frequent action). Placement rule: put the button on an existing
+   pre-game screen where one exists — for **verses** that's the
+   start-of-round passage screen (the "Begin" screen); otherwise use a
+   small, unobtrusive button in the game header **labeled the plain word
+   "Tutorial"** — *not* a "?" icon (ambiguous noise; could read as a
+   question or a quiz rather than help). Always available, never blocking.
+   **Tablet arcade's** exact placement is TBD at build time — confirm
+   whether it has a pre-game screen; if not, the header "Tutorial" button.
+3. **Component architecture — Option A (core holds all sections).** The
+   one `core/` tutorial component contains every section type (shared +
+   verses + campaign). Each platform passes it two small things: an
+   ordered list naming which sections to show, and a little bundle of its
+   own numbers/copy (e.g. that platform's real target multipliers, which
+   differ tablet vs. phone). Platform files gain only a button + a few
+   lines — they don't carry the panel code. Chosen over "core stays
+   generic, platforms pass their own panels in" specifically to keep the
+   big (~6,000-line) platform files from growing. Ties to the DEFERRED.md
+   "Move shared code into `core/`" architecture item.
+4. **Visual rendering — Option A (reuse the real game's tile drawing) for
+   pixel-exact fidelity.** The animated demos paint with the *same*
+   `drawTile` / `drawSpecialIcon` canvas code the live game uses, so
+   tutorial tiles are identical to gameplay tiles. That code currently
+   lives copied inside every platform file, not in `core/` — so this
+   requires extracting those two functions into `core/` first (see build
+   sequence). User chose exactness over the lighter HTML/CSS-tile option.
+
+**Divergence finding (read-only check, 2026-06-23) — informs the
+extraction:** the `drawTile` body is **byte-for-byte identical across 7
+of 10 active platforms**, including **tablet arcade** (the chosen pilot)
+and **all three verses platforms** (the tutorial's targets). Drifted
+copies: **phone arcade** (354 vs 397 lines — smaller responsive variant),
+**desktop** (~1-line diff), **campaign** (needs its own look). None of the
+drifted three are in the tutorial's critical path, so a single shared
+core version is pixel-exact for the pilot + all verses platforms today;
+the drifted three keep their own copies and migrate later (handle drift
+then). Re-verify before each of those three migrates.
+
+**Build sequence (locked order — tablet arcade first, as ONE platform for
+the whole pilot; planned as two sessions split at the test gate; user
+direction 2026-06-23):**
+
+Everything in the pilot phase lands on **tablet arcade** — the most-played
+platform, so any regression gets noticed. Each step below changes at most
+one platform; the `core/` modules touch none. Tablet arcade takes **two
+version bumps** (one per session).
+
+**Session 1 — drawing extraction + tablet-arcade migration (steps 1–2) —
+✅ SHIPPED 2026-06-23:** `core/tileDrawing.js` created (verbatim extract),
+tablet arcade migrated v11.17 → v11.18, byte-identical + clean build.
+
+1. **Extract `drawTile` + `drawSpecialIcon`** (and any shared helpers /
+   color constants they depend on) into a new `core/` drawing module.
+   `core/` is edit-in-place — no version bump for the new module itself.
+2. **Migrate tablet arcade's gameplay to the core drawing code.** Full
+   versioning treatment (archive current tablet version, new version that
+   imports from `core/` instead of defining its own copy). **Verify it
+   renders identically in real play — this is the live validation** (test
+   minimally here), and the first concrete test of the "incremental
+   extraction works in practice" thesis from the DEFERRED.md architecture
+   item. **Rollback is cheap:** the prior tablet version file still exists
+   and works standalone (it kept its own drawing code), so reverting =
+   repoint app references back to it; the new core module just sits unused.
+   **Gate: do not start Session 2 until tablet arcade is confirmed good.**
+
+**Session 2 — tutorial component + tablet-arcade tutorial (step 3):**
+
+3. **Build the portable tutorial component in `core/`** on the now-
+   validated core drawing code, and **add it to tablet arcade.** On tablet
+   arcade the tutorial shows **only the shared match sections** (match →
+   specials → big move → cascade/combo) — the verses-only and campaign-only
+   panels don't apply, so arcade is the *simplest* content and the ideal
+   first proving ground for the component + the config-driven architecture
+   (Option A) before the verses panels exist. Animated shared sections
+   (canvas, reusing the core `drawTile`/`drawSpecialIcon`); opt-in button
+   per the trigger rule above. Full versioning treatment on tablet arcade
+   (its second bump). Test more thoroughly here.
+
+(Session 1 and 2 *can* be combined into one day if Session 1 goes cleanly
+and there's clearly context to spare — but plan as two; treat combining as
+the exception, not the assumption.)
+
+**Then the ports (later sessions, one platform each, tablet-first
+pattern like item (b)):**
+
+4. **tablet-verses** — add the tutorial; this is where the **verses-only
+   static panels** (target formula, 2–4× drill + 60-move ceiling, chunk
+   reveals) get authored and first exercised. Drawing code is identical to
+   tablet arcade's, so tiles are pixel-exact for free.
+5. **phone-verses** — port the tutorial.
+6. **phone-verses-sandbox** — port the tutorial.
+7. **Later / incremental:** migrate the remaining platforms' gameplay to
+   the core drawing code (phone arcade, desktop, campaign — reconcile their
+   drift at that point), and add the tutorial + the campaign-specific
+   progression mini-tutorial to campaign (where subsumed F-3 lands).
+
+**No separate test/dev fork** — rejected as not worth a ~6,000-line file
+to maintain; the one-platform pilot validates more than a throwaway fork
+would, and existing sandbox forks cover any future throwaway need.
+
+**Deferred to build time (genuinely build-time, not blockers):** exact
+per-platform tutorial copy (drafted once structure is in code); whether
+every shared concept gets animated in v1 or a subset first; confirming
+tablet arcade's pre-game flow to settle the "Tutorial" button's exact
+home (pre-game screen vs. header); the campaign progression mini-tutorial's
+detail. The verses-only target panel explains the tiered length ×
+multiplier from item (b) and the 60-move drill ceiling; note the
+multiplier has no upper ceiling yet (deferred to verses sims, #9), so
+keep that panel's wording tolerant of later tuning.
 
 ### #11 — Persistent progress across browser refreshes
 

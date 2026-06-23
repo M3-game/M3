@@ -21,6 +21,39 @@ delete it once handoff is written.
 
 ---
 
+## Architecture / maintainability
+
+- **Move shared code into `core/`. Reduce duplicated game logic across the
+  platform files, leaving each platform file a thinner shell (long-term, do
+  it incrementally).** The same match-3 logic is copied inside each active
+  platform file (~6,000 lines each — tablet, campaign, phone, phone-verses,
+  sandbox, desktop), so a cross-platform change means opening and editing
+  several large files. This is the real "context pressure" cost — not the
+  archived old versions (those are storage only; they aren't read during
+  normal work). Long-term goal: lift shared logic into `core/` modules
+  (already started with `gameLogic.js`, `AdminPanel.jsx`, `versesOrder.js`)
+  so each platform file becomes a thin shell holding only what's truly
+  platform-specific (screen sizing, storage keys). **Intended approach —
+  incremental:** extract a chunk whenever a feature already has us inside a
+  file, rather than one big risky rewrite. *Caveat (user-flagged
+  2026-06-23): it's unverified that incremental extraction actually works in
+  practice — a sound-sounding plan, not a proven one. The first few attempts
+  should test whether it converges or stalls; if it stalls, revisit whether
+  a planned consolidation pass is needed instead.* Open sub-discussion: how
+  this coexists with the per-change file-archiving versioning rule — they're
+  orthogonal (archiving neither helps nor hurts the duplication problem),
+  but the modular direction wants small in-place edits, which is closer to
+  how `core/` files are already maintained. Added 2026-06-23.
+  **First increment shipped 2026-06-23 (Session 1):** tablet arcade's
+  canvas tile-drawing (`TILE_COLORS` + `drawTile` + 6 shape helpers +
+  `drawSpecialIcon`) lifted verbatim into `core/tileDrawing.js`; tablet
+  v11.17 → v11.18 now imports it. Byte-identical diff + clean build, zero
+  behavior change — the incremental thesis's first real test, and it
+  worked cleanly. Other platforms still hold their own copies (phone
+  arcade, desktop, campaign have *drifted* copies — reconcile at migration
+  time; the 4 verses/sim/rewardmode/timeattack copies are still identical).
+  Migrate the rest opportunistically when each is next touched.
+
 ## Admin UI — tunables not yet surfaced
 
 These constants exist in code but have no UI:
