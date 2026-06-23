@@ -16,18 +16,22 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
 | ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
 | ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
-| 5 | Arcade mode after game completion | 📋 | M-L |
-| 4 | Tutorial — big-moves / combos explainer | 📋 | L |
-| 11 | Persistent progress across browser refreshes | 📋 | M-L (TBD) |
-| 13 | Port sandbox enhancements to tablet-verses | 📋 | M (TBD later) |
-| 9 | Simulation modes (one-ply + Monte Carlo) | 📋 | L |
-| 10 | Reward mode at game-end | 📋 | L (future scoping) |
+| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. | 📋 | L |
+| 10 | **Reward mode** — arcade reward round in **both tablet + phone arcades**; verses inherits it via the "Arcade mode" handoff. Phone needs its own enhancements (TBD in sandbox) → separate phone/tablet reward-level versions. Merges Session I; replaces the old verses-internal #10. | 📋 | XL (sandbox scoping) |
+| 9 | **Simulation modes** (one-ply + Monte Carlo) — also informs reward-level tuning + the item-(b) target multiplier | 📋 | L |
+| 11 | **Persistent progress** across browser refreshes | 📋 | M-L (TBD) |
+| M | **Music — add music to verses** (verses-only; very large). Detailed scope is in an external claude.ai project discussion — not accessible to future sessions; import/re-derive with the user before building. | 📋 | XL (scope external) |
+| 5 | Arcade mode after game completion — **⏸ PARKED 2026-06-23. Verify-only** (see detail). | 🧊 | S (verify) |
+| 13 | Port sandbox enhancements to tablet-verses — **⏸ PARKED, superseded by item (c) 2026-06-22** (see detail). | 🧊 | M (parked) |
 
-Effort order is the working "next-up" sequence — items at the top are
-the simplest / smallest to ship. #9 and #10 are deliberately held at
-the end of the list per user direction during the 2026-05-25 scoping
-pass (sims and reward-mode need other items to settle first). #12
-discovered during #8 investigation 2026-05-25 and shipped the same day.
+**Priority order (revised 2026-06-23, user-set).** The active sequence
+above is now an explicit priority order (previously it was "smallest
+effort first"): #4 tutorial → #10 reward mode → #9 simulation → #11
+persistent progress → Music. #5 and #13 are parked at the end. Reward
+mode (#10) depends on the Session H sandbox lever tuning being settled,
+and its phone version needs its own enhancement pass in sandbox before
+it can ship; simulation (#9) will help tune both reward levels and the
+item-(b) target multiplier.
 
 **End-of-day 2026-05-25 state:** items #1, #2, #3, #7, #8, #6, #12 all
 shipped today across phone-verses v1.6 → v1.8, sandbox v1.4 → v1.7,
@@ -125,36 +129,52 @@ Today it effectively re-converges to main (same mechanics + tuning)
 but with its own storage namespace so its progress doesn't mix.
 Next experimental change will diverge sandbox from main again.
 
-### #5 — Arcade mode after game completion
+### #5 — Arcade mode after game completion — ⏸ PARKED 2026-06-23
 
-After a player clears all levels in a given book, unlock a "free-play"
-/ "arcade mode" button on the end-of-game screen that drops them into
-an arcade-style loop using that book's tiles.
+**Parked per user direction (2026-06-23).** The original framing below —
+"unlock an arcade-style loop using that book's tiles / a verses-flavored
+arcade" — was **not** the intent and doesn't map onto the game: tiles are
+the same 6 gem types for every passage, so there's no "book's own tiles,"
+and there's no distinct "verses flavor" of tiles. The user does not want
+a verses-flavored arcade.
 
-**Open questions:**
-- Per-book unlock (clear Matt 5 → arcade-mode unlocked for Matt 5
-  only) or global (clear any one book → arcade-mode unlocked everywhere)?
-- Arcade loop = existing phone-arcade gameplay imported wholesale, or
-  a new verses-flavored arcade with the verses tiles + scoring rules?
-- Persistence: where does the per-book unlock state live? Reuse the
-  existing per-game progress slot in localStorage, or add a new key?
-- Does arcade mode share the existing "secret unlock" gesture (#2),
-  or have its own unlock affordance?
+**Remaining task — verify-only (S):** confirm the *existing* verses →
+arcade transition is good. There's already an **"Arcade mode" button** on
+verses end screens (single-level passages + the multi-level final-level
+win) that navigates to the standalone arcade (tablet.html / phone arcade).
+If that transition and the arcade gameplay it lands in feel fine in
+playtest, **no further work is needed and this item can be closed.** Only
+reopen with a concrete, intent-checked scope if the check finds a real gap.
 
-### #4 — Tutorial — big-moves / combos explainer
+_(Original framing, superseded — kept for history: "After a player clears
+all levels in a given book, unlock a free-play / arcade-mode button that
+drops them into an arcade-style loop using that book's tiles," with open
+questions on per-book vs. global unlock, imported vs. new arcade,
+persistence, and unlock gesture.)_
 
-Optional tutorial that explains how big moves and combos lead to big
-scores. Surfaced from the picker or on first-time entry.
+### #4 — Tutorial (portable animated; + scoring/ceiling explainer)
 
-**Open questions:**
-- Multi-step animated walkthrough, or a single static explanation
-  screen?
-- Skippable on first run, with a "?" button to re-open later? Or
-  always-on banner-style?
-- Content authoring: illustrations, animated demo, or text + still
-  screenshots?
-- Where does the trigger live? Picker, first-time game entry, both?
-- Per-platform copy (phone vs. tablet) or shared?
+Scope set 2026-06-23. Build **one portable, reusable tutorial component**
+(in `core/` so every platform can use it), primarily for verses but
+designed to drop into any platform. **F-3 (campaign animated tutorials)
+is subsumed:** campaign reuses this shared component and adds only a
+small campaign-specific progression mini-tutorial on top.
+
+**Content split (shared vs. platform-specific):**
+- **Shared (every platform):** how matching works · 4/5-match → special
+  tiles · "big moves" (large single clears) · combos/cascades multiplying
+  score.
+- **Verses-only (shown in the verses instance):** how the target score is
+  set (the tiered length × multiplier) · the "play 2–4×" drill + the
+  60-move ceiling · chunk reveals / memorization. (These are verses
+  mechanics — the arcades use a random target and have no drill ceiling.)
+- **Campaign-only mini-tutorial:** level progression + unlock gating.
+
+Animations are **preferred** but not mandatory for v1 — a clear static
+explainer could ship first, with animations layered in later.
+
+**Open questions (build-time):** trigger location (picker / first-entry /
+"?" button); skippable vs. always-on; exact per-platform copy.
 
 ### #11 — Persistent progress across browser refreshes
 
@@ -236,24 +256,41 @@ against a moving target is wasted effort).
 - Cross-platform (run sim on tablet against phone scoring) or
   per-platform?
 
-### #10 — Reward mode at game-end (future scoping)
+### #10 — Reward mode (arcade reward round, both arcades)
 
-After a player completes a game 3 / 5 / 7 / 10 times (and every 2–3
-plays after that), offer an optional "reward mode" button at the
-end-of-game screen. Similar in spirit to tablet-arcade's existing
-reward mode.
+Redefined 2026-06-23. The old "verses-internal reward at game-end" idea
+is **dropped** — not what was wanted. Instead: build the **arcade reward
+round** (every N consecutive wins, the next round becomes a special
+"reward round") into **both the tablet AND phone arcades**; verses
+players experience it by handing off into those arcades via the "Arcade
+mode" button (no separate verses-internal reward mode). This **merges
+Session I**, which previously scoped reward integration for tablet arcade
+only.
 
-Deliberately deferred for future scoping. Earlier items need to
-ship and settle first; the precise reward shape will likely shift
-once arcade-mode (#5) ships.
+**Phone needs its own scoping.** The phone game already carries
+enhancements (Mech A/B/C/D) to stay fun on the small grid; a phone reward
+*level* will need additional enhancements not yet figured out — to be
+worked out in **sandbox mode**. So expect **different reward-level
+versions for phone vs. tablet**.
 
-**Open questions** (preliminary, expect more at scoping):
-- Reward content: bonus moves carry-over, a star multiplier on the
-  next play, cosmetic unlock, narrated passage reveal?
-- Trigger cadence: 3 / 5 / 7 / 10 then every 2–3, or different
-  intervals once data shows what players actually do?
-- Persistence: where does the play-count state live?
-- Per-game or global completion count?
+**Reward levels can carry variation + randomness** (options to scope, not
+final): increased hypernova drop chance; neighbor-match probability
+adjustments; possibly others (reduced palette, seeded clusters,
+progressive special-drops — the existing Session H sandbox levers).
+
+**Dependencies / sequencing:** reward levers get tuned in the Session H
+sandbox first; simulation (#9) can help validate. Needs a real scoping
+pass (especially the phone enhancement set) before building.
+
+### Music — add music to verses (verses-only)
+
+Added 2026-06-23. Very large, verses-only enhancement. **The detailed
+scope lives in an external claude.ai project discussion that future
+Claude Code sessions cannot open** — so the first step when picking this
+up is to **import that discussion's substance into a repo doc** (or
+re-derive it with the user) before any building; the bare pointer is not
+actionable on its own. No scoping done here beyond "add music to verses,
+per the user's claude.ai project discussion."
 
 ## Process notes
 

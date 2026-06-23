@@ -378,7 +378,12 @@ touches it next.
   batch runs), but worth tightening so any context that still uses the
   auto-generator matches live behavior. Fix: round the target in
   `runGame`'s default assignment at `opts.levelTarget ?? ...`.
-- **Animated tutorials** — mini-grid demo inline on each intro screen.
+- **Animated tutorials (was Session F-3)** — **→ Subsumed by verses TODO
+  #4 (2026-06-23):** the tutorial is now one portable `core/` component
+  shared across platforms (campaign reuses it and adds only a progression
+  mini-tutorial). Track in `docs/verses/TODO.md` #4. The per-level demo
+  distribution below remains a useful content reference. Mini-grid demo
+  inline on each intro screen.
   Reuses `drawTile` / `drawSpecialIcon`. Per-level distribution:
   - L1: basic 3-match
   - L2: 4-match → line + 5-match → bomb
@@ -439,7 +444,13 @@ sandbox (Session H) can be tuned against data rather than by guess.
   boards. No guards in place yet — may need bounds or a variety
   check if it becomes an issue.
 
-- **Reward-mode integration (Session I).** After Session H values lock
+- **Reward-mode integration (Session I).** **→ Folded into verses TODO #10
+  (2026-06-23):** reward mode is now scoped as the arcade reward round in
+  **both** tablet AND phone arcades (verses inherits it via the Arcade-mode
+  handoff), with phone getting its own enhancement pass + reward-level
+  version. Track the unified scope in `docs/verses/TODO.md` #10; the
+  tablet/campaign details below remain the reference for the tablet side.
+  After Session H values lock
   in, integrate reward-round behavior into the main games:
   - **Tablet arcade:** every 5 consecutive wins, next round runs in
     reward mode (reuses the existing `currentRun` state shipped in
