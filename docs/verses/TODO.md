@@ -180,6 +180,17 @@ play sessions, with no manual clear. Affects both Verses platforms
 
 ### #13 — Port sandbox enhancements to tablet-verses
 
+> **⏸ PARKED — superseded by June-20 update item (c) (decision
+> 2026-06-22, shipped as tablet-verses v1.16).** Tablet-verses and
+> phone-verses are now intentionally maintained as two *different*
+> games with different mechanics. The phone version's smaller screen
+> plays as boring without the enhanced sandbox mechanics (Mech
+> A/B/C/D), which is why phone got them. The tablet version is engaging
+> on the larger screen without them, so it does **not** need this port.
+> Tablet-verses parity work instead targets tablet *arcade* (item (c) —
+> which shipped the matching 12-row grid), not phone-verses. Revisit
+> #13 only if that stance changes.
+
 Deferred from #6 on 2026-05-25 — phone-verses got the full sandbox
 layer (Mech A/B/C/D, edge-case suppressions, ready gate, bias-spike
 fix, BONUS_MOVE_INTERVAL = 25000, target × 300 / × 500 split) but
