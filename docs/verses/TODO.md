@@ -170,6 +170,12 @@ small campaign-specific progression mini-tutorial on top.
   mechanics — the arcades use a random target and have no drill ceiling.)
 - **Campaign-only mini-tutorial:** level progression + unlock gating.
 
+**📋 Full shared-panel storyboard (all 8 panels) + governing principles +
+scoring-mechanics reference: [`tutorial-storyboard.md`](tutorial-storyboard.md)
+(captured 2026-06-23). The 8 shared panels are storyboarded; verses-only
+panels, the campaign panel, and modal flow are not yet — see that doc's
+"Still open."**
+
 **Locked scoping decisions (2026-06-23 session):**
 
 1. **v1 animation cut — hybrid.** Animate the *shared* match concepts

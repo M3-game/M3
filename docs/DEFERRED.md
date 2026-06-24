@@ -296,6 +296,17 @@ touches it next.
 
 ## Gameplay / UX additions
 
+- **Standardize special-combination popups on "fusion" wording.** Surfaced
+  2026-06-23 while locking the scoring vocabulary (DESIGN.md "Scoring
+  vocabulary — cascade · combo · fusion"). The game already shows
+  `🌠🌌 NOVA FUSION!` when novas combine (tablet match3 ~line 2185), but the
+  other special-combination popups (line+line, bomb+cross, cross+line,
+  bomb+supernova, etc. — the messages around tablet lines 2058–2202) use
+  ad-hoc wording. Reword them to a consistent "fusion" family so the player
+  sees one coherent term for "combining two specials." Tablet first, then
+  the other platforms that carry the combination logic. Low priority,
+  no gameplay impact — pure player-facing wording.
+
 - **Step-mode platform (Session D-2).** Step-through playback deferred to
   its own sibling platform rather than living in the main tablet file,
   because it requires a pipeline refactor (callback-setTimeouts →

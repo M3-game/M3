@@ -231,6 +231,32 @@ Capped at 15 seconds per player action.
 
 ## Scoring & Stars
 
+### Scoring vocabulary — cascade · combo · fusion
+
+Three distinct mechanics raise a turn's score, each with its own multiplier
+in the code. They were historically all loosely called "combo," which caused
+real ambiguity. Settled 2026-06-23 — use these three terms consistently
+(UI, code, docs, tutorial):
+
+- **Cascade** — the automatic chain reaction: clearing tiles makes the tiles
+  above fall, those falls form *new* matches, which clear and fall again.
+  Multiplier grows with chain depth (`getCascadeMultiplier`: depth 2 = ×1.5,
+  3 = ×2.0, 4 = ×2.5…). Happens on its own once a move sets it off.
+- **Combo** — the running multiplier that builds as *additional matches* are
+  made within a turn (`getMultiplier(comboValue)`: 1 = ×1.5 … 6+ = ×4.0+).
+  "Combo" keeps the game-convention meaning of an accumulating-action
+  counter — *not* "combining tiles" (that's fusion).
+- **Fusion** — combining two special tiles by swapping one into another
+  (line+line, bomb+cross, supernova+hypernova…) for an amplified combined
+  effect. The game already speaks this language: the nova-combination popup
+  reads `🌠🌌 NOVA FUSION!` (tablet match3, ~line 2185).
+
+**Rule — special-combination popups standardize on "fusion."** Today only
+the nova combination says "FUSION"; the other special-combination popups
+(line+line, bomb+cross, etc.) should be reworded to match so the whole
+family reads consistently. Code task tracked in DEFERRED.md ("Gameplay /
+UX additions").
+
 ### Scoring Constants
 
 | Event | Value |
@@ -369,6 +395,8 @@ No level has a real target score. All values in `PLACEHOLDER_TARGETS` in
 | **victory round** | "bonus round" | "Bonus round" creates confusion with "bonus moves." "Victory round" captures the right idea: the player has already won and is playing on to score more. Rename shipped 2026-05-01 (Session T-1) on tablet, tablet-verses, phone-418-verses; deferred for the other 5 platforms — see "Cross-platform terminology sweep" in DEFERRED.md. |
 | **"End and carry moves forward"** | "End and save", "carry banked moves" | This is the actual button label in the code. Use it verbatim for clarity. |
 | **"Use bonus moves"** | "Use banked moves", "Use extra moves" | Consistent with the bonus-moves framing. |
+| **tile** (or "special tile") | "gem" | Only the diamond is gem-shaped; the other five tiles (hypocycloid, clover, star, candy, sun) are not gems. The code uses "tile" throughout (`tileType`, `TILE_COLORS`, `drawTile`). Locked 2026-06-23 during tutorial scoping. |
+| **cascade / combo / fusion** | "chain", overloaded "combo" | See "Scoring vocabulary" under Scoring & Stars. "Chain" is retired (it was a loose synonym for cascade). |
 
 ### Rename status: "bonus round" → "victory round" + `bankedMoves` → `bonusMoves`
 
