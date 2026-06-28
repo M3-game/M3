@@ -16,7 +16,7 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
 | ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
 | ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
-| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18); Session 2 = tutorial component next.** | 🚧 (1 of N) | L |
+| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18). Session 2 shipped 2026-06-27 (`core/Tutorial.jsx` + tablet v11.19): 2 of 8 shared panels (basic match, line special). Panels 3–8 next.** | 🚧 (2 of 8 shared panels) | L |
 | 10 | **Reward mode** — arcade reward round in **both tablet + phone arcades**; verses inherits it via the "Arcade mode" handoff. Phone needs its own enhancements (TBD in sandbox) → separate phone/tablet reward-level versions. Merges Session I; replaces the old verses-internal #10. | 📋 | XL (sandbox scoping) |
 | 9 | **Simulation modes** (one-ply + Monte Carlo) — also informs reward-level tuning + the item-(b) target multiplier | 📋 | L |
 | 11 | **Persistent progress** across browser refreshes | 📋 | M-L (TBD) |
@@ -256,7 +256,13 @@ tablet arcade migrated v11.17 → v11.18, byte-identical + clean build.
    repoint app references back to it; the new core module just sits unused.
    **Gate: do not start Session 2 until tablet arcade is confirmed good.**
 
-**Session 2 — tutorial component + tablet-arcade tutorial (step 3):**
+**Session 2 — tutorial component + tablet-arcade tutorial (step 3) — ✅
+SHIPPED 2026-06-27 (`core/Tutorial.jsx`, tablet v11.19):** built the portable
+component (Option A) + opt-in header button; ships the first **2 of 8** shared
+panels (basic match, line special) on a 6×6 board, look iterated to approval.
+Hard-coded boards + deterministic match-free refill (existing tiles never
+recolor). Board sizing revised to **constant tile size + grid grows in tiers**
+(6×6 → 7×7 → 8×8) — see PROGRESS-2026-06-27 addendum. Panels 3–8 remain.
 
 3. **Build the portable tutorial component in `core/`** on the now-
    validated core drawing code, and **add it to tablet arcade.** On tablet
