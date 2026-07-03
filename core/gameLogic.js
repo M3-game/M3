@@ -14,9 +14,27 @@ export const TILE_GAP = 4;
 export const SPECIAL_BONUS = { line: 100, bomb: 150, cross: 200, supernova: 300, hypernova: 500 };
 
 // ---------------------------------------------------------------------------
-// Multiplier
+// Scoring point values (extracted 2026-07-03 so the tutorial and the game read
+// one source and can never drift — see docs/verses/tutorial-storyboard.md
+// "Panel 7 — build plan"). These are the SAME values the tablet used inline;
+// the tablet (v11.22+) now imports them. Regular matches and line/cross scale
+// with tiles cleared; bomb/supernova/hypernova are flat.
 // ---------------------------------------------------------------------------
 
+export const MATCH_POINTS_PER_TILE = 10;   // regular match: group.length * this
+export const L_SHAPE_BONUS = 50;           // per L-shape match group
+export const LINE_POINTS_PER_TILE = 30;    // line special: tilesCleared * this
+export const BOMB_POINTS = 750;            // bomb special (flat)
+export const CROSS_POINTS_PER_TILE = 38;   // cross special: tilesCleared * this
+export const SUPERNOVA_POINTS = 2000;      // supernova special (flat)
+export const HYPERNOVA_POINTS = 5000;      // hypernova special (flat)
+
+// ---------------------------------------------------------------------------
+// Multipliers
+// ---------------------------------------------------------------------------
+
+// Combo multiplier — scales REGULAR match points by how many match-groups were
+// made across the turn (comboValue).
 export const getMultiplier = (comboValue) => {
   if (comboValue === 0) return 1.0;
   if (comboValue === 1) return 1.5;
@@ -26,6 +44,16 @@ export const getMultiplier = (comboValue) => {
   if (comboValue === 5) return 3.5;
   if (comboValue >= 6) return 4.0 + (comboValue - 6) * 0.2;
   return 1.0;
+};
+
+// Cascade multiplier — scales SPECIAL-activation points by how many rounds of
+// clearing (depth) have happened in the turn. Caps at 3.0 for depth 5+.
+export const getCascadeMultiplier = (depth) => {
+  if (depth <= 1) return 1.0;
+  if (depth === 2) return 1.5;
+  if (depth === 3) return 2.0;
+  if (depth === 4) return 2.5;
+  return 3.0;
 };
 
 // ---------------------------------------------------------------------------
