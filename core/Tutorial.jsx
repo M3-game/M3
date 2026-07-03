@@ -98,17 +98,56 @@ const buildTilesFromGrid = (grid) => {
   return tiles;
 };
 
-// Would type `t` at (r,c) complete a 3-in-a-row with the two cells to its left
-// or the two below it? The settle pass runs bottom row up, left to right, so a
-// run's top-most / right-most member is always the LAST one processed — checking
-// just left-two + below-two there catches every possible run from one side.
-const wouldRun = (ft, n, r, c, t) =>
-  (c >= 2 && ft[r][c - 1] === t && ft[r][c - 2] === t) ||
-  (r + 2 < n && ft[r + 1][c] === t && ft[r + 2][c] === t);
+// Would type `t` at (r,c) complete a 3-in-a-row with already-settled neighbors?
+// Checks all six windows the cell can belong to (left/middle/right horizontally,
+// up/middle/down vertically). Not-yet-filled cells are null and don't match —
+// and the cell that fills them runs the same check, so a refill that would line
+// up with a FIXED survivor on its right/up side is still caught (the 2-sided
+// left/below-only check missed exactly that case).
+const completesRun = (ft, n, r, c, t) => {
+  const eq = (rr, cc) => rr >= 0 && rr < n && cc >= 0 && cc < n && ft[rr][cc] === t;
+  return (
+    (eq(r, c - 1) && eq(r, c - 2)) || (eq(r, c - 1) && eq(r, c + 1)) || (eq(r, c + 1) && eq(r, c + 2)) ||
+    (eq(r - 1, c) && eq(r - 2, c)) || (eq(r - 1, c) && eq(r + 1, c)) || (eq(r + 1, c) && eq(r + 2, c))
+  );
+};
 
+// Pick a color for a brand-new refill cell. We must skip any type that would
+// complete a run (that guarantee is load-bearing — the panels are sim-verified
+// run-free). But we must NOT always scan from red (type 0): a big blast empties
+// a wide region whose cells have no settled same-color neighbors yet, so a
+// scan-from-0 makes red "safe" almost everywhere and the refill comes in a
+// red/blue wash. Instead each cell starts its scan at a position-derived offset
+// and cycles through all six types, so the run-free colors spread evenly across
+// the board. Still fully deterministic (no RNG) — same board every replay.
 const firstSafeType = (ft, n, r, c) => {
-  for (let t = 0; t < 6; t++) if (!wouldRun(ft, n, r, c, t)) return t;
-  return 0;
+  const start = (r * n + c) % 6;
+  for (let i = 0; i < 6; i++) {
+    const t = (start + i) % 6;
+    if (!completesRun(ft, n, r, c, t)) return t;
+  }
+  return start;
+};
+
+// Cells a special's blast clears, given the shape + the cell it activates in.
+const inBounds = (n, r, c) => r >= 0 && r < n && c >= 0 && c < n;
+const blastCells = (shape, n, br, bc) => {
+  const set = new Set();
+  const add = (r, c) => { if (inBounds(n, r, c)) set.add(`${r},${c}`); };
+  const row = () => { for (let c = 0; c < n; c++) add(br, c); };
+  const col = () => { for (let r = 0; r < n; r++) add(r, bc); };
+  const square = (rad) => { for (let dr = -rad; dr <= rad; dr++) for (let dc = -rad; dc <= rad; dc++) add(br + dr, bc + dc); };
+  if (shape === 'bomb') { square(1); row(); col(); }
+  else if (shape === 'cross') { row(); col(); }
+  else if (shape === 'supernova') { square(2); row(); col(); }
+  else if (shape === 'hypernova') {
+    square(2); row(); col();
+    // ...plus ~half of everything else (every other remaining cell) to imply
+    // the board-wide swath; the caption states the true effect.
+    let toggle = 0;
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { if (!set.has(`${r},${c}`) && (toggle++ % 2 === 0)) add(r, c); }
+  }
+  return [...set].map(s => s.split(',').map(Number));
 };
 
 const tileAt = (tiles, row, col) => tiles.find(t => t.row === row && t.col === col && !t.clearing);
@@ -185,6 +224,172 @@ const PANELS = {
         { type: 'hand', to: { row: 2, col: 3 }, dur: T.hand },
         { type: 'drag', from: { row: 2, col: 3 }, to: { row: 3, col: 3 }, dur: T.drag },
         { type: 'rowclear', row: 3, extra: [[4, 3], [5, 3]], score: 180, popup: { text: '⚡ LINE CLEAR! +180' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
+
+  // --- Panel 3: bomb (5 in a straight line) — DRAFT, 7×7 -----------------
+  // MAKE: blue (1) tiles M _ M M (gap at (2,3)) split 2+2 so nothing is
+  // pre-matched; a blue waits at (1,3). Drag it DOWN into (2,3) -> 5 straight ->
+  // a BOMB forms (4 clear + 1 special). USE: blues at (4,3),(5,3) in stable
+  // column 3; drag the bomb DOWN into (3,3) -> vertical 3-match -> it blasts a
+  // 3×3 area plus its full row and column.
+  'bomb': {
+    id: 'bomb',
+    title: 'Bomb',
+    caption: 'Match 5 in a straight line to make a bomb (💣). To use it, swap it into a match — it blasts a 3×3 area plus its whole row and column.',
+    board: [
+      [0, 1, 2, 3, 4, 5, 0],
+      [2, 3, 4, 1, 0, 1, 2],
+      [4, 1, 1, 4, 1, 1, 4],
+      [0, 1, 2, 4, 4, 5, 0],
+      [2, 3, 4, 1, 0, 1, 2],
+      [4, 5, 0, 1, 2, 3, 4],
+      [0, 1, 2, 3, 4, 5, 0],
+    ],
+    steps() {
+      return [
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 1, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 1, col: 3 }, to: { row: 2, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[2, 1], [2, 2], [2, 4], [2, 5]], score: 80, popup: { text: 'Match 5! +80' }, dur: T.clear },
+        { type: 'form', cell: { row: 2, col: 3 }, special: 'bomb', dur: T.form },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 2, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 2, col: 3 }, to: { row: 3, col: 3 }, dur: T.drag },
+        { type: 'blast', shape: 'bomb', center: { row: 3, col: 3 }, score: 750, popup: { text: '💣 BOOM! +750', color: '#FF7043' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
+
+  // --- Panel 4: cross (5 in an L/T shape) — DRAFT, 7×7 -------------------
+  // MAKE: green (2) arms with the junction (2,3) empty so neither arm is a
+  // pre-match — vertical arm (0,3),(1,3); horizontal arm (2,4),(2,5); a green
+  // waits at (2,2). Drag it RIGHT into (2,3) -> the L/T completes -> a CROSS
+  // forms (4 clear + 1 special). USE: greens at (4,3),(5,3); drag the cross
+  // DOWN into (3,3) -> vertical 3-match -> it clears a full row and column.
+  // The cross tile is GREEN, so at the use step column 3 reads green-cross(2,3)
+  // / target(3,3) / green(4,3) / green(5,3). The intended down-swap fills (3,3)
+  // with the cross -> a 3-match fires it. (3,2) is kept NON-green (red) on
+  // purpose: were it green, sliding it right into (3,3) would line up a green 4
+  // (cross + three greens) — a better-looking move than the taught 3-match,
+  // which we must not leave available. With (3,2) red, the intended 3-match is
+  // the only trigger at that spot (sim-verified: zero 4-swaps at the use step).
+  // The trigger down-swap also pushes the tile at (3,3) UP into (2,3). (2,2) is
+  // forced to the old junction color (orange) by the make-swap, so (2,1) is kept
+  // NON-orange (blue): otherwise the displaced tile lands beside (2,1)+(2,2) as a
+  // third orange, forming an incidental row-2 match the scripted blast can't
+  // clear (only its own row/col clears, so (2,3) goes but (2,1),(2,2) linger).
+  // With (2,1) blue, the green cross-trigger is the only match the swap makes.
+  'cross': {
+    id: 'cross',
+    title: 'Cross',
+    caption: 'Match 5 in an L or T shape to make a cross (✨). To use it, swap it into a match — it clears an entire row and column at once.',
+    board: [
+      [0, 1, 2, 2, 4, 5, 0],
+      [2, 3, 4, 2, 0, 1, 2],
+      [4, 1, 2, 5, 2, 2, 4],
+      [0, 1, 0, 5, 4, 5, 0],
+      [2, 3, 4, 2, 0, 1, 2],
+      [4, 5, 0, 2, 2, 3, 4],
+      [0, 1, 2, 3, 4, 5, 0],
+    ],
+    steps() {
+      return [
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 2, col: 2 }, dur: T.hand },
+        { type: 'drag', from: { row: 2, col: 2 }, to: { row: 2, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[2, 4], [2, 5], [0, 3], [1, 3]], score: 80, popup: { text: 'Match 5! +80' }, dur: T.clear },
+        { type: 'form', cell: { row: 2, col: 3 }, special: 'cross', dur: T.form },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 2, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 2, col: 3 }, to: { row: 3, col: 3 }, dur: T.drag },
+        { type: 'blast', shape: 'cross', center: { row: 3, col: 3 }, score: 500, popup: { text: '✨ CROSS BLAST! +500', color: '#00E5FF' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
+
+  // --- Panel 5: supernova (6 tiles) — DRAFT, 8×8 ------------------------
+  // A "6-match" is 6 connected tiles in ANY shape (the game counts the unique
+  // tiles in a connected group, not a straight line — match3 ~line 2472). MAKE:
+  // purple (4) forms a horizontal 4 crossing a vertical 3 (= 6 connected) from
+  // ONE swap — drag the purple at (1,3) DOWN into the junction (2,3). The 5
+  // matched tiles clear (incl. cells below the junction), so the SUPERNOVA falls
+  // to (4,3). USE: drag it DOWN into (5,3) onto the purples at (6,3),(7,3) ->
+  // vertical 3-match -> it clears a 5×5 area plus its full row and column.
+  'supernova': {
+    id: 'supernova',
+    title: 'Supernova',
+    caption: 'Match 6 tiles at once — cross a row and a column — to make a supernova (🌌). To use it, swap it into a match — it clears a 5×5 area plus its full row and column.',
+    board: [
+      [0, 1, 2, 3, 4, 5, 0, 1],
+      [2, 3, 4, 4, 0, 1, 2, 3],
+      [1, 4, 4, 1, 4, 3, 4, 5],
+      [0, 1, 2, 4, 4, 5, 0, 1],
+      [2, 3, 4, 4, 0, 1, 2, 3],
+      [4, 5, 0, 1, 2, 3, 4, 5],
+      [0, 1, 2, 4, 4, 5, 0, 1],
+      [2, 3, 4, 4, 0, 1, 2, 3],
+    ],
+    steps() {
+      return [
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 1, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 1, col: 3 }, to: { row: 2, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[2, 1], [2, 2], [2, 4], [3, 3], [4, 3]], score: 100, popup: { text: 'Match 6! +100' }, dur: T.clear },
+        { type: 'form', cell: { row: 2, col: 3 }, special: 'supernova', dur: T.form },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 4, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 4, col: 3 }, to: { row: 5, col: 3 }, dur: T.drag },
+        { type: 'blast', shape: 'supernova', center: { row: 5, col: 3 }, score: 2000, popup: { text: '🌌 SUPERNOVA! +2000', color: '#FF00FF' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
+
+  // --- Panel 6: hypernova (7 tiles) — DRAFT, 8×8 ------------------------
+  // 7 connected tiles -> the strongest single special. MAKE: orange (5) forms a
+  // horizontal 5 crossing a vertical 3 (= 7 connected) from ONE swap — drag the
+  // orange at (1,3) DOWN into the junction (2,3). The HYPERNOVA falls to (4,3).
+  // USE: drag it DOWN into (5,3) onto the oranges at (6,3),(7,3) -> vertical
+  // 3-match -> it wipes a 5×5 + full row + column AND about half of everything
+  // else on the board.
+  'hypernova': {
+    id: 'hypernova',
+    title: 'Hypernova',
+    caption: 'Match 7 tiles at once to make a hypernova (🌠) — the strongest. To use it, swap it into a match — it wipes a 5×5 area, its full row and column, and about half of everything else.',
+    board: [
+      [0, 1, 2, 3, 4, 5, 0, 1],
+      [2, 3, 4, 5, 0, 1, 2, 3],
+      [4, 5, 5, 2, 5, 5, 4, 5],
+      [0, 1, 2, 5, 4, 5, 0, 1],
+      [2, 3, 4, 5, 0, 1, 2, 3],
+      [4, 5, 0, 2, 2, 3, 4, 5],
+      [0, 1, 2, 5, 4, 5, 0, 1],
+      [2, 3, 4, 5, 0, 1, 2, 3],
+    ],
+    steps() {
+      return [
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 1, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 1, col: 3 }, to: { row: 2, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[2, 1], [2, 2], [2, 4], [2, 5], [3, 3], [4, 3]], score: 120, popup: { text: 'Match 7! +120' }, dur: T.clear },
+        { type: 'form', cell: { row: 2, col: 3 }, special: 'hypernova', dur: T.form },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 4, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 4, col: 3 }, to: { row: 5, col: 3 }, dur: T.drag },
+        { type: 'blast', shape: 'hypernova', center: { row: 5, col: 3 }, score: 5000, popup: { text: '🌠 HYPERNOVA! +5000', color: '#FFD700' }, dur: T.rowclear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
       ];
@@ -315,6 +520,15 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish }) {
           parkHand();
           S.tiles.forEach(t => { if (t.row === step.row && !t.clearing) t.clearing = true; });
           (step.extra || []).forEach(([r, c]) => { const t = tileAt(S.tiles, r, c); if (t) t.clearing = true; });
+          if (step.score) S.scoreTarget += step.score;
+          if (step.popup) onPopup(step.popup);
+          break;
+        }
+        case 'blast': {
+          parkHand();
+          blastCells(step.shape, n, step.center.row, step.center.col).forEach(([r, c]) => {
+            const t = tileAt(S.tiles, r, c); if (t) t.clearing = true;
+          });
           if (step.score) S.scoreTarget += step.score;
           if (step.popup) onPopup(step.popup);
           break;
