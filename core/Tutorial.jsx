@@ -112,9 +112,21 @@ const completesRun = (ft, n, r, c, t) => {
   );
 };
 
+// Pick a color for a brand-new refill cell. We must skip any type that would
+// complete a run (that guarantee is load-bearing — the panels are sim-verified
+// run-free). But we must NOT always scan from red (type 0): a big blast empties
+// a wide region whose cells have no settled same-color neighbors yet, so a
+// scan-from-0 makes red "safe" almost everywhere and the refill comes in a
+// red/blue wash. Instead each cell starts its scan at a position-derived offset
+// and cycles through all six types, so the run-free colors spread evenly across
+// the board. Still fully deterministic (no RNG) — same board every replay.
 const firstSafeType = (ft, n, r, c) => {
-  for (let t = 0; t < 6; t++) if (!completesRun(ft, n, r, c, t)) return t;
-  return 0;
+  const start = (r * n + c) % 6;
+  for (let i = 0; i < 6; i++) {
+    const t = (start + i) % 6;
+    if (!completesRun(ft, n, r, c, t)) return t;
+  }
+  return start;
 };
 
 // Cells a special's blast clears, given the shape + the cell it activates in.
@@ -261,6 +273,19 @@ const PANELS = {
   // waits at (2,2). Drag it RIGHT into (2,3) -> the L/T completes -> a CROSS
   // forms (4 clear + 1 special). USE: greens at (4,3),(5,3); drag the cross
   // DOWN into (3,3) -> vertical 3-match -> it clears a full row and column.
+  // The cross tile is GREEN, so at the use step column 3 reads green-cross(2,3)
+  // / target(3,3) / green(4,3) / green(5,3). The intended down-swap fills (3,3)
+  // with the cross -> a 3-match fires it. (3,2) is kept NON-green (red) on
+  // purpose: were it green, sliding it right into (3,3) would line up a green 4
+  // (cross + three greens) — a better-looking move than the taught 3-match,
+  // which we must not leave available. With (3,2) red, the intended 3-match is
+  // the only trigger at that spot (sim-verified: zero 4-swaps at the use step).
+  // The trigger down-swap also pushes the tile at (3,3) UP into (2,3). (2,2) is
+  // forced to the old junction color (orange) by the make-swap, so (2,1) is kept
+  // NON-orange (blue): otherwise the displaced tile lands beside (2,1)+(2,2) as a
+  // third orange, forming an incidental row-2 match the scripted blast can't
+  // clear (only its own row/col clears, so (2,3) goes but (2,1),(2,2) linger).
+  // With (2,1) blue, the green cross-trigger is the only match the swap makes.
   'cross': {
     id: 'cross',
     title: 'Cross',
@@ -268,8 +293,8 @@ const PANELS = {
     board: [
       [0, 1, 2, 2, 4, 5, 0],
       [2, 3, 4, 2, 0, 1, 2],
-      [4, 5, 2, 5, 2, 2, 4],
-      [0, 1, 2, 5, 4, 5, 0],
+      [4, 1, 2, 5, 2, 2, 4],
+      [0, 1, 0, 5, 4, 5, 0],
       [2, 3, 4, 2, 0, 1, 2],
       [4, 5, 0, 2, 2, 3, 4],
       [0, 1, 2, 3, 4, 5, 0],
