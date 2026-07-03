@@ -275,6 +275,34 @@ refactor) then a panel-7 branch on top.
    per-match beat — user-confirmed). Exact timing tuned in the watch-and-adjust
    review loop, like panels 1–6.
 
+### Concrete demo turn (designed & approved 2026-07-03)
+
+Authored beat-by-beat (decision #4), 8×8, one swap, paced with holds. Every
+score is computed from the extracted core functions (`getMultiplier` /
+`getCascadeMultiplier` + point constants), NOT literals. Combo display follows
+**decision C** (2026-07-03): show the honest points multiplier + plain match
+count and de-emphasize the game's confusing `x{count+1}` headline (see DEFERRED
+"Combo HUD shows count + 1"). Cascade popups mirror the game faithfully.
+
+| Beat | On screen | Real score math | Running total |
+|---|---|---|---|
+| 1 — Combo | swap lands **3 matches at once**; multiplier reads **×2.5** | 3 groups × (3 tiles × 10 × 2.5) = 225 | **225** |
+| 2 — Combo climbs | tiles fall into **a new match** (clearing again); **×3.0** | 3 × 10 × 3.0 = 90 | **315** |
+| 3 — Cascade | a **bomb** fires in a later round: `🔥 CASCADE x1.5! 💣 BOOM! +1125` | 750 × 1.5 = 1125 | **1,440** |
+| 4 — Cascade climbs | the bomb sets off a **line** deeper: `🔥 CASCADE x2.0! ⚡ LINE CLEAR! +480` | 240 × 2.0 = 480 | **1,920** |
+
+Ends ~**1,920** vs. a basic match's **+60** — an on-screen "+60" reference
+(user request) makes the contrast explicit. Reuses a bomb + line purely as
+cascade vehicles (not teaching them). Two-beat fallback (isolate combo, then
+cascade) stays available if four beats read busy. First draft — tune
+visuals/timing in the watch-and-adjust loop.
+
+**Implementation still to do** (branch `tutorial-panel-7-multipliers` →
+tablet v11.23): new `core/Tutorial.jsx` engine bits — a combo/multiplier
+readout (honest ×N pts + match count) and successive cascade rounds driving the
+`🔥` popups; the authored 8×8 board dressed to look right at each beat; the
+on-screen +60 reference; sim-verify; add `multipliers` to the tablet `sections`.
+
 ---
 
 ## Still open — NOT yet storyboarded (next scoping)
