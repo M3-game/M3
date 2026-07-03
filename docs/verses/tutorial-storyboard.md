@@ -219,6 +219,64 @@ disappointing" problem.
 
 ---
 
+## Panel 7 — build plan (scoped 2026-07-03)
+
+Full scoping session for panel 7 (scoring multipliers). Settled decisions,
+so a future session (or a post-compaction continuation) can build without
+re-litigating. Two branches: `scoring-core-extraction` (the prerequisite
+refactor) then a panel-7 branch on top.
+
+1. **Scoring extraction — scope & source of truth.** Lift the *pure scoring
+   math* into shared `core/` so tutorial and game read one source and can't
+   drift: the multiplier functions **and** the base point values. Current
+   reality (verified in `match3-v11.21-tablet.jsx`): `getMultiplier` already
+   exists in `core/gameLogic.js` but the tablet uses its own **byte-identical
+   duplicate**; `getCascadeMultiplier` is **not** in core and the tablet
+   defines it **twice** locally (both identical); point values are inline
+   literals (match = tiles×10, line = tiles×30, bomb = 750, cross = tiles×38,
+   supernova = 2000, hypernova = footprint routine). Tablet source of truth.
+   **Phone parity confirmed:** `match3-v13.6-phone.jsx` has the *same* values
+   and multipliers (and the same duplication) — so the core module is
+   phone-compatible, but **phone migrates later** (out of scope now). We
+   extract only the pure values + functions, NOT the application logic
+   (how combo count / cascade depth are computed) — that stays per-platform.
+2. **Branch layout — two sequential branches.** Branch 1 =
+   `scoring-core-extraction`: scoring → core, **no behavior change**, verified
+   scores byte-identical before/after (tablet v11.22, parallel to the v11.18
+   drawing extraction). Merge. Branch 2 = panel 7 on the updated main (v11.23).
+   Collapse to one branch only if the extraction proves trivial.
+3. **Demo turn — one paced turn, combo phase then cascade phase.** A single
+   slowed turn: several matches land at once (combo `×N` climbs), then tiles
+   fall and a special fires/chains (cascade `🔥` stacks), score rockets past
+   the basic +60. Two-beat version (isolate combo, then cascade) held as a
+   fallback if the single turn reads as visual soup. Reuses a special (focus
+   is the multiplier, not teaching a new special).
+4. **Authoring — hand-authored choreography fed by the real scoring math.**
+   Script exactly what clears when (panels 1–6 style, full visual control),
+   but every on-screen number comes from the extracted `getMultiplier` /
+   `getCascadeMultiplier` + point values. NOT an emergent full-engine
+   simulation. Verify by computing the expected score from the real functions
+   for the authored match-sizes/cascade-depths and asserting the display
+   matches; deterministic, same every replay. Needs two new engine
+   capabilities in `core/Tutorial.jsx`: multi-group clear with `×N` climbing,
+   and successive cascade rounds with `🔥` stacking.
+5. **Display — mirror the real in-game popups faithfully.** Combo HUD
+   `🔥 COMBO x2 (1.5x pts)` (escalates to 🌟 MEGA / ⚡ ULTRA / 💥 LEGENDARY at
+   milestones 5/10/15; count shown as combo+1); cascade popups
+   `🔥 CASCADE x1.5! [special]! +N`. Use the lowercase-"x" popup form the
+   player sees mid-turn. Game is internally inconsistent (popups use "x", a
+   secondary history label uses "×") → **logged to DEFERRED** as a small
+   standalone wording cleanup (alongside the "standardize special-combination
+   popups" item); NOT fixed in the tutorial branch.
+6. **Pacing & size — 8×8, brief holds at the teaching beats.** 8×8 tier (room
+   for the cascade to unfold without wiping the board). Ride the existing slow
+   tutorial pace + brief holds so each `×N` / `🔥` reads one at a time; no
+   heavy extra slow-motion (the current panels already read with a natural
+   per-match beat — user-confirmed). Exact timing tuned in the watch-and-adjust
+   review loop, like panels 1–6.
+
+---
+
 ## Still open — NOT yet storyboarded (next scoping)
 
 - **Verses-only panels:** how the target score is set (tiered length ×
