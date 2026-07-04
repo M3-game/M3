@@ -307,6 +307,32 @@ touches it next.
   the other platforms that carry the combination logic. Low priority,
   no gameplay impact — pure player-facing wording.
 
+- **Standardize the multiply symbol in combo/cascade displays (x vs ×).**
+  Surfaced 2026-07-03 while scoping tutorial panel 7. The game is internally
+  inconsistent: the in-play popups the player sees use a lowercase letter
+  **"x"** (`🔥 COMBO x4`, `🔥 CASCADE x1.5!`, `(2.5x pts)`), while a secondary
+  scoring-history/detail label uses the true multiplication sign **"×"**
+  (`Cascade ×1.5 — …`). Pick one (the true "×" reads cleaner) and standardize
+  across both the popups and the history label. Tablet first, then the other
+  platforms. Low priority, cosmetic. NOTE: tutorial panel 7 deliberately
+  mirrors the current in-play **"x"** popups (so it matches what the player
+  actually sees today) — if this cleanup ships, update the tutorial in lockstep.
+
+- **Combo HUD shows count + 1 ("x4" for 3 matches) — decide whether to change.**
+  Surfaced 2026-07-03 during panel 7 scoping — the reviewer was immediately
+  confused by "why does a 3-match turn show x4?". The combo readout renders
+  `x{combo + 1}` as its headline (tablet ~line 3305), so three matches display
+  as `🔥 COMBO x4` even though only three matches happened. **IMPORTANT: this is
+  display-only.** The scoring uses the true count — `getMultiplier(combo)` with
+  `combo` = the real match-group count — so points are correct; it's purely a
+  confusing headline number. Unclear whether the +1 is an intentional
+  "feels-bigger" flourish or a stale off-by-one; combo *counting* may simply be
+  off by one in the display. Undecided whether it's worth fixing in an update
+  (would touch every platform's combo HUD). Tutorial panel 7 deliberately
+  sidesteps it (decision C, 2026-07-03): it leans on the honest points
+  multiplier ("×2.5") + the plain match count and de-emphasizes the "x4"
+  headline. If the game display is ever changed, revisit the tutorial to match.
+
 - **Step-mode platform (Session D-2).** Step-through playback deferred to
   its own sibling platform rather than living in the main tablet file,
   because it requires a pipeline refactor (callback-setTimeouts →
