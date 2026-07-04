@@ -303,7 +303,7 @@ readout (honest ×N pts + match count) and successive cascade rounds driving the
 `🔥` popups; the authored 8×8 board dressed to look right at each beat; the
 on-screen +60 reference; sim-verify; add `multipliers` to the tablet `sections`.
 
-### Review round 1 (2026-07-03) — feedback to address next session
+### Review round 1 (2026-07-03) — ✅ all 9 items addressed (tablet v11.24)
 
 **State:** first on-screen draft is built and committed — branch
 `tutorial-panel-7-multipliers`, tablet **v11.23** (local only; `main` clean at
