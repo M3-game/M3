@@ -410,22 +410,24 @@ const PANELS = {
   // Combo readout follows decision C: show the honest points multiplier + match
   // count, NOT the game's confusing x{count+1} headline. Cascade popups mirror
   // the game faithfully. Reuses a bomb + line purely as cascade vehicles.
-  // NOTE: board layout + special/blast positions are FIRST-DRAFT — to be
-  // sim-verified and tuned in the watch-and-adjust loop.
+  // The swap completes TWO matches (green column + blue column); the fall then
+  // lines up a genuine third match (orange) — that IS the cascade. Sim-verified:
+  // start board run-free, both specials stay put through gravity, board ends
+  // clean. Board look + timing still tunable in the watch-and-adjust loop.
   'multipliers': {
     id: 'multipliers',
     title: 'Multipliers',
     caption: 'Two things multiply your score in one turn: combo (how many matches you make) and cascade (clearing that happens again). Watch both climb — one big turn beats a dozen small moves.',
     reference: 'A basic match is only about +60.',
     board: [
-      [3, 1, 4, 0, 0, 5, 3, 1],
-      [0, 2, 2, 2, 4, 5, 5, 5],
-      [1, 4, 0, 3, 1, 4, 0, 3],
-      [5, 1, 1, 1, 2, 3, 3, 3],
-      [2, 3, 4, 5, 0, 1, 2, 0],
-      [4, 0, 2, 1, 3, 5, 0, 4],
-      [1, 3, 5, 0, 4, 2, 1, 5],
-      [3, 4, 0, 2, 1, 3, 5, 0],
+      [1, 3, 4, 5, 5, 0, 3, 1],
+      [4, 0, 1, 2, 1, 3, 0, 4],
+      [0, 5, 3, 2, 1, 4, 5, 0],
+      [5, 1, 0, 1, 2, 5, 4, 3],
+      [2, 4, 5, 0, 3, 1, 2, 5],
+      [3, 0, 2, 4, 5, 0, 1, 4],
+      [1, 2, 4, 3, 0, 5, 3, 0],
+      [4, 3, 0, 5, 1, 2, 4, 1],
     ],
     specials: [
       { row: 6, col: 5, type: 'bomb' },
@@ -433,39 +435,41 @@ const PANELS = {
     ],
     steps() {
       // Real multipliers + scores, straight from the core functions.
-      const comboA = getMultiplier(3);      // 2.5  (3 matches this turn)
-      const comboB = getMultiplier(4);      // 3.0  (4th match via cascade)
-      const cascA = getCascadeMultiplier(2); // 1.5 (special fires at depth 2)
-      const cascB = getCascadeMultiplier(3); // 2.0 (special fires at depth 3)
-      const sMatch3 = 3 * Math.floor(3 * MATCH_POINTS_PER_TILE * comboA); // 225
-      const sCascadeMatch = Math.floor(3 * MATCH_POINTS_PER_TILE * comboB); // 90
-      const sBomb = Math.floor(BOMB_POINTS * cascA);                       // 1125
+      const comboA = getMultiplier(2);       // 2.0  (2 matches from the swap)
+      const comboB = getMultiplier(3);       // 2.5  (3rd match via cascade)
+      const cascA = getCascadeMultiplier(2); // 1.5  (bomb fires at depth 2)
+      const cascB = getCascadeMultiplier(3); // 2.0  (line fires at depth 3)
+      const sSwap = 2 * Math.floor(3 * MATCH_POINTS_PER_TILE * comboA);   // 120 (two 3-matches)
+      const sCascade = Math.floor(3 * MATCH_POINTS_PER_TILE * comboB);    // 75
+      const sBomb = Math.floor(BOMB_POINTS * cascA);                      // 1125
       const lineTiles = 8;
-      const sLine = Math.floor(lineTiles * LINE_POINTS_PER_TILE * cascB);  // 480
+      const sLine = Math.floor(lineTiles * LINE_POINTS_PER_TILE * cascB); // 480
       return [
         { type: 'pause', dur: T.pause },
-        // BEAT 1 — combo: one swap lands three matches at once.
-        { type: 'hand', to: { row: 1, col: 3 }, dur: T.hand },
-        { type: 'drag', from: { row: 2, col: 3 }, to: { row: 1, col: 3 }, dur: T.drag },
-        { type: 'clear', cells: [[1, 1], [1, 2], [1, 3], [1, 5], [1, 6], [1, 7], [3, 1], [3, 2], [3, 3]],
-          score: sMatch3, combo: { matches: 3, mult: comboA },
-          popup: { text: '3 matches at once!', color: '#667eea' }, dur: T.clear },
+        // BEAT 1 — combo: one swap completes TWO matches (green col + blue col).
+        { type: 'hand', to: { row: 3, col: 4 }, dur: T.hand },
+        { type: 'drag', from: { row: 3, col: 3 }, to: { row: 3, col: 4 }, dur: T.drag },
+        { type: 'clear', cells: [[1, 3], [2, 3], [3, 3], [1, 4], [2, 4], [3, 4]],
+          score: sSwap, combo: { matches: 2, mult: comboA },
+          popup: { text: '2 matches from one swap!', color: '#667eea' }, dur: T.clear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
-        // BEAT 2 — combo climbs: tiles fall into a new match (clearing again).
-        { type: 'clear', cells: [[3, 5], [3, 6], [3, 7]],
-          score: sCascadeMatch, combo: { matches: 4, mult: comboB },
-          popup: { text: 'Cascade — combo climbs!', color: '#667eea' }, dur: T.clear },
+        // BEAT 2 — combo climbs: the fall lines up a genuine 3rd match (cascade).
+        { type: 'clear', cells: [[3, 3], [3, 4], [3, 5]],
+          score: sCascade, combo: { matches: 3, mult: comboB },
+          popup: { text: 'The fall makes a 3rd match — combo climbs!', color: '#667eea' }, dur: T.clear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
-        // BEAT 3 — cascade: a bomb fires in a later round.
+        // BEAT 3 — cascade: a bomb caught in the fall fires (depth 2).
         { type: 'blast', shape: 'bomb', center: { row: 6, col: 5 },
           score: sBomb, combo: null,
           popup: { text: `🔥 CASCADE x${cascA.toFixed(1)}! 💣 BOOM! +${sBomb}`, color: '#FF7043' }, dur: T.rowclear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
         // BEAT 4 — cascade climbs: the bomb sets off a line, deeper still.
-        { type: 'rowclear', row: 5,
+        // (The bomb clears all of row 6, so the line has fallen from (5,0) to
+        // row 6 by now — it fires row 6.)
+        { type: 'rowclear', row: 6,
           score: sLine,
           popup: { text: `🔥 CASCADE x${cascB.toFixed(1)}! ⚡ LINE CLEAR! +${sLine}`, color: '#00E5FF' }, dur: T.rowclear },
         { type: 'gravity', dur: T.gravity },
