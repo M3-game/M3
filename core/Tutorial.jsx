@@ -410,10 +410,13 @@ const PANELS = {
   // Combo readout follows decision C: show the honest points multiplier + match
   // count, NOT the game's confusing x{count+1} headline. Cascade popups mirror
   // the game faithfully. Reuses a bomb + line purely as cascade vehicles.
-  // The swap completes TWO matches (green column + blue column); the fall then
-  // lines up a genuine third match (orange) — that IS the cascade. Sim-verified:
-  // start board run-free, both specials stay put through gravity, board ends
-  // clean. Board look + timing still tunable in the watch-and-adjust loop.
+  // HONEST cascade (review round 1, items 7+8): the swap makes TWO matches
+  // (green col + blue col); the fall lines up a THIRD match (orange) that
+  // INCLUDES the bomb, so clearing that match genuinely FIRES the bomb (a
+  // special fires when part of a color match — verified in the game code). The
+  // bomb's blast reaches down its column to the line, which is spared (it
+  // chains) and fires next. Explicit choreography, no gravity between the
+  // special beats, so positions stay put. Board look + timing tunable in review.
   'multipliers': {
     id: 'multipliers',
     title: 'Multipliers',
@@ -430,48 +433,51 @@ const PANELS = {
       [4, 3, 0, 5, 1, 2, 4, 1],
     ],
     specials: [
-      { row: 6, col: 5, type: 'bomb' },
-      { row: 5, col: 0, type: 'line' },
+      { row: 3, col: 5, type: 'bomb' },   // orange — the fall's 3rd match includes it, firing it
+      { row: 6, col: 5, type: 'line' },   // in the bomb's column blast; spared, then fires its row
     ],
     steps() {
       // Real multipliers + scores, straight from the core functions.
       const comboA = getMultiplier(2);       // 2.0  (2 matches from the swap)
       const comboB = getMultiplier(3);       // 2.5  (3rd match via cascade)
-      const cascA = getCascadeMultiplier(2); // 1.5  (bomb fires at depth 2)
-      const cascB = getCascadeMultiplier(3); // 2.0  (line fires at depth 3)
+      const cascA = getCascadeMultiplier(2); // 1.5  (bomb fires, cascade depth 2)
+      const cascB = getCascadeMultiplier(3); // 2.0  (line fires, cascade depth 3)
       const sSwap = 2 * Math.floor(3 * MATCH_POINTS_PER_TILE * comboA);   // 120 (two 3-matches)
-      const sCascade = Math.floor(3 * MATCH_POINTS_PER_TILE * comboB);    // 75
+      const sMatch3 = Math.floor(3 * MATCH_POINTS_PER_TILE * comboB);     // 75 (the orange 3-match)
       const sBomb = Math.floor(BOMB_POINTS * cascA);                      // 1125
       const lineTiles = 8;
       const sLine = Math.floor(lineTiles * LINE_POINTS_PER_TILE * cascB); // 480
       return [
         { type: 'pause', dur: T.pause },
         // BEAT 1 — combo: one swap completes TWO matches (green col + blue col).
-        { type: 'hand', to: { row: 3, col: 4 }, dur: T.hand },
+        // Hand starts ON the source tile so it carries it across (review item 4).
+        { type: 'hand', to: { row: 3, col: 3 }, dur: T.hand },
         { type: 'drag', from: { row: 3, col: 3 }, to: { row: 3, col: 4 }, dur: T.drag },
         { type: 'clear', cells: [[1, 3], [2, 3], [3, 3], [1, 4], [2, 4], [3, 4]],
           score: sSwap, combo: { matches: 2, mult: comboA },
-          popup: { text: '2 matches from one swap!', color: '#667eea' }, dur: T.clear },
+          highlights: [{ r1: 1, c1: 3, r2: 3, c2: 3 }, { r1: 1, c1: 4, r2: 3, c2: 4 }],
+          popup: { text: '2 matches from one swap!', color: '#667eea', pos: 'bottom' }, dur: T.clear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
-        // BEAT 2 — combo climbs: the fall lines up a genuine 3rd match (cascade).
-        { type: 'clear', cells: [[3, 3], [3, 4], [3, 5]],
-          score: sCascade, combo: { matches: 3, mult: comboB },
-          popup: { text: 'The fall makes a 3rd match — combo climbs!', color: '#667eea' }, dur: T.clear },
-        { type: 'gravity', dur: T.gravity },
+        // BEAT 2 — combo climbs: the fall lines up a 3rd match (orange). It
+        // INCLUDES the bomb at (3,5), so this match will fire it next. Clear the
+        // two normal oranges; the bomb (3rd tile of the match) stays to fire.
+        { type: 'clear', cells: [[3, 3], [3, 4]],
+          score: sMatch3, combo: { matches: 3, mult: comboB },
+          highlights: [{ r1: 3, c1: 3, r2: 3, c2: 5 }],
+          popup: { text: 'Falling tiles make a 3rd match — combo climbs!', color: '#667eea', pos: 'bottom' }, dur: T.clear },
         { type: 'pause', dur: T.pause },
-        // BEAT 3 — cascade: a bomb caught in the fall fires (depth 2).
-        { type: 'blast', shape: 'bomb', center: { row: 6, col: 5 },
+        // BEAT 3 — cascade: the bomb was part of that match, so it fires. Its
+        // blast reaches down its column to the line (spared via `except` — it
+        // chains). No gravity yet, so the line stays put for its own beat.
+        { type: 'blast', shape: 'bomb', center: { row: 3, col: 5 }, except: [[6, 5]],
           score: sBomb, combo: null,
-          popup: { text: `🔥 CASCADE x${cascA.toFixed(1)}! 💣 BOOM! +${sBomb}`, color: '#FF7043' }, dur: T.rowclear },
-        { type: 'gravity', dur: T.gravity },
+          popup: { text: `🔥 CASCADE x${cascA.toFixed(1)}! 💣 BOOM! +${sBomb}`, color: '#FF7043', pos: 'top' }, dur: T.rowclear },
         { type: 'pause', dur: T.pause },
-        // BEAT 4 — cascade climbs: the bomb sets off a line, deeper still.
-        // (The bomb clears all of row 6, so the line has fallen from (5,0) to
-        // row 6 by now — it fires row 6.)
+        // BEAT 4 — cascade climbs: the line the bomb reached now fires its row.
         { type: 'rowclear', row: 6,
           score: sLine,
-          popup: { text: `🔥 CASCADE x${cascB.toFixed(1)}! ⚡ LINE CLEAR! +${sLine}`, color: '#00E5FF' }, dur: T.rowclear },
+          popup: { text: `🔥 CASCADE x${cascB.toFixed(1)}! ⚡ LINE CLEAR! +${sLine}`, color: '#00E5FF', pos: 'top' }, dur: T.rowclear },
         { type: 'gravity', dur: T.gravity },
         { type: 'pause', dur: T.pause },
       ];
@@ -620,7 +626,11 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
         }
         case 'blast': {
           parkHand();
+          // `except` spares cells that CHAIN instead of clearing — e.g. a line
+          // special caught in the bomb's footprint, which then fires next beat.
+          const skip = new Set((step.except || []).map(([r, c]) => `${r},${c}`));
           blastCells(step.shape, n, step.center.row, step.center.col).forEach(([r, c]) => {
+            if (skip.has(`${r},${c}`)) return;
             const t = tileAt(S.tiles, r, c); if (t) t.clearing = true;
           });
           if (step.score) S.scoreTarget += step.score;
