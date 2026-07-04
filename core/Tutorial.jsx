@@ -42,6 +42,13 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { drawTile, drawSpecialIcon } from './tileDrawing.js';
+// Real scoring math (same source the game uses) so panel 7's numbers are the
+// TRUE in-game scores, not illustrative. See docs/verses/tutorial-storyboard.md
+// "Panel 7 — build plan".
+import {
+  getMultiplier, getCascadeMultiplier,
+  MATCH_POINTS_PER_TILE, LINE_POINTS_PER_TILE, BOMB_POINTS,
+} from './gameLogic.js';
 
 // ---- Demo board metrics --------------------------------------------------
 // Constant tile size; the modal reserves the 8x8 footprint so it never resizes.
@@ -395,12 +402,83 @@ const PANELS = {
       ];
     },
   },
+
+  // --- Panel 7: scoring multipliers (combo + cascade) — DRAFT, 8×8 --------
+  // Teaches BOTH multipliers in one paced turn (storyboard "Concrete demo
+  // turn"). Authored beat-by-beat; every score is the REAL value from the core
+  // scoring functions (getMultiplier / getCascadeMultiplier + point constants).
+  // Combo readout follows decision C: show the honest points multiplier + match
+  // count, NOT the game's confusing x{count+1} headline. Cascade popups mirror
+  // the game faithfully. Reuses a bomb + line purely as cascade vehicles.
+  // NOTE: board layout + special/blast positions are FIRST-DRAFT — to be
+  // sim-verified and tuned in the watch-and-adjust loop.
+  'multipliers': {
+    id: 'multipliers',
+    title: 'Multipliers',
+    caption: 'Two things multiply your score in one turn: combo (how many matches you make) and cascade (clearing that happens again). Watch both climb — one big turn beats a dozen small moves.',
+    reference: 'A basic match is only about +60.',
+    board: [
+      [3, 1, 4, 0, 0, 5, 3, 1],
+      [0, 2, 2, 2, 4, 5, 5, 5],
+      [1, 4, 0, 3, 1, 4, 0, 3],
+      [5, 1, 1, 1, 2, 3, 3, 3],
+      [2, 3, 4, 5, 0, 1, 2, 0],
+      [4, 0, 2, 1, 3, 5, 0, 4],
+      [1, 3, 5, 0, 4, 2, 1, 5],
+      [3, 4, 0, 2, 1, 3, 5, 0],
+    ],
+    specials: [
+      { row: 6, col: 5, type: 'bomb' },
+      { row: 5, col: 0, type: 'line' },
+    ],
+    steps() {
+      // Real multipliers + scores, straight from the core functions.
+      const comboA = getMultiplier(3);      // 2.5  (3 matches this turn)
+      const comboB = getMultiplier(4);      // 3.0  (4th match via cascade)
+      const cascA = getCascadeMultiplier(2); // 1.5 (special fires at depth 2)
+      const cascB = getCascadeMultiplier(3); // 2.0 (special fires at depth 3)
+      const sMatch3 = 3 * Math.floor(3 * MATCH_POINTS_PER_TILE * comboA); // 225
+      const sCascadeMatch = Math.floor(3 * MATCH_POINTS_PER_TILE * comboB); // 90
+      const sBomb = Math.floor(BOMB_POINTS * cascA);                       // 1125
+      const lineTiles = 8;
+      const sLine = Math.floor(lineTiles * LINE_POINTS_PER_TILE * cascB);  // 480
+      return [
+        { type: 'pause', dur: T.pause },
+        // BEAT 1 — combo: one swap lands three matches at once.
+        { type: 'hand', to: { row: 1, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 2, col: 3 }, to: { row: 1, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[1, 1], [1, 2], [1, 3], [1, 5], [1, 6], [1, 7], [3, 1], [3, 2], [3, 3]],
+          score: sMatch3, combo: { matches: 3, mult: comboA },
+          popup: { text: '3 matches at once!', color: '#667eea' }, dur: T.clear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        // BEAT 2 — combo climbs: tiles fall into a new match (clearing again).
+        { type: 'clear', cells: [[3, 5], [3, 6], [3, 7]],
+          score: sCascadeMatch, combo: { matches: 4, mult: comboB },
+          popup: { text: 'Cascade — combo climbs!', color: '#667eea' }, dur: T.clear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        // BEAT 3 — cascade: a bomb fires in a later round.
+        { type: 'blast', shape: 'bomb', center: { row: 6, col: 5 },
+          score: sBomb, combo: null,
+          popup: { text: `🔥 CASCADE x${cascA.toFixed(1)}! 💣 BOOM! +${sBomb}`, color: '#FF7043' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        // BEAT 4 — cascade climbs: the bomb sets off a line, deeper still.
+        { type: 'rowclear', row: 5,
+          score: sLine,
+          popup: { text: `🔥 CASCADE x${cascB.toFixed(1)}! ⚡ LINE CLEAR! +${sLine}`, color: '#00E5FF' }, dur: T.rowclear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
 };
 
 // =============================================================================
 // TutorialCanvas — plays one panel's timeline on a canvas.
 // =============================================================================
-function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish }) {
+function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultiplier }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -430,7 +508,13 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish }) {
       raf: 0,
       done: false,
     };
+    // Pre-place any specials the panel uses as cascade vehicles (panel 7).
+    (panel.specials || []).forEach(({ row, col, type }) => {
+      const t = S.tiles.find(tt => tt.row === row && tt.col === col);
+      if (t) t.special = type;
+    });
     onScore(0);
+    if (onMultiplier) onMultiplier(null);
 
     const parkHand = () => {
       S.hand.visible = false;
@@ -482,6 +566,8 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish }) {
       S.stepStart = performance.now();
       if (i >= S.steps.length) { S.done = true; onFinish(); return; }
       const step = S.steps[i];
+      // Combo/multiplier readout (panel 7) — a step may set or clear it.
+      if (step.combo !== undefined && onMultiplier) onMultiplier(step.combo);
       switch (step.type) {
         case 'hand': {
           const cc = center(step.to.row, step.to.col);
@@ -609,7 +695,7 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish }) {
 
     S.raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(S.raf);
-  }, [panel, replayKey, onScore, onPopup, onFinish]);
+  }, [panel, replayKey, onScore, onPopup, onFinish, onMultiplier]);
 
   return <canvas ref={canvasRef} style={{ borderRadius: '10px', display: 'block' }} />;
 }
@@ -624,15 +710,17 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const [score, setScore] = useState(0);
   const [popup, setPopup] = useState(null);
   const [finished, setFinished] = useState(false);
+  const [mult, setMult] = useState(null);
 
   const panel = panels[index];
 
   const handleScore = useCallback((v) => setScore(v), []);
   const handlePopup = useCallback((p) => setPopup({ ...p, key: Date.now() }), []);
   const handleFinish = useCallback(() => setFinished(true), []);
+  const handleMultiplier = useCallback((m) => setMult(m), []);
 
-  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setFinished(false); setReplayKey(k => k + 1); };
-  const replay = () => { setScore(0); setPopup(null); setFinished(false); setReplayKey(k => k + 1); };
+  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setFinished(false); setReplayKey(k => k + 1); };
+  const replay = () => { setScore(0); setPopup(null); setMult(null); setFinished(false); setReplayKey(k => k + 1); };
 
   if (!panel) return null;
 
@@ -670,10 +758,21 @@ export default function Tutorial({ sections, config = {}, onClose }) {
           >✕</button>
         </div>
 
-        {/* Live score */}
-        <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '6px' }}>
+        {/* Live score + combo multiplier readout (panel 7, decision C: honest
+            points multiplier + match count, not the game's x{count+1} headline) */}
+        <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '2px' }}>
           Score: <span style={{ color: '#667eea' }}>{score}</span>
+          {mult && (
+            <span style={{ marginLeft: '12px', fontSize: '16px', color: '#e8590c' }}>
+              🔥 {mult.matches} matches · ×{mult.mult.toFixed(1)} pts
+            </span>
+          )}
         </div>
+        {panel.reference && (
+          <div style={{ textAlign: 'center', fontSize: '12px', color: '#999', marginBottom: '6px' }}>
+            {panel.reference}
+          </div>
+        )}
 
         {/* Demo board + popup overlay */}
         <div style={{ position: 'relative', width: `${FOOTPRINT}px`, maxWidth: '100%', margin: '0 auto' }}>
@@ -683,6 +782,7 @@ export default function Tutorial({ sections, config = {}, onClose }) {
             onScore={handleScore}
             onPopup={handlePopup}
             onFinish={handleFinish}
+            onMultiplier={handleMultiplier}
           />
           {popup && (
             <div
