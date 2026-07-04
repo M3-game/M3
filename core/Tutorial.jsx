@@ -40,7 +40,7 @@
 //    (row clear) — never by tapping the special alone.
 // =============================================================================
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { drawTile, drawSpecialIcon } from './tileDrawing.js';
 // Real scoring math (same source the game uses) so panel 7's numbers are the
 // TRUE in-game scores, not illustrative. See docs/verses/tutorial-storyboard.md
@@ -1008,6 +1008,27 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const handleLadder = useCallback((entry) => setLadder(prev => (entry ? [...prev, entry] : [])), []);
   const handleReveal = useCallback((i) => setRevealed(i), []);
 
+  // Responsive fit: the modal has a fixed natural size (the demo board is a
+  // fixed-pixel canvas), which is fine on a tablet but overflows a phone
+  // viewport. Measure the box's natural (un-transformed) size and scale the
+  // whole box down to fit. On wide screens the scale is 1 → tablet unchanged.
+  const boxRef = useRef(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const compute = () => {
+      const el = boxRef.current;
+      if (!el) return;
+      // offsetWidth/Height report the layout size, unaffected by the transform,
+      // so measuring never feeds back into the computed scale.
+      const availW = window.innerWidth - 20;
+      const availH = window.innerHeight - 20;
+      setScale(Math.min(1, availW / el.offsetWidth, availH / el.offsetHeight));
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, [index]); // panel heights differ (e.g. the V2 still) — recompute per panel
+
   const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setLadder([]); setRevealed(0); setFinished(false); setReplayKey(k => k + 1); };
   const replay = () => { setScore(0); setPopup(null); setMult(null); setLadder([]); setRevealed(0); setFinished(false); setReplayKey(k => k + 1); };
 
@@ -1025,13 +1046,16 @@ export default function Tutorial({ sections, config = {}, onClose }) {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 4000, fontFamily: 'Arial, sans-serif', padding: '16px',
+        overflow: 'hidden',
       }}
     >
       <div
+        ref={boxRef}
         onClick={e => e.stopPropagation()}
         style={{
           background: '#fff', borderRadius: '18px', padding: '18px 22px 16px',
-          width: `${FOOTPRINT + 56}px`, maxWidth: '95vw',
+          width: `${FOOTPRINT + 56}px`,
+          transform: `scale(${scale})`, transformOrigin: 'center center',
           boxShadow: '0 18px 50px rgba(0,0,0,0.4)', position: 'relative',
         }}
       >
