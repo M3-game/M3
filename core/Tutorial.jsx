@@ -170,6 +170,19 @@ const tileAt = (tiles, row, col) => tiles.find(t => t.row === row && t.col === c
 //   rowclear { row, extra, score, popup }     a line special clears its row
 // Type 2 = green clover, type 3 = gold star (used for the scripted matches).
 // =============================================================================
+// Run-free 8×8 filler for the fusion panel (panel 8). The two specials are
+// overlaid at (4,3)+(4,4); the tile colors underneath are just backdrop.
+const FUSION_BOARD = [
+  [0, 1, 2, 3, 4, 5, 0, 1],
+  [2, 3, 4, 5, 0, 1, 2, 3],
+  [4, 5, 0, 1, 2, 3, 4, 5],
+  [0, 1, 2, 3, 4, 5, 0, 1],
+  [2, 3, 4, 5, 0, 1, 2, 3],
+  [4, 5, 0, 1, 2, 3, 4, 5],
+  [0, 1, 2, 3, 4, 5, 0, 1],
+  [2, 3, 4, 5, 0, 1, 2, 3],
+];
+
 const PANELS = {
   // --- Panel 1: basic match (3) ------------------------------------------
   // Greens (2) at (4,1),(4,2) with a green waiting at (3,3); the only available
@@ -483,12 +496,59 @@ const PANELS = {
       ];
     },
   },
+
+  // --- Panel 8: fusion (finale) — DRAFT, 8×8 -----------------------------
+  // The last shared panel. Shows THREE fusions in ascending order so the player
+  // learns fusion SCALES with the specials combined. Each runs on a FRESH board
+  // (a `setup` step resets between them — a fusion's blast would otherwise wipe
+  // out the next demo's specials, which the user flagged). Real popups + points
+  // (from the game's activateSpecialCombination). A climbing "fusion ladder"
+  // tally keeps all three values in one view. Explicit clear footprints per the
+  // real effects: line+line = row + column; bomb+bomb = 7×7 + row + col; nova =
+  // (near) the whole board. DRAFT — first on-screen version, tune in review.
+  'fusion': {
+    id: 'fusion',
+    title: 'Fusion',
+    caption: 'Fusion is swapping two special tiles into each other — they combine into one blast. The bigger the specials, the bigger the result: from a solid +700 to a board-clearing +8000. (Different from a cascade: here you deliberately combine two specials.)',
+    board: FUSION_BOARD,
+    specials: [
+      { row: 4, col: 3, type: 'line' },
+      { row: 4, col: 4, type: 'line' },
+    ],
+    steps() {
+      const N = FUSION_BOARD.length;
+      const all = [];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) all.push([r, c]);
+      const cross = (rr, cc) => all.filter(([r, c]) => r === rr || c === cc);
+      const mega = (rr, cc) => all.filter(([r, c]) => (Math.abs(r - rr) <= 3 && Math.abs(c - cc) <= 3) || r === rr || c === cc);
+      const twoSpecials = (t1, t2) => [{ row: 4, col: 3, type: t1 }, { row: 4, col: 4, type: t2 }];
+      // One fusion demo: (reset board, except the first) → hand swaps the two
+      // specials together → the combined blast, with its real popup + ladder entry.
+      const fuse = (t1, t2, cells, text, points, label, reset) => [
+        ...(reset ? [{ type: 'setup', grid: FUSION_BOARD, specials: twoSpecials(t1, t2), dur: T.form }] : []),
+        { type: 'pause', dur: T.pause },
+        { type: 'hand', to: { row: 4, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 4, col: 3 }, to: { row: 4, col: 4 }, dur: T.drag },
+        { type: 'clear', cells, score: points,
+          ladder: { label, points },
+          highlights: [{ r1: 4, c1: 3, r2: 4, c2: 4 }],
+          popup: { text, color: '#FFD700', pos: 'bottom' }, dur: T.rowclear },
+        { type: 'pause', dur: T.pause },
+      ];
+      return [
+        { type: 'pause', dur: T.pause },
+        ...fuse('line', 'line', cross(4, 4), '⚡⚡ DOUBLE LINE! +700', 700, 'Line + Line', false),
+        ...fuse('bomb', 'bomb', mega(4, 4), '💣💣 MEGA BLAST! +1500', 1500, 'Bomb + Bomb', true),
+        ...fuse('hypernova', 'supernova', all, '🌠🌌 NOVA FUSION! +8000', 8000, 'Nova fusion', true),
+      ];
+    },
+  },
 };
 
 // =============================================================================
 // TutorialCanvas — plays one panel's timeline on a canvas.
 // =============================================================================
-function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultiplier }) {
+function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -526,6 +586,7 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
     });
     onScore(0);
     if (onMultiplier) onMultiplier(null);
+    if (onLadder) onLadder(null);
 
     const parkHand = () => {
       S.hand.visible = false;
@@ -579,6 +640,8 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
       const step = S.steps[i];
       // Combo/multiplier readout (panel 7) — a step may set or clear it.
       if (step.combo !== undefined && onMultiplier) onMultiplier(step.combo);
+      // Fusion ladder (panel 8): a step may append a completed fusion to the tally.
+      if (step.ladder && onLadder) onLadder(step.ladder);
       // Attention highlights (panel 7): a step may box the match(es) it clears.
       // Each entry is { r1, c1, r2, c2 } (a tile-cell bounding box); reset each step.
       S.highlights = (step.highlights || []).map(h => ({ ...h, start: performance.now() }));
@@ -638,6 +701,22 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
           break;
         }
         case 'gravity': { applyGravity(); break; }
+        // Board reset (panel 8 fusion): swap in a fresh board + specials so each
+        // fusion demo runs on a clean board (their blasts would otherwise wipe
+        // out the next demo's specials).
+        case 'setup': {
+          parkHand();
+          S.tiles = buildTilesFromGrid(step.grid);
+          (step.specials || []).forEach(({ row, col, type }) => {
+            const t = S.tiles.find(tt => tt.row === row && tt.col === col);
+            if (t) t.special = type;
+          });
+          S.highlights = [];
+          // Fresh board → fresh score, so each fusion shows its own value; the
+          // ladder tally carries the running escalation.
+          S.scoreTarget = 0; S.scoreShown = 0; onScore(0);
+          break;
+        }
         default: break;
       }
     };
@@ -734,7 +813,7 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
 
     S.raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(S.raf);
-  }, [panel, replayKey, onScore, onPopup, onFinish, onMultiplier]);
+  }, [panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder]);
 
   return <canvas ref={canvasRef} style={{ borderRadius: '10px', display: 'block' }} />;
 }
@@ -750,6 +829,7 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const [popup, setPopup] = useState(null);
   const [finished, setFinished] = useState(false);
   const [mult, setMult] = useState(null);
+  const [ladder, setLadder] = useState([]);
 
   const panel = panels[index];
 
@@ -757,9 +837,10 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const handlePopup = useCallback((p) => setPopup({ ...p, key: Date.now() }), []);
   const handleFinish = useCallback(() => setFinished(true), []);
   const handleMultiplier = useCallback((m) => setMult(m), []);
+  const handleLadder = useCallback((entry) => setLadder(prev => (entry ? [...prev, entry] : [])), []);
 
-  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setFinished(false); setReplayKey(k => k + 1); };
-  const replay = () => { setScore(0); setPopup(null); setMult(null); setFinished(false); setReplayKey(k => k + 1); };
+  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setLadder([]); setFinished(false); setReplayKey(k => k + 1); };
+  const replay = () => { setScore(0); setPopup(null); setMult(null); setLadder([]); setFinished(false); setReplayKey(k => k + 1); };
 
   if (!panel) return null;
 
@@ -822,7 +903,23 @@ export default function Tutorial({ sections, config = {}, onClose }) {
             onPopup={handlePopup}
             onFinish={handleFinish}
             onMultiplier={handleMultiplier}
+            onLadder={handleLadder}
           />
+          {/* Fusion ladder (panel 8): climbing tally so the +700 → +1500 →
+              +8000 escalation is visible in one view. */}
+          {ladder.length > 0 && (
+            <div style={{
+              position: 'absolute', left: '10px', top: '10px', zIndex: 6, pointerEvents: 'none',
+              background: 'rgba(0,0,0,0.82)', borderRadius: '10px', padding: '8px 12px', minWidth: '158px',
+            }}>
+              <div style={{ color: '#FFD700', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>Fusion ladder</div>
+              {ladder.map((e, i) => (
+                <div key={i} style={{ color: '#fff', fontSize: '13px', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                  <span>{e.label}</span><span style={{ color: '#FFD54F', fontWeight: 700 }}>+{e.points}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {popup && (
             <div
               key={popup.key}
