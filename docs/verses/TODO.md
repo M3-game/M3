@@ -16,7 +16,7 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | ~~8~~ | ~~Nova-drop timing fix (sandbox first, then main)~~ — **SHIPPED 2026-05-25 (sandbox v1.6)** | ✅ | S |
 | ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
 | ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
-| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18). Session 2 shipped 2026-06-27 (`core/Tutorial.jsx` + tablet v11.19): 2 of 8 shared panels (basic match, line special). Session 3 shipped 2026-07-03: panels 3–6 (v11.21); scoring extraction (v11.22); panel 7 multipliers (v11.24); panel 8 fusion (v11.26) — **ALL 8 shared panels done on tablet arcade.** Session 4 shipped 2026-07-04: **PORT to tablet-verses (v2.0)** — shared modal wired in + the two verses-only panels built (V1 reveal-the-verse with Genesis 1:1, V2 target/moves) + opt-in "Tutorial" link on the passage-selection screen. Session 5 shipped 2026-07-04: **PORT to phone-verses (v2.0)** + responsive scaling in `core/Tutorial.jsx` so the modal fits a phone viewport. Next ports: sandbox → campaign (campaign adds the progression mini-tutorial).** | 🚧 (all panels done; tablet-verses + phone-verses ported; sandbox next) | L |
+| 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18). Session 2 shipped 2026-06-27 (`core/Tutorial.jsx` + tablet v11.19): 2 of 8 shared panels (basic match, line special). Session 3 shipped 2026-07-03: panels 3–6 (v11.21); scoring extraction (v11.22); panel 7 multipliers (v11.24); panel 8 fusion (v11.26) — **ALL 8 shared panels done on tablet arcade.** Session 4 shipped 2026-07-04: **PORT to tablet-verses (v2.0)** — shared modal wired in + the two verses-only panels built (V1 reveal-the-verse with Genesis 1:1, V2 target/moves) + opt-in "Tutorial" link on the passage-selection screen. Session 5 shipped 2026-07-04: **PORT to phone-verses (v2.0)** + responsive scaling in `core/Tutorial.jsx` so the modal fits a phone viewport. **DONE for the useful scope** — all 10 panels live on both verses platforms. Remaining sandbox + campaign ports carved out (not queued) — see Details.** | ✅ (done for useful scope; sandbox + campaign ports carved out) | L |
 | 10 | **Reward mode** — arcade reward round in **both tablet + phone arcades**; verses inherits it via the "Arcade mode" handoff. Phone needs its own enhancements (TBD in sandbox) → separate phone/tablet reward-level versions. Merges Session I; replaces the old verses-internal #10. | 📋 | XL (sandbox scoping) |
 | 9 | **Simulation modes** (one-ply + Monte Carlo) — also informs reward-level tuning + the item-(b) target multiplier | 📋 | L |
 | 11 | **Persistent progress** across browser refreshes | 📋 | M-L (TBD) |
@@ -159,6 +159,24 @@ Scope set 2026-06-23. Build **one portable, reusable tutorial component**
 designed to drop into any platform. **F-3 (campaign animated tutorials)
 is subsumed:** campaign reuses this shared component and adds only a
 small campaign-specific progression mini-tutorial on top.
+
+**▶ Ports status (2026-07-04): DONE for the useful scope.** All 10 panels
+(8 shared match panels + V1 reveal-the-verse + V2 target/moves) are built and
+live on the two platforms players actually use — **tablet-verses v2.0** and
+**phone-verses v2.0**. The two remaining ports are carved out and **not queued**:
+
+- **Sandbox tutorial port — not queued.** The tutorial lives in shared
+  `core/Tutorial.jsx`, so tweaks are made there and seen immediately on
+  tablet-verses / phone-verses. Potential future use (user, 2026-07-04): a
+  **dev-mode sandbox** as a place to try different versions of the tutorial or
+  additional content. The button itself isn't the point — the value would be
+  the experimentation space. Revisit if/when that kind of experimentation
+  becomes useful; otherwise a tutorial is not needed in the dev-focused sandbox
+  mode.
+- **Campaign tutorial port — blocked on product direction, not engineering.** A
+  campaign "progression mini-tutorial" can't be designed until it's decided what
+  campaign mode is *for*. Parked; revisit only alongside the campaign-direction
+  decision captured in `DEFERRED.md` ("Campaign mode — what is it for?").
 
 **Content split (shared vs. platform-specific):**
 - **Shared (every platform):** how matching works · 4/5-match → special

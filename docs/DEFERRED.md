@@ -461,6 +461,17 @@ touches it next.
   - L4: cascade chain
   - L5: bonus-move earning
   - L6: 6-match supernova + 7-match hypernova
+- **Campaign mode — what is it for? (product direction).** Surfaced 2026-07-04
+  while deferring the tutorial's campaign port. Campaign has always been a
+  work-in-progress that isn't fun or interesting enough to return to regularly,
+  and Verses currently carries the greater value. User's read (2026-07-04):
+  campaign could serve as a **home for a narrative or story** — that's the
+  direction that would give it a distinct reason to exist and justify renewed
+  investment. (Note: campaign was *never* headed toward memorization; that's the
+  Verses lane.) Until this direction is chosen, campaign work stays parked —
+  including the campaign tutorial panel (the "progression mini-tutorial" in
+  verses TODO #4), which can't be designed until campaign's purpose is settled.
+  This is the real blocker behind the parked campaign tutorial port.
 - **Campaign entry screen** — a pre-level-select landing screen with campaign
   branding, best-run display, and a "Play" CTA. Today the level select *is*
   the entry. Low priority.
