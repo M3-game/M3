@@ -17,6 +17,7 @@ Status key: **📋 planned** · **🚧 in flight** · **✅ shipped** · **🧊 
 | ~~12~~ | ~~Mech C bias-spike survives invalid-swap (sandbox)~~ — **SHIPPED 2026-05-25 (sandbox v1.7)** | ✅ | S |
 | ~~6~~ | ~~Port sandbox enhancements to main~~ — **SHIPPED 2026-05-25 (phone-verses v1.8). Tablet-verses deferred.** | ✅ | M-L |
 | 4 | **Tutorial** — portable animated tutorial (shared `core/` component) covering match concepts + a verses-specific scoring-target & move-ceiling explainer + a campaign progression mini-tutorial. Subsumes F-3. **Session 1 shipped 2026-06-23 (drawing → `core/`, tablet v11.18). Session 2 shipped 2026-06-27 (`core/Tutorial.jsx` + tablet v11.19): 2 of 8 shared panels (basic match, line special). Session 3 shipped 2026-07-03: panels 3–6 (v11.21); scoring extraction (v11.22); panel 7 multipliers (v11.24); panel 8 fusion (v11.26) — **ALL 8 shared panels done on tablet arcade.** Session 4 shipped 2026-07-04: **PORT to tablet-verses (v2.0)** — shared modal wired in + the two verses-only panels built (V1 reveal-the-verse with Genesis 1:1, V2 target/moves) + opt-in "Tutorial" link on the passage-selection screen. Session 5 shipped 2026-07-04: **PORT to phone-verses (v2.0)** + responsive scaling in `core/Tutorial.jsx` so the modal fits a phone viewport. **DONE for the useful scope** — all 10 panels live on both verses platforms. Remaining sandbox + campaign ports carved out (not queued) — see Details.** | ✅ (done for useful scope; sandbox + campaign ports carved out) | L |
+| BM | **Use bonus moves in verses** — bonus moves were earned + shown in verses but unspendable there. Now usable: LOSS drops the arcade "Use bonus moves / End and carry" banner (keep playing toward target); WIN adds a "Use bonus moves" button to the passage screen (keeps 1.5× victory round). Loss-path bonus play stays 1× (decision 4). **Tablet-verses shipped v2.2 (Session 7, 2026-07-04). Phone-verses + sandbox ports PENDING** — same structural change; end-of-round + bonus code is near-identical across the three. See Details. | 🚧 (tablet shipped; 2 ports pending) | M (per port) |
 | 10 | **Reward mode** — arcade reward round in **both tablet + phone arcades**; verses inherits it via the "Arcade mode" handoff. Phone needs its own enhancements (TBD in sandbox) → separate phone/tablet reward-level versions. Merges Session I; replaces the old verses-internal #10. | 📋 | XL (sandbox scoping) |
 | 9 | **Simulation modes** (one-ply + Monte Carlo) — also informs reward-level tuning + the item-(b) target multiplier | 📋 | L |
 | 11 | **Persistent progress** across browser refreshes | 📋 | M-L (TBD) |
@@ -43,6 +44,40 @@ target, no Mech A/B/C/D). Track as a future port pass when there's
 appetite.
 
 ## Details
+
+### 🚧 BM — Use bonus moves in verses
+
+**Scope set + tablet-verses shipped 2026-07-04 (Session 7, v2.1 → v2.2).**
+Bonus moves are earned (shared wallet with arcade) and shown in the verses
+header, but until now could not be spent inside a verses game — the arcade
+"use bonus moves" flow was suppressed under `VERSES_MODE`. Now wired in.
+
+**Behavior (decisions locked with user 2026-07-04):**
+- **Loss (0 moves, below target):** instead of jumping to the passage screen,
+  the arcade banner drops down over the still-visible board ("⚠️ Out of moves!
+  / Use bonus moves / End and carry moves forward"). "Use bonus moves" resumes
+  play (each swap draws from the wallet; the passage stays fully revealed since
+  the reveal is tied to regular moves, which stay at 0). The in-header "End and
+  carry" button (with below-target confirm) ends the round → passage screen.
+- **Win (0 moves, at/above target):** the passage screen appears with an added
+  "Use bonus moves" button (only when the wallet is non-zero). Clicking it
+  returns to the board with the 1.5× victory round still on; ending re-opens the
+  passage screen.
+- **Completion:** reaching target on bonus moves completes the level (stars +
+  next-level unlock).
+- **Decision 4 (victory round):** a victory round already active on a WIN is
+  kept (leftover novas pop at 1.5×). On a LOSS, crossing target during bonus
+  moves completes the level but does NOT switch the 1.5× on (and the "Target
+  reached — 1.5×!" toast is suppressed on that path). It wasn't a victory
+  earned in regular play.
+
+**Remaining: PORT to phone-verses (v2.1 → v2.2) and phone-verses-sandbox
+(v1.11 → v1.12).** Same structural change — the verses end-of-round effect, the
+3 input-freeze guards, `endLevelCarryBonus` (VERSES branch), a new
+`resumeBonusFromPassage` handler, the passage-screen button matrix, and the
+target→victory-round loss-path guard. The bonus-move + end-of-round code is
+near-identical across the three platforms, so the port is mechanical; re-verify
+line numbers per file. Tablet-first pilot done; port when ready.
 
 ### ✅ #8 — Nova-drop timing fix (sandbox)
 
