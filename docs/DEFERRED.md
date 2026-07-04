@@ -1365,6 +1365,22 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Verses bug fix — first-move line reveal skipped + single-level
+  end-of-round freeze (one root cause).** 2026-07-04 (Session 6).
+  Player-reported. Two symptoms: (1) after the first move the second line
+  never appeared (only the first move affected); (2) single-level games
+  froze at 0 moves with no end screen. Root cause: the "Begin game"
+  handler and the "Play again" restart path reset the reveal tracker
+  `prevMovesRef` to `null` while `setMoves(versesLevel.moves)` was a no-op
+  in the default 1× case (moves already equalled that value) — so the
+  reveal effect never re-ran, `prevMovesRef` stayed null into play, and
+  the first move's reveal hit the `prevMovesRef !== null` guard and was
+  skipped. That left every reveal one line behind, and at moves=0 the
+  final line was never marked revealed so the end-of-round modal's
+  `revealedChunkIndex < totalChunks - 1` guard never released (the
+  freeze). Fix: set `prevMovesRef.current = versesLevel.moves` at both
+  touch points instead of null. 3 platform bumps: tablet-verses v2.0→v2.1,
+  phone-verses v2.0→v2.1, phone-verses-sandbox v1.10→v1.11. Build clean.
 - **Bonus-move shared wallet — Verses ⇄ Arcade (update-list item a).**
   2026-06-20. Bonus moves became a single persistent wallet shared
   between Verses and Arcade per device family (Phone Verses ⇄ Phone

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Match3Verses from '../platforms/tablet-verses/match3-v2.0-tablet-verses.jsx'
+import Match3Verses from '../platforms/tablet-verses/match3-v2.1-tablet-verses.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
