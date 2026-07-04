@@ -511,6 +511,7 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
       scoreShown: 0,
       raf: 0,
       done: false,
+      highlights: [],  // attention boxes drawn around matches as they clear
     };
     // Pre-place any specials the panel uses as cascade vehicles (panel 7).
     (panel.specials || []).forEach(({ row, col, type }) => {
@@ -572,6 +573,9 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
       const step = S.steps[i];
       // Combo/multiplier readout (panel 7) — a step may set or clear it.
       if (step.combo !== undefined && onMultiplier) onMultiplier(step.combo);
+      // Attention highlights (panel 7): a step may box the match(es) it clears.
+      // Each entry is { r1, c1, r2, c2 } (a tile-cell bounding box); reset each step.
+      S.highlights = (step.highlights || []).map(h => ({ ...h, start: performance.now() }));
       switch (step.type) {
         case 'hand': {
           const cc = center(step.to.row, step.to.col);
@@ -692,6 +696,27 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
       // Draw stationary tiles first, the carried tile on top.
       S.tiles.forEach(t => { if (!t.dragging) paintTile(t, now); });
       S.tiles.forEach(t => { if (t.dragging) paintTile(t, now); });
+
+      // Attention boxes around the just-matched group(s), fading as they clear.
+      S.highlights.forEach(h => {
+        const age = now - h.start;
+        const alpha = Math.max(0, 1 - age / (T.clear * 1.1));
+        if (alpha <= 0) return;
+        const pad = 3;
+        const x = o + h.c1 * CELL - pad;
+        const y = o + h.r1 * CELL - pad;
+        const w = (h.c2 - h.c1) * CELL + DEMO_TILE + pad * 2;
+        const hh = (h.r2 - h.r1) * CELL + DEMO_TILE + pad * 2;
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 214, 10, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = `rgba(255, 214, 10, ${alpha * 0.8})`;
+        ctx.shadowBlur = 10;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, hh, 8); ctx.stroke(); }
+        else ctx.strokeRect(x, y, w, hh);
+        ctx.restore();
+      });
+
       drawHand();
 
       if (!S.done) S.raf = requestAnimationFrame(frame);
@@ -792,7 +817,9 @@ export default function Tutorial({ sections, config = {}, onClose }) {
             <div
               key={popup.key}
               style={{
-                position: 'absolute', left: '50%', top: '42%', transform: 'translate(-50%,-50%)',
+                position: 'absolute', left: '50%',
+                top: popup.pos === 'top' ? '13%' : popup.pos === 'bottom' ? '85%' : '42%',
+                transform: 'translate(-50%,-50%)',
                 color: popup.color || '#FFD700', fontWeight: 900, fontSize: '20px', whiteSpace: 'nowrap',
                 background: 'rgba(0,0,0,0.9)', padding: '8px 14px', borderRadius: '10px',
                 border: `2px solid ${popup.color || '#FFD700'}`, boxShadow: '0 0 20px rgba(255,215,0,0.6)',
