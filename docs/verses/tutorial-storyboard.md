@@ -343,11 +343,39 @@ may be additional items next session. Popup-placement + highlight (5+9) and the
 
 ---
 
+## Verses-only tutorial panels (scoped 2026-07-03)
+
+For tablet-verses (and the phone-verses / sandbox ports that inherit it). These
+run AFTER the 8 shared match panels — learn to play, then learn the verses
+layer. Tutorial button lives on the **"Begin" passage screen** (not the header);
+dots-navigable. **Two panels:**
+
+**V1 — Reveal the verse** — lightly ANIMATED (one match → the next line fades
+into the rolling text bar). The core memorize mechanic. Needs a small **new
+panel type** in `core/Tutorial.jsx` (a rolling-chunk-bar demo, distinct from the
+match-animation panels).
+> "In Verses, every match reveals the next line of the passage. The first line
+> starts visible; each match uncovers the next — so you read and memorize as you
+> play."
+
+**V2 — The target & your moves** — STATIC labeled still (target + move counter
+highlighted). Folds in how the target is figured + the move ceiling + replay.
+> "The target score is based on the passage's length — the longer the passage,
+> the higher the target. You get one move per line of text to reveal; reach the
+> target before the passage completes. You can play through a level multiple
+> times as a single game, to help memorization."
+
+**Notes:** the target is explained CONCEPTUALLY (scales with length), NOT the
+exact `moves × 300` formula — beginner-friendly + drift-proof; add the number at
+build if wanted. Use a real sample passage's chunks for the V1 illustration.
+"line" (not "piece"/"chunk") is the player-facing word.
+
+---
+
 ## Still open — NOT yet storyboarded (next scoping)
 
-- **Verses-only panels:** how the target score is set (tiered length ×
-  multiplier), the "play 2–4×" drill + 60-move ceiling, chunk reveals /
-  memorization. (Static panels, per TODO #4.)
+- ~~**Verses-only panels**~~ — **✅ SCOPED 2026-07-03** (2 panels: V1 reveal
+  mechanic + V2 target/moves). See "Verses-only tutorial panels" section above.
 - **Campaign-only panel:** level progression + unlock gating.
 - **Modal flow / navigation:** how the player moves between panels (Next/Back,
   progress dots), skip/close behavior, and confirming tablet arcade's pre-game
