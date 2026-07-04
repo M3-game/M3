@@ -370,6 +370,32 @@ exact `moves × 300` formula — beginner-friendly + drift-proof; add the number
 build if wanted. Use a real sample passage's chunks for the V1 illustration.
 "line" (not "piece"/"chunk") is the player-facing word.
 
+### Build plan — tablet-verses port (locked 2026-07-04)
+
+Recovered/confirmed after a prior scoping pass that was under-documented. These
+are the settled decisions for building the tablet-verses tutorial port:
+
+1. **V1 (reveal the verse).** Sample passage = **Genesis 1:1** (short, universal,
+   chunks cleanly). Build it to look **as close to the real verses game as
+   possible** — reuse the actual rolling text-bar look (same fonts, same reveal
+   animation), not a rough mock. Needs the new rolling-text-bar panel type in
+   `core/Tutorial.jsx`.
+2. **Sample text location.** Genesis 1:1 is written **once inside the shared
+   `core/Tutorial.jsx`**, so every verses platform (tablet-verses, phone-verses,
+   sandbox) shows the same sample automatically. Platforms do NOT each pass their
+   own sample verse.
+3. **V2 (target & moves).** Plain wording only — "the longer the passage, the
+   higher the **target score**." No exact number/formula shown. Plus the
+   one-move-per-line rule and the replay-a-level-for-memorization point.
+4. **Trigger / button placement.** A small unobtrusive **"Tutorial"** link at the
+   **top-left of the passage-selection screen** ("Select a passage to begin"),
+   mirroring the top-left tutorial button on the tablet arcade header. (Refines
+   the earlier "Begin passage screen" note — the selection screen is the spot.)
+5. **Panel order.** The two verses panels run AFTER the 8 shared match panels.
+6. **Versioning.** One bump: tablet-verses **v1.17 → v1.18**, adding all 8 shared
+   panels + V1 + V2 in the same change. `core/Tutorial.jsx` edited in place to add
+   the two new panels. Later ports (phone-verses, sandbox) are their own bumps.
+
 ---
 
 ## Still open — NOT yet storyboarded (next scoping)
@@ -377,12 +403,18 @@ build if wanted. Use a real sample passage's chunks for the V1 illustration.
 - ~~**Verses-only panels**~~ — **✅ SCOPED 2026-07-03** (2 panels: V1 reveal
   mechanic + V2 target/moves). See "Verses-only tutorial panels" section above.
 - **Campaign-only panel:** level progression + unlock gating.
-- **Modal flow / navigation:** how the player moves between panels (Next/Back,
-  progress dots), skip/close behavior, and confirming tablet arcade's pre-game
-  flow to settle where the **"Tutorial"** button lives (pre-game screen vs.
-  header). Trigger is opt-in, never a forced modal (TODO #4).
-- **Component interface (Option A):** exactly what each platform passes the
-  shared component (ordered section list + per-platform values).
+- ~~**Modal flow / navigation.**~~ **✅ BUILT (not just scoped).** The modal in
+  `core/Tutorial.jsx` already has full navigation: a `‹ Back` button, clickable
+  progress dots (`goTo(i)`), `↻ Replay`, `Next ›`, and a top-right `×` close
+  (see `core/Tutorial.jsx` ~lines 947–983). Trigger stays opt-in, never a forced
+  modal (TODO #4).
+- ~~**Component interface (Option A).**~~ **✅ SETTLED for verses.** Each platform
+  passes the shared `Tutorial` component an ordered `sections` list of panel-id
+  strings plus `onClose` (tablet arcade: the 8 shared ids — see
+  `platforms/tablet/match3-v11.26-tablet.jsx` ~line 3146). Tablet-verses passes
+  the 8 shared ids + the two verses panel ids. The sample verse (Genesis 1:1) is
+  baked into `core/Tutorial.jsx`, not passed per-platform. Campaign's extra
+  progression panel is the only interface piece still open.
 - **Real-scoring core extraction:** lift the scoring functions into
   `core/gameLogic.js` when the multipliers panel is built.
 - **Exact copy polish + exact `×N` display format.**

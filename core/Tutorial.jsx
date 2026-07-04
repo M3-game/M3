@@ -543,12 +543,89 @@ const PANELS = {
       ];
     },
   },
+
+  // =========================================================================
+  // VERSES-ONLY PANELS (V1, V2) — used by the verses platforms only. They run
+  // AFTER the 8 shared match panels. See docs/verses/tutorial-storyboard.md
+  // "Verses-only tutorial panels" + "Build plan — tablet-verses port".
+  // =========================================================================
+
+  // --- V1: Reveal the verse ----------------------------------------------
+  // A real match board (as close to the game as possible) with a rolling
+  // text bar above it. The first line of Genesis 1:1 is pre-visible; each
+  // match uncovers the next line. Two scripted matches reveal chunks 1 and 2.
+  //   Match 1: greens (2) at (4,1),(4,2); drag the green at (3,3) DOWN into
+  //            (4,3) -> 3-across -> clear -> reveal "God created the heavens".
+  //   Match 2: gold stars (3) at (1,5),(3,5) with (2,5) a blue gap and a star
+  //            at (2,4); drag (2,4) RIGHT into (2,5) -> vertical 3 in col 5 ->
+  //            clear -> reveal "and the earth." Col 4/5 are untouched by
+  //            match 1's gravity (which only shifts cols 1-3), so the setup
+  //            survives. Board is run-free at start.
+  'verse-reveal': {
+    id: 'verse-reveal',
+    kind: 'verse-reveal',
+    title: 'Reveal the verse',
+    caption: 'In Verses, every match reveals the next line of the passage. The first line starts visible; each match uncovers the next — so you read and memorize as you play.',
+    verse: {
+      // NKJV, sourced verbatim from content/verses/genesis-1-1-5/game.js so the
+      // tutorial matches the real passage's line breaks exactly. Line 0 is
+      // pre-visible; each match reveals the next line. The reference shifts
+      // Gen. 1:1 -> Gen. 1:2 on line 3 (the first line of the next verse),
+      // mirroring how the game's text bar shows the reference per verse.
+      lines: [
+        { content: 'In the beginning God', reference: 'Gen. 1:1' },
+        { content: 'created the heavens and the earth.', reference: null },
+        { content: 'The earth was without form, and void;', reference: 'Gen. 1:2' },
+      ],
+    },
+    board: [
+      [0, 1, 2, 3, 4, 5],
+      [2, 3, 4, 5, 0, 3],
+      [4, 5, 0, 1, 3, 1],
+      [0, 1, 3, 2, 4, 3],
+      [1, 2, 2, 5, 0, 1],
+      [4, 5, 0, 1, 2, 3],
+    ],
+    steps() {
+      return [
+        { type: 'pause', dur: T.pause },
+        // Match 1 -> reveal line 2.
+        { type: 'hand', to: { row: 3, col: 3 }, dur: T.hand },
+        { type: 'drag', from: { row: 3, col: 3 }, to: { row: 4, col: 3 }, dur: T.drag },
+        { type: 'clear', cells: [[4, 1], [4, 2], [4, 3]], score: 60, reveal: 1, popup: { text: 'Match! +60', pos: 'top' }, dur: T.clear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+        // Match 2 -> reveal line 3.
+        { type: 'hand', to: { row: 2, col: 4 }, dur: T.hand },
+        { type: 'drag', from: { row: 2, col: 4 }, to: { row: 2, col: 5 }, dur: T.drag },
+        { type: 'clear', cells: [[1, 5], [2, 5], [3, 5]], score: 60, reveal: 2, popup: { text: 'Match! +60', pos: 'top' }, dur: T.clear },
+        { type: 'gravity', dur: T.gravity },
+        { type: 'pause', dur: T.pause },
+      ];
+    },
+  },
+
+  // --- V2: Target & moves -------------------------------------------------
+  // Static labeled still (no animation). Highlights the two numbers a verses
+  // player watches: the target score and the moves remaining. Wording stays
+  // conceptual (no exact formula) per the locked build plan; the sample
+  // numbers are illustrative only.
+  'target-moves': {
+    id: 'target-moves',
+    kind: 'target-moves',
+    title: 'Target & moves',
+    caption: 'The target score is based on the passage’s length — the longer the passage, the higher the target score. You get one move per line to reveal, so reach the target before the passage runs out. For some passages, there is an option to go through multiple times in a single game, to aid memorization.',
+    still: {
+      target: '3,600',
+      moves: '12',
+    },
+  },
 };
 
 // =============================================================================
 // TutorialCanvas — plays one panel's timeline on a canvas.
 // =============================================================================
-function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder }) {
+function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder, onReveal }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -672,6 +749,9 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
           step.cells.forEach(([r, c]) => { const t = tileAt(S.tiles, r, c); if (t) t.clearing = true; });
           if (step.score) S.scoreTarget += step.score;
           if (step.popup) onPopup(step.popup);
+          // V1 verses reveal: uncover the next line the instant the match clears
+          // (no delay — mirrors the game, where a successful swap reveals a line).
+          if (step.reveal !== undefined && onReveal) onReveal(step.reveal);
           break;
         }
         case 'form': {
@@ -813,9 +893,96 @@ function TutorialCanvas({ panel, replayKey, onScore, onPopup, onFinish, onMultip
 
     S.raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(S.raf);
-  }, [panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder]);
+  }, [panel, replayKey, onScore, onPopup, onFinish, onMultiplier, onLadder, onReveal]);
 
   return <canvas ref={canvasRef} style={{ borderRadius: '10px', display: 'block' }} />;
+}
+
+// Rolling text bar for the V1 verses panel — mirrors the real verses game's
+// text bar (Georgia serif, two-column reference/content grid, current line
+// emphasized, prior lines dimmed). Shows the current revealed line + up to two
+// prior lines. The reference is shown on the first line only.
+function VerseTextBar({ lines, revealed }) {
+  const start = Math.max(0, revealed - 2);
+  const rows = [];
+  for (let i = start; i <= revealed; i++) {
+    rows.push({ idx: i, content: lines[i].content, reference: lines[i].reference });
+  }
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.97)', borderRadius: '12px', padding: '12px 18px',
+      margin: '0 auto 10px', width: `${FOOTPRINT}px`, maxWidth: '100%', boxSizing: 'border-box',
+      fontFamily: 'Georgia, serif', display: 'flex', flexDirection: 'column',
+      justifyContent: 'flex-end', gap: '4px', minHeight: '86px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+    }}>
+      {rows.map(row => {
+        const isCurrent = row.idx === revealed;
+        return (
+          <div key={row.idx} style={{
+            display: 'grid', gridTemplateColumns: '84px 1fr', columnGap: '8px',
+            alignItems: 'baseline', color: isCurrent ? '#1a1a1a' : '#888',
+            fontSize: isCurrent ? '20px' : '15px', fontWeight: isCurrent ? 600 : 400,
+            lineHeight: 1.25, animation: isCurrent ? 'versesRevealIn 260ms ease-out' : 'none',
+          }}>
+            <span style={{ textAlign: 'left', fontStyle: 'italic', whiteSpace: 'nowrap', fontSize: '15px', color: '#999' }}>
+              {row.reference ? `(${row.reference})` : ''}
+            </span>
+            <span>{row.content}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Static still for the V2 verses panel — two highlighted chips showing where the
+// target score and the moves-remaining appear, so the player learns what to
+// watch. Sample numbers are illustrative only (wording stays conceptual).
+function TargetMovesStill({ still }) {
+  const chip = (border, bg) => ({
+    background: bg, borderRadius: '12px', padding: '12px 20px', textAlign: 'center',
+    border: `2px solid ${border}`, minWidth: '138px',
+  });
+  return (
+    <div style={{
+      width: `${FOOTPRINT}px`, maxWidth: '100%', height: `${FOOTPRINT}px`, margin: '0 auto',
+      borderRadius: '10px', background: '#fff', border: '1px solid #e6e6ef',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: '24px', fontFamily: 'Georgia, serif',
+    }}>
+      {/* The two numbers a verses player watches. */}
+      <div style={{ display: 'flex', gap: '18px' }}>
+        <div style={chip('#e0b400', '#fffaf0')}>
+          <div style={{ fontSize: '12px', color: '#a07d00', fontWeight: 700, letterSpacing: '0.5px' }}>TARGET SCORE</div>
+          <div style={{ fontSize: '30px', color: '#1a1a1a', fontWeight: 700, marginTop: '4px' }}>{still.target}</div>
+        </div>
+        <div style={chip('#4a90ff', '#f0f6ff')}>
+          <div style={{ fontSize: '12px', color: '#1c4fa0', fontWeight: 700, letterSpacing: '0.5px' }}>MOVES LEFT</div>
+          <div style={{ fontSize: '30px', color: '#1a1a1a', fontWeight: 700, marginTop: '4px' }}>{still.moves}</div>
+        </div>
+      </div>
+      {/* Replica of the start-of-round drill selector (the "Play this level"
+          buttons on the Begin screen) — shows the multiple-play option the
+          caption describes. Illustrative only (1× shown selected, not clickable). */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <div style={{ fontSize: '14px', color: '#555' }}>Play this level:</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[1, 2, 3, 4].map(n => {
+            const active = n === 1;
+            return (
+              <div key={n} style={{
+                padding: '8px 16px', fontSize: '15px', borderRadius: '8px',
+                border: active ? '2px solid #667eea' : '2px solid rgba(102,126,234,0.5)',
+                background: active ? '#667eea' : 'transparent',
+                color: active ? '#fff' : '#667eea', fontWeight: active ? 'bold' : 500,
+              }}>{n}×</div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // =============================================================================
@@ -830,6 +997,7 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const [finished, setFinished] = useState(false);
   const [mult, setMult] = useState(null);
   const [ladder, setLadder] = useState([]);
+  const [revealed, setRevealed] = useState(0); // V1 verses reveal: current line index
 
   const panel = panels[index];
 
@@ -838,9 +1006,10 @@ export default function Tutorial({ sections, config = {}, onClose }) {
   const handleFinish = useCallback(() => setFinished(true), []);
   const handleMultiplier = useCallback((m) => setMult(m), []);
   const handleLadder = useCallback((entry) => setLadder(prev => (entry ? [...prev, entry] : [])), []);
+  const handleReveal = useCallback((i) => setRevealed(i), []);
 
-  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setLadder([]); setFinished(false); setReplayKey(k => k + 1); };
-  const replay = () => { setScore(0); setPopup(null); setMult(null); setLadder([]); setFinished(false); setReplayKey(k => k + 1); };
+  const goTo = (i) => { setIndex(i); setScore(0); setPopup(null); setMult(null); setLadder([]); setRevealed(0); setFinished(false); setReplayKey(k => k + 1); };
+  const replay = () => { setScore(0); setPopup(null); setMult(null); setLadder([]); setRevealed(0); setFinished(false); setReplayKey(k => k + 1); };
 
   if (!panel) return null;
 
@@ -879,32 +1048,45 @@ export default function Tutorial({ sections, config = {}, onClose }) {
         </div>
 
         {/* Live score + combo multiplier readout (panel 7, decision C: honest
-            points multiplier + match count, not the game's x{count+1} headline) */}
-        <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '2px' }}>
-          Score: <span style={{ color: '#667eea' }}>{score}</span>
-          {mult && (
-            <span style={{ marginLeft: '12px', fontSize: '16px', color: '#e8590c' }}>
-              🔥 {mult.matches} matches · ×{mult.mult.toFixed(1)} pts
-            </span>
-          )}
-        </div>
+            points multiplier + match count, not the game's x{count+1} headline).
+            Hidden on the static V2 (target-moves) still, which has no score. */}
+        {panel.kind !== 'target-moves' && (
+          <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '2px' }}>
+            Score: <span style={{ color: '#667eea' }}>{score}</span>
+            {mult && (
+              <span style={{ marginLeft: '12px', fontSize: '16px', color: '#e8590c' }}>
+                🔥 {mult.matches} matches · ×{mult.mult.toFixed(1)} pts
+              </span>
+            )}
+          </div>
+        )}
         {panel.reference && (
           <div style={{ textAlign: 'center', fontSize: '12px', color: '#999', marginBottom: '6px' }}>
             {panel.reference}
           </div>
         )}
 
-        {/* Demo board + popup overlay */}
+        {/* V1 verses reveal: rolling text bar ABOVE the board (as in the game). */}
+        {panel.kind === 'verse-reveal' && (
+          <VerseTextBar lines={panel.verse.lines} revealed={revealed} />
+        )}
+
+        {/* Demo board (or the static V2 still) + popup overlay */}
         <div style={{ position: 'relative', width: `${FOOTPRINT}px`, maxWidth: '100%', margin: '0 auto' }}>
-          <TutorialCanvas
-            panel={panel}
-            replayKey={replayKey}
-            onScore={handleScore}
-            onPopup={handlePopup}
-            onFinish={handleFinish}
-            onMultiplier={handleMultiplier}
-            onLadder={handleLadder}
-          />
+          {panel.kind === 'target-moves' ? (
+            <TargetMovesStill still={panel.still} />
+          ) : (
+            <TutorialCanvas
+              panel={panel}
+              replayKey={replayKey}
+              onScore={handleScore}
+              onPopup={handlePopup}
+              onFinish={handleFinish}
+              onMultiplier={handleMultiplier}
+              onLadder={handleLadder}
+              onReveal={handleReveal}
+            />
+          )}
           {/* Fusion ladder (panel 8): climbing tally so the +700 → +1500 →
               +8000 escalation is visible in one view. */}
           {ladder.length > 0 && (
@@ -989,6 +1171,10 @@ export default function Tutorial({ sections, config = {}, onClose }) {
           14%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
           82%  { opacity: 1; transform: translate(-50%,-58%) scale(1); }
           100% { opacity: 0; transform: translate(-50%,-72%) scale(1); }
+        }
+        @keyframes versesRevealIn {
+          0%   { opacity: 0; transform: translateY(8px); }
+          100% { opacity: 1; transform: translateY(0); }
         }`}</style>
       </div>
     </div>
