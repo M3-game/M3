@@ -417,7 +417,7 @@ const PANELS = {
   'multipliers': {
     id: 'multipliers',
     title: 'Multipliers',
-    caption: 'Two things multiply your score in one turn: combo (how many matches you make) and cascade (clearing that happens again). Watch both climb — one big turn beats a dozen small moves.',
+    caption: 'Two things multiply your score in one turn: combos (how many matches you make) and cascades (when other matches or specials are triggered). Watch both climb — one big turn beats a dozen small moves.',
     reference: 'A basic match is only about +60.',
     board: [
       [1, 3, 4, 5, 5, 0, 3, 1],
@@ -819,7 +819,14 @@ export default function Tutorial({ sections, config = {}, onClose }) {
           >‹ Back</button>
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {panels.map((p, i) => <span key={p.id} style={dot(i === index)} />)}
+            {panels.map((p, i) => (
+              <span
+                key={p.id}
+                onClick={() => goTo(i)}
+                title={p.title}
+                style={{ ...dot(i === index), cursor: 'pointer' }}
+              />
+            ))}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>

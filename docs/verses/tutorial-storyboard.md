@@ -303,6 +303,44 @@ readout (honest ×N pts + match count) and successive cascade rounds driving the
 `🔥` popups; the authored 8×8 board dressed to look right at each beat; the
 on-screen +60 reference; sim-verify; add `multipliers` to the tablet `sections`.
 
+### Review round 1 (2026-07-03) — feedback to address next session
+
+**State:** first on-screen draft is built and committed — branch
+`tutorial-panel-7-multipliers`, tablet **v11.23** (local only; `main` clean at
+v11.22). Engine additions already in `core/Tutorial.jsx` and reusable:
+`onMultiplier` combo readout, `panel.specials`, `panel.reference`, per-step
+`combo` field. The honest 4-beat turn (swap→2 matches, fall→3rd match,
+bomb→line; scores 120→1,800) is sim-verified for mechanics. User reviewed it
+running and gave 9 items:
+
+1. **Dots aren't clickable** — the progress dots render but have no handler; add
+   `onClick={() => goTo(i)}`.
+2. **Caption wording** — replace "clearing that happens again" with **"when
+   other matches or specials are triggered."**
+3. **Pluralize** "combos" / "cascades" in the caption prose. (Keep the singular
+   mechanic *names* per DESIGN.md vocabulary unless user later asks to rename.)
+4. **Hand doesn't move** — the `hand` step points at the drag *destination*, so
+   the finger never travels. Point it at the *source* (3,3) so it carries the
+   tile to (3,4), like panels 1–6.
+5+9. **Popups cover the action; highlight the matches.** Place each popup AWAY
+   from its action: beats 1–2 (matches up top, tiles fall from above) → popups
+   **low**; beats 3–4 (specials at the bottom) → popups **high**. AND draw a
+   highlight rectangle around each matching group as it clears, to direct the
+   eye. (These two fix the same "can't see the match" problem.)
+6. **Popup wording** — "the fall makes a third match" → **"falling tiles make a
+   third match."**
+7+8. **Specials fire with nothing triggering them (WRONG).** Decision (user):
+   KEEP the bomb + line, but re-author so they're GENUINELY triggered — the
+   falling tiles form a match that INCLUDES the bomb (fires it), and the bomb's
+   blast then catches the line (fires it). Every explosion must be earned.
+   **Verify first in the game code:** exactly how a special is triggered by a
+   match (part of a same-color 3-run?) and whether a bomb blast chains into an
+   adjacent special — then author the cascade to satisfy it, and re-sim.
+
+Note: user was mid-giving more feedback when the session ended ("more…") — there
+may be additional items next session. Popup-placement + highlight (5+9) and the
+7+8 re-author are the biggest pieces; 1,2,3,4,6 are quick.
+
 ---
 
 ## Still open — NOT yet storyboarded (next scoping)
