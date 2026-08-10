@@ -1407,6 +1407,29 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Deploy failures could silently strand the newest commit.** 2026-08-09
+  (Session 18). GitHub Pages deploys had failed three times on 2026-07-05,
+  always at the same place and always for the same reason: the build
+  succeeded and the artifact uploaded, then GitHub's own `actions/deploy-pages`
+  step returned `Deployment failed, try again later.` Nothing was wrong with
+  the code. Because every deploy publishes the WHOLE repo, a later successful
+  run republishes whatever a failed one missed — which is why ignoring the
+  failure emails had always been safe. The exception is a failure on the
+  **most recent** commit, where no later run exists to cover it: the
+  2026-07-05 failure was the last push for a month, so **phone-verses v2.3
+  and sandbox v1.13 sat built-but-unpublished and the live site served v2.2 /
+  v1.12 until 2026-08-09** — a month of the user testing a build one version
+  behind what the repo said. Fixed by retrying the publish step in
+  `.github/workflows/deploy.yml`: two extra attempts with escalating waits
+  (30s, then 90s), the first two marked `continue-on-error` so they can fail
+  without failing the job, the third deliberately NOT, so three failures
+  still turn the run red and still send the usual email. Retry was chosen
+  over alert-only because the error is transient by nature — the remedy is
+  to wait and ask again, which needs no human. **Not exercised against a real
+  failure yet;** these errors are intermittent and can't be reproduced on
+  demand, so the retry path stays unproven until the next transient failure.
+  Consider also verifying the live site after deploy if a run ever reports
+  success without publishing (not observed).
 - **Phone verses: level-select back button overlapped the passage title.**
   2026-08-09 (Session 17). Player-reported with a screenshot of Isaiah
   52:13–53:12. A static layout collision, unrelated to the scroll/status-bar

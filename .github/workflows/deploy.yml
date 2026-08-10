@@ -13,7 +13,8 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # Whichever publish attempt succeeded supplies the URL.
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry_1.outputs.page_url || steps.deployment_retry_2.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,5 +26,49 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+      # ---------------------------------------------------------------
+      # Publish, with two retries.
+      #
+      # Why: on 2026-07-05 three runs failed here — and ONLY here. Each
+      # time the build succeeded and the artifact uploaded; GitHub's own
+      # publish step then returned "Deployment failed, try again later."
+      # Nothing was wrong with the code.
+      #
+      # Two of those three were harmless, because every deploy publishes
+      # the whole repo, so the next successful run republished what they
+      # missed. The third was not: it was the last push for a month, so
+      # phone-verses v2.3 sat built-but-unpublished until 2026-08-09 and
+      # the live site silently served v2.2 the whole time. A failure on
+      # the MOST RECENT commit is the case the "next push fixes it"
+      # pattern cannot cover.
+      #
+      # Retrying is preferred over only alerting because the error is
+      # transient by nature — the fix is to wait and ask again, which is
+      # something the workflow can do without a human.
+      #
+      # Structure: continue-on-error lets attempts 1 and 2 fail without
+      # failing the job; each later attempt runs only if the previous one
+      # actually failed. The final attempt has NO continue-on-error, so if
+      # all three fail the job still goes red and the usual failure email
+      # is sent. "Try again later" does not say how much later, so the
+      # waits escalate (30s, then 90s).
+      # ---------------------------------------------------------------
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before first retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: deployment_retry_1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before second retry
+        if: steps.deployment.outcome == 'failure' && steps.deployment_retry_1.outcome == 'failure'
+        run: sleep 90
+      - id: deployment_retry_2
+        if: steps.deployment.outcome == 'failure' && steps.deployment_retry_1.outcome == 'failure'
         uses: actions/deploy-pages@v4
