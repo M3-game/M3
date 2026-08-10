@@ -1385,28 +1385,60 @@ cleanup) shipped 2026-05-09 — see "Done" section.
   `getBoundingClientRect`, the pattern `core/Tutorial.jsx` already uses for
   its responsive scaling) over adding more character-count tiers.
 - **No CSS reset anywhere in the project.** Surfaced 2026-08-09 while
-  diagnosing the header clipping. No stylesheet file exists in the repo and
-  no entry file imports one, so every page runs with the browser's default
-  `<body>` 8px margin. On phone-verses and phone-verses-sandbox that made
-  the document permanently 16px taller than the viewport and was part of the
-  header-clipping bug; **v2.4/v1.14 fixed it only for those two pages**, via
-  a `<style>` block scoped to their own HTML files. The other nine pages
-  (tablet, verses, phone, desktop, timeattack, campaign, rewardmode,
-  tablet-sim, index) still carry the default margin. Deliberately not fixed
-  globally — a project-wide reset would shift every platform's layout at
-  once and each needs its own visual check. Do it per-platform, next time
-  each file is touched.
-- **`docs/version-urls.md` is stale.** Surfaced 2026-08-09. Still lists
-  "Phone 341px" and a "Phone 418px" path under the retired
-  `platforms/phone-418/` folder, neither of which builds. Missing six pages
-  added since: verses, phone, phone-verses, phone-verses-sandbox,
-  rewardmode, tablet-sim. Doc-only cleanup; the authoritative list is
-  `vite.config.js` plus the entry files.
+  diagnosing the header clipping. **Priority: LOW — the effort is
+  per-platform and the payoff is preventive** (user assessment 2026-08-09).
+  Not a bug anyone has hit on the remaining pages; a latent condition.
+
+  **➜ WHEN WE DO THIS, START WITH A PLAIN-ENGLISH EXPLANATION OF THE ISSUE
+  (user request 2026-08-09).** Don't open with CSS terminology. The
+  explanation that landed:
+
+  > Before any of our own styling runs, every browser applies its own
+  > defaults to a page. One of those is an 8-pixel margin around the body —
+  > a thin gap on all four sides. Most sites cancel this with a "reset": a
+  > line or two of styling that zeroes the browser's defaults. This project
+  > never had one. There is no stylesheet file anywhere in it, and no page
+  > loads one.
+
+  Why it mattered once: on phone-verses those 8px at the top and bottom made
+  the page permanently 16px taller than the screen, which was one of the four
+  causes of the intermittent header clipping (Session 15). Cancelled there
+  via a `<style>` block scoped to `phone-verses.html` and
+  `phone-verses-sandbox.html`.
+
+  **Still carrying the default margin (9 pages):** menu (`index.html`),
+  tablet arcade, tablet verses, phone arcade, desktop, time attack, campaign,
+  reward-mode, tablet sim. No visible problem on any of them — the tablet and
+  desktop layouts have room to absorb it, and the phone arcade stacks less
+  content than verses does.
+
+  **Why not fix it globally in one go:** a project-wide reset shifts every
+  platform's layout at once, and each would need its own visual check to
+  confirm nothing moved badly. Cheaper and safer to do it per-platform, the
+  next time each file is touched for another reason — which also spreads the
+  checking out instead of concentrating it into one risky sweep. That
+  per-platform requirement is exactly why this is low priority relative to
+  its effort.
 
 ---
 
 ## Done
 
+- **`docs/version-urls.md` was stale.** 2026-08-09 (Session 18). Listed two
+  addresses that no longer build (`phone341.html`, and a "Phone 418px" path
+  into `platforms/phone-418/`, both retired in Session P-2 on 2026-05-02) and
+  was missing six pages added since: tablet verses, phone arcade, phone
+  verses, phone verses sandbox, reward-mode, tablet sim. Rewritten from the
+  authoritative sources — `vite.config.js` for which pages exist, and each
+  page's entry file in `src/` for which version it runs. Per user direction
+  the old file was **archived rather than overwritten**, following the
+  PROGRESS-doc rotation convention: old → `docs/archive/version-urls-2026-03-20.md`
+  (named for its last-modified date), new → `docs/version-urls-2026-08-09.md`.
+  The new doc states up front that it is a dated snapshot rather than a source
+  of truth, records the retired addresses, explains that "live" means the last
+  successful deploy (not the last commit), and includes a one-line command for
+  regenerating the version list — since it will go stale again on the next
+  version bump.
 - **Deploy failures could silently strand the newest commit.** 2026-08-09
   (Session 18). GitHub Pages deploys had failed three times on 2026-07-05,
   always at the same place and always for the same reason: the build
