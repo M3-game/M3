@@ -1360,11 +1360,101 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 - **`bonusMoveFlashPendingRef` vestigial** — declared and reset in campaign
   file but never consumed meaningfully. Remove next time the file is
   touched for other reasons.
+- **Phone level-select: "← Back to passage selections" overlaps the game
+  title.** Reported 2026-08-09 with screenshot (Isaiah 52:13–53:12). Affects
+  BOTH phone-verses and phone-verses-sandbox — the two blocks are
+  character-for-character identical. Cause is a static layout collision, not
+  a scroll or safe-area problem: the back button is `position: absolute` at
+  `top: 20px` and is ~33px tall (14px text + 12px vertical padding + 4px
+  border), so it occupies the vertical band 20–53px, while the title is a
+  normal in-flow element that starts at the container's 40px top padding —
+  13px inside the button's band. The container's top padding was never
+  raised to account for a button taken out of flow. Horizontally the button
+  is ~212px wide from x=20, so its right edge lands just past the middle of
+  the screen; since the title is centered, **every** passage title overlaps
+  the button's column, not only long ones. Isaiah makes it obvious because
+  at 36px Georgia its capitals and digits are tall enough to visibly cross
+  the button's bottom border. Fix is to raise the container's top padding
+  (or move the title below the button's band). Files:
+  `platforms/phone-verses/match3-v2.4-phone-verses.jsx` (~7607–7645 in v2.3
+  numbering) and the sandbox equivalent. **Deliberately held back from the
+  v2.4/v1.14 header fix** (user direction 2026-08-09) so the header fix can
+  be tested in isolation — bundling would make it impossible to tell which
+  change caused any new behavior.
+- **Phone in-game title crowds the "See passage" button.** Reported
+  2026-08-09, then **set aside by the user** mid-session in favor of the
+  header-clipping fix. Analysis done and worth keeping: the current rule
+  keys the font tier and the right-nudge on the title's **character count**
+  (`> 20 → 16px / 48px nudge`, `15–20 → 18px / 28px nudge`, `≤ 14 → 20px /
+  no nudge`), but the collision is governed by **rendered pixel width**, and
+  character count is a poor proxy for it — "2 Chronicles 7:14" is a
+  character longer than "Habakkuk 3:17–19" yet draws narrower, because
+  Arial's letters vary widely (i, l, s narrow; H, b, k, u wide). Compounding
+  it: (a) the nudge is a fixed pixel push applied uniformly to a tier, but
+  each title's left edge depends on its own width, so clearance varies a lot
+  within one tier; (b) the multi-level "N/M" badge adds ~26px that the tiers
+  don't count at all (Isaiah, Genesis 50, 1 Thessalonians carry it;
+  Habakkuk and 2 Chronicles don't); (c) the 2–4× drill badge ("· Pass 1 of
+  2") adds roughly 90px, shifting a medium-tier title ~45px further left —
+  enough to run under the button regardless of the nudge. Estimated
+  clearances at 390px CSS width (Arial metrics, not measured on device):
+  2 Chronicles ~15px, Habakkuk ~11px, Genesis 50 ~1px, Isaiah ~ -4px,
+  1 Thessalonians ~ -8px. Note the 2026-08-09 screenshot was taken on a
+  wider device (1284×2778, ~428pt) where Habakkuk visibly clears the button
+  — so **confirm the device width before retuning**, and prefer measuring
+  the rendered title at runtime (a `useLayoutEffect` reading
+  `getBoundingClientRect`, the pattern `core/Tutorial.jsx` already uses for
+  its responsive scaling) over adding more character-count tiers.
+- **No CSS reset anywhere in the project.** Surfaced 2026-08-09 while
+  diagnosing the header clipping. No stylesheet file exists in the repo and
+  no entry file imports one, so every page runs with the browser's default
+  `<body>` 8px margin. On phone-verses and phone-verses-sandbox that made
+  the document permanently 16px taller than the viewport and was part of the
+  header-clipping bug; **v2.4/v1.14 fixed it only for those two pages**, via
+  a `<style>` block scoped to their own HTML files. The other nine pages
+  (tablet, verses, phone, desktop, timeattack, campaign, rewardmode,
+  tablet-sim, index) still carry the default margin. Deliberately not fixed
+  globally — a project-wide reset would shift every platform's layout at
+  once and each needs its own visual check. Do it per-platform, next time
+  each file is touched.
+- **`docs/version-urls.md` is stale.** Surfaced 2026-08-09. Still lists
+  "Phone 341px" and a "Phone 418px" path under the retired
+  `platforms/phone-418/` folder, neither of which builds. Missing six pages
+  added since: verses, phone, phone-verses, phone-verses-sandbox,
+  rewardmode, tablet-sim. Doc-only cleanup; the authoritative list is
+  `vite.config.js` plus the entry files.
 
 ---
 
 ## Done
 
+- **Phone verses: in-game header card clipped at the top (intermittent).**
+  2026-08-09 (Session 15). Player-reported with screenshot. The top of the
+  white in-game header — its rounded corner and part of the "See passage"
+  pill — sat above the visible area, with the iOS status bar drawn over the
+  title. Intermittent: came and went twice in one session with unchanged
+  content, appeared with both the collapsed and the expanded Safari address
+  bar, and tapping/dismissing the address bar did not restore it. Cause was
+  a compound one — the page always had a small amount of scroll room it
+  should never have had, and the code made that scroll unrecoverable:
+  (1) no CSS reset anywhere in the project, so `<body>` kept its default 8px
+  margin and the document was permanently `100vh + 16px`; (2) `100vh` on iOS
+  Safari is the *large* viewport height (toolbars hidden), adding a further
+  ~60–90px of scroll room whenever the toolbar shows; (3) `touchAction:
+  'none'` on the wrapper — there so swipes reach the board — means a drag
+  can't scroll the page back, and nothing in the file resets `scrollTop`
+  (no `scrollTo` / `scrollIntoView` / `scrollTop` calls exist); (4)
+  `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style:
+  black-translucent` run the page under the status bar with no
+  `env(safe-area-inset-top)` compensation. The intermittency was just
+  whether the page happened to sit at scroll 0. Fixed with three changes on
+  both phone verses platforms in lockstep: body margin zeroed via a
+  page-scoped `<style>` block in each HTML file; wrapper `paddingTop:
+  calc(env(safe-area-inset-top, 0px) + 8px)` written as longhands;
+  `minHeight` `100vh` → `100dvh`. `justifyContent: 'center'` deliberately
+  left alone — top-anchoring would guarantee no clipping but would move the
+  game to the top of the screen on every device where it already fits.
+  Shipped: **phone-verses v2.4**, **phone-verses-sandbox v1.14**.
 - **Verses bug fix — first-move line reveal skipped + single-level
   end-of-round freeze (one root cause).** 2026-07-04 (Session 6).
   Player-reported. Two symptoms: (1) after the first move the second line

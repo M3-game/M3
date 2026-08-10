@@ -6,6 +6,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>M3 — Phone Verses Sandbox</title>
+    <!-- v1.14: the project has no CSS reset anywhere (no stylesheet file exists,
+         no entry imports one), so <body> kept the browser default 8px margin.
+         With the game wrapper at minHeight 100dvh that made the document
+         permanently taller than the screen — scroll room the page should never
+         have had, which combined with touchAction:'none' on the wrapper left
+         the in-game header's top cut off and unrecoverable. Scoped to this page
+         so no other platform's layout shifts. -->
+    <style>
+      html, body { margin: 0; padding: 0; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
