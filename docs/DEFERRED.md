@@ -1428,6 +1428,40 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Phone verses: vertical layout — even spacing, overflow-safe centring,
+  short-phone fit.** 2026-08-09 (Session 16), follow-on to Session 15.
+  Four changes on both phone verses platforms. (1) **Spare space split
+  evenly.** Wrapper padding was 8px top / 60px bottom; because centring
+  happens *inside* the padding, that 52px difference was the entire reason
+  the game sat high with dead space beneath it (measured 29pt above vs 86pt
+  below on a 428×926pt phone). Both are now 25px plus their safe-area inset.
+  This balances the ~117pt of spare height rather than removing it — with
+  the board size fixed it has to live somewhere; the user chose the even
+  split over spreading it between elements. (2) **`justify-content: center`
+  → `safe center`,** feature-detected via `CSS.supports` into a module-level
+  `SAFE_CENTER`. Plain centring splits overflow evenly above and below and
+  the half above the screen can't be scrolled to; `safe` falls back to
+  top-alignment on overflow. The feature detection matters — a browser that
+  doesn't know the keyword drops the whole declaration, which would silently
+  leave the game top-aligned even with room to spare. (3) **Instructions
+  panel retires after two moves, but only on screens that can't fit it** —
+  a `useLayoutEffect` compares the page's rendered height against
+  `visualViewport.height` after every render. Measured, not a device table.
+  Key design point the user caught: hiding it on *every* phone would free
+  ~118pt on a device that already had 86pt of dead space, trading a useful
+  panel for more empty background. Screen height decides *whether*; move
+  count decides *when*. Two moves because the panel (~118pt with its gap) is
+  nearly three times the passage text bar's total growth (~42pt), making the
+  tallest moment of a round its beginning. (4) **Height-aware tile size** —
+  it previously used viewport width only, so a short phone got the same tall
+  stack as a tall one. Agreed priority order when space is tight: keep the
+  board as large as the width allows → give up the instructions panel →
+  shrink tiles. `VERSES_CHROME_PX = 350` is the only estimated value in the
+  work (tile size is locked at module load, before anything renders); it
+  deliberately excludes the panel, per that priority order. Shipped:
+  **phone-verses v2.5**, **phone-verses-sandbox v1.15**. Full measurements
+  and the device-by-device expectations are in
+  `docs/PROGRESS-2026-08-09.md` (Session 16 addendum).
 - **Phone verses: in-game header card clipped at the top (intermittent).**
   2026-08-09 (Session 15). Player-reported with screenshot. The top of the
   white in-game header — its rounded corner and part of the "See passage"
