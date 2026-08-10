@@ -1360,27 +1360,6 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 - **`bonusMoveFlashPendingRef` vestigial** — declared and reset in campaign
   file but never consumed meaningfully. Remove next time the file is
   touched for other reasons.
-- **Phone level-select: "← Back to passage selections" overlaps the game
-  title.** Reported 2026-08-09 with screenshot (Isaiah 52:13–53:12). Affects
-  BOTH phone-verses and phone-verses-sandbox — the two blocks are
-  character-for-character identical. Cause is a static layout collision, not
-  a scroll or safe-area problem: the back button is `position: absolute` at
-  `top: 20px` and is ~33px tall (14px text + 12px vertical padding + 4px
-  border), so it occupies the vertical band 20–53px, while the title is a
-  normal in-flow element that starts at the container's 40px top padding —
-  13px inside the button's band. The container's top padding was never
-  raised to account for a button taken out of flow. Horizontally the button
-  is ~212px wide from x=20, so its right edge lands just past the middle of
-  the screen; since the title is centered, **every** passage title overlaps
-  the button's column, not only long ones. Isaiah makes it obvious because
-  at 36px Georgia its capitals and digits are tall enough to visibly cross
-  the button's bottom border. Fix is to raise the container's top padding
-  (or move the title below the button's band). Files:
-  `platforms/phone-verses/match3-v2.4-phone-verses.jsx` (~7607–7645 in v2.3
-  numbering) and the sandbox equivalent. **Deliberately held back from the
-  v2.4/v1.14 header fix** (user direction 2026-08-09) so the header fix can
-  be tested in isolation — bundling would make it impossible to tell which
-  change caused any new behavior.
 - **Phone in-game title crowds the "See passage" button.** Reported
   2026-08-09, then **set aside by the user** mid-session in favor of the
   header-clipping fix. Analysis done and worth keeping: the current rule
@@ -1427,6 +1406,31 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 ---
 
 ## Done
+
+- **Phone verses: level-select back button overlapped the passage title.**
+  2026-08-09 (Session 17). Player-reported with a screenshot of Isaiah
+  52:13–53:12. A static layout collision, unrelated to the scroll/status-bar
+  work in Sessions 15–16: the back button is absolutely positioned at
+  `top: 20px` and is 32px tall (14px text + 12px vertical padding + 4px
+  border), occupying the band 20–52px, while the title is a normal in-flow
+  element starting at the container's 40px top padding — 12px inside the
+  button's band. The container's padding was never raised to account for a
+  button taken out of flow. **It affected every passage, not only long-titled
+  ones:** the button is ~212px wide from x=20, so its right edge passes the
+  middle of the screen while the title is centred. Isaiah only made it obvious
+  because at 36px Georgia its capitals and digits are tall enough to visibly
+  cross the button's lower border. Fixed by raising the container's top
+  padding 40px → 68px (the button's 52px lower edge + ~16px breathing room).
+  **Bundled with user approval:** preventive `env(safe-area-inset-top)` on
+  both select screens — applied to the absolutely-positioned top-left controls
+  as well as their containers, since raising a container's padding moves
+  in-flow content only — plus `100vh` → `100dvh` on both wrappers. That part
+  is preventive, NOT an observed bug: the reported screenshot was taken with
+  Safari's toolbar expanded, the state in which the page is not shifted up
+  under the status bar. Shipped: **phone-verses v2.6**,
+  **phone-verses-sandbox v1.16**. Note for future ports: the two files are
+  near-identical but NOT identical — the sandbox's passage-select screen has
+  no Tutorial pill, so a blind find-and-replace across them fails.
 
 - **Phone verses: vertical layout — even spacing, overflow-safe centring,
   short-phone fit.** 2026-08-09 (Session 16), follow-on to Session 15.
