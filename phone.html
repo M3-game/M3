@@ -6,6 +6,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>M3 — Phone</title>
+    <!-- v14.0: the project has no CSS reset anywhere (no stylesheet file
+         exists, no entry imports one), so <body> kept the browser default 8px
+         margin — making every page permanently 16px taller than the screen.
+         On phone-verses that was one cause of an intermittently clipped
+         header; this page is top-anchored so it never had that fault, but the
+         needless scroll room still makes a tall layout's bottom hard to reach
+         given touchAction:'none'. Added here per the agreed plan to fix this
+         per-platform as each file is touched (see DEFERRED.md). Scoped to this
+         page so no other platform's layout shifts. -->
+    <style>
+      html, body { margin: 0; padding: 0; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -25,7 +25,7 @@ Base: `https://m3-game.github.io/M3/`
 |---|---|---|---|
 | Menu | landing page | — | https://m3-game.github.io/M3/ |
 | Arcade — Tablet | `platforms/tablet/` | v12.0 | https://m3-game.github.io/M3/tablet.html |
-| Arcade — Phone | `platforms/phone/` | v13.7 | https://m3-game.github.io/M3/phone.html |
+| Arcade — Phone | `platforms/phone/` | v14.0 | https://m3-game.github.io/M3/phone.html |
 | Arcade — Desktop | `platforms/desktop/` | v12.3 | https://m3-game.github.io/M3/desktop.html |
 | Arcade — Time Attack | `platforms/timeattack/` | v12.4 | https://m3-game.github.io/M3/timeattack.html |
 | Verses — Tablet | `platforms/tablet-verses/` | v2.4 | https://m3-game.github.io/M3/verses.html |

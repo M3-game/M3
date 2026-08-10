@@ -1406,11 +1406,13 @@ cleanup) shipped 2026-05-09 — see "Done" section.
   via a `<style>` block scoped to `phone-verses.html` and
   `phone-verses-sandbox.html`.
 
-  **Still carrying the default margin (9 pages):** menu (`index.html`),
-  tablet arcade, tablet verses, phone arcade, desktop, time attack, campaign,
+  **Still carrying the default margin (8 pages, as of 2026-08-09):** menu
+  (`index.html`), tablet arcade, tablet verses, desktop, time attack, campaign,
   reward-mode, tablet sim. No visible problem on any of them — the tablet and
-  desktop layouts have room to absorb it, and the phone arcade stacks less
-  content than verses does.
+  desktop layouts have room to absorb it. **Phone arcade was cleared in
+  Session 19** (phone arcade v14.0), which is the per-platform pattern working
+  as intended: the file was already open for the tutorial port, so the reset
+  rode along with explicit approval rather than as a silent addition.
 
   **Why not fix it globally in one go:** a project-wide reset shifts every
   platform's layout at once, and each would need its own visual check to
@@ -1424,6 +1426,30 @@ cleanup) shipped 2026-05-09 — see "Done" section.
 
 ## Done
 
+- **Phone arcade had no tutorial; header inconsistent with tablet arcade.**
+  2026-08-09 (Session 19), phone arcade **v14.0**. The 2026-07-04 tutorial
+  port sequence (tablet arcade → tablet-verses → phone-verses → sandbox →
+  campaign) was verses-and-campaign shaped and **the phone arcade was never on
+  it** — so the one platform teaching pure arcade play on a phone had no way
+  to learn the rules, despite identical match mechanics to tablet arcade,
+  which does have it. Nothing in the archived docs explains the omission
+  either way; treat it as an oversight rather than a recovered decision.
+  Ported the same eight shared match panels tablet uses, opt-in, never
+  auto-opening. Three changes chained: the button wanted the header's
+  top-left slot (tablet's placement, and the only option since the phone
+  arcade has no select screen); that slot held a cramped 95px combo readout;
+  so the combo moved to its own full-width row at the foot of the header,
+  mirroring tablet — which also restored the tier names (🔥 COMBO → 🌟 MEGA →
+  ⚡ ULTRA → 💥 LEGENDARY) and points multiplier the phone version had been
+  dropping. Tablet's never-empty fallback (🏆 high score, 🔥 best combo) came
+  with it, so the ~26px the row costs is always doing something — the
+  justification for a taller header one session after recovering vertical
+  space on the verses platforms. No new state: `highScore`,
+  `allTimeHighCombo`, `lastCombo`, `getMultiplier` already existed here.
+  Stat-row icons dropped for tablet's plain labels — **note the asymmetry:
+  `⭐Score:` had a label so the star could just be deleted, but `🎯3000` was
+  icon-ONLY, so "Target:" had to be restored or the number would be bare.**
+  Check for that before repeating this cleanup elsewhere.
 - **`docs/version-urls.md` was stale.** 2026-08-09 (Session 18). Listed two
   addresses that no longer build (`phone341.html`, and a "Phone 418px" path
   into `platforms/phone-418/`, both retired in Session P-2 on 2026-05-02) and
