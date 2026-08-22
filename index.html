@@ -127,7 +127,7 @@
       <a href="rewardmode.html">
         <span class="label">Admin / Sandbox</span>
         <span class="name">🧪 Reward Mode Sandbox</span>
-        <span class="desc">v1.4 · VS-1 bundle: big-turn popup-delay fix (popup was firing before cascade animations finished settling) · v1.3 T-3a stats-blob writes · v1.2 T-2 importer-only update · v1.1 5 tunable levers wired into game logic (tile count, neighbor-bias, cluster-seed, cluster-drop-bias, big-turn special drops + HUGE-turn popup). Admin slider toggle for dev-time lever-fire console log.</span>
+        <span class="desc">v1.5 · fix — bonus-moves cap was still 99 here while every other platform uses 999, and since all platforms share one stored count, earning a bonus move here cut a &gt;99 total down to 99 and saved it back for arcade and verses (lockstep with tablet-sim v1.6) · v1.4 · VS-1 bundle: big-turn popup-delay fix (popup was firing before cascade animations finished settling) · v1.3 T-3a stats-blob writes · v1.2 T-2 importer-only update · v1.1 5 tunable levers wired into game logic (tile count, neighbor-bias, cluster-seed, cluster-drop-bias, big-turn special drops + HUGE-turn popup). Admin slider toggle for dev-time lever-fire console log.</span>
         <span class="badge badge-admin">Admin · H-2</span>
       </a>
       <a href="phone-verses-sandbox.html">
@@ -139,7 +139,7 @@
       <a href="tablet-sim.html">
         <span class="label">Admin / Sim</span>
         <span class="name">🤖 Tablet Sim — 1-ply + Monte Carlo</span>
-        <span class="desc">v1.5 · T-3a stats-blob writes · v1.4 T-2 importer-only update · v1.3 Headless simulation of tablet v11.11. Two bots: 1-ply heuristic (phase-weighted: match points + specials creation + proximity + line-of-effect + combo bonus, desperate-phase bonus-move awareness) and Monte Carlo (E-2a — N playouts per candidate swap, depth-cap-bounded rollouts, 1-ply-heuristic or random rollout strategy, Web Worker pool for parallelism). Admin batch runner — bot dropdown + MC params, adjustable target + moves, preset batch sizes, aggregate stats, score histogram, per-game table, clipboard-copy JSON.</span>
+        <span class="desc">v1.6 · fix — bonus-moves cap 99 → 999 to match every other platform sharing the stored count (lockstep with reward-mode sandbox v1.5; fixed here before it was hit) · v1.5 · T-3a stats-blob writes · v1.4 T-2 importer-only update · v1.3 Headless simulation of tablet v11.11. Two bots: 1-ply heuristic (phase-weighted: match points + specials creation + proximity + line-of-effect + combo bonus, desperate-phase bonus-move awareness) and Monte Carlo (E-2a — N playouts per candidate swap, depth-cap-bounded rollouts, 1-ply-heuristic or random rollout strategy, Web Worker pool for parallelism). Admin batch runner — bot dropdown + MC params, adjustable target + moves, preset batch sizes, aggregate stats, score histogram, per-game table, clipboard-copy JSON.</span>
         <span class="badge badge-admin">Admin · E-2a</span>
       </a>
     </div>

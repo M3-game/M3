@@ -76,6 +76,21 @@ touches it next.
 
 ## Cross-platform parity
 
+- **Move `BONUS_MOVES_CAP` / `BONUS_MOVES_WARN` into `core/`.** Approved in
+  principle and deferred by the user, 2026-08-22. Every platform reads and
+  writes one stored bonus-move count (`match3_bankedMoves`), so the cap must be
+  identical everywhere — but it is currently written out in **seven separate
+  platform files under two different names** (`BONUS_MOVES_CAP` post-rename,
+  `BANKED_MOVES_CAP` pre-rename). That split has already caused real data loss
+  once: the tablet v11.17 bump from 99 → 999 was applied by name, so it silently
+  skipped the two files still on the old identifier, and reward mode kept
+  cutting >99 totals back to 99 and saving them for every other platform to
+  read. Fixed by hand in rewardmode v1.5 / tablet-sim v1.6, but the *class* of
+  bug survives. `core/` is edit-in-place, so a single exported constant would
+  make divergence structurally impossible. Do the rename to one name at the same
+  time. Check the desktop, time-attack and campaign files while in there — they
+  share the stored count but define no cap at all, which is safe today (they
+  can't reduce it) but is its own inconsistency.
 - **Phone arcade: escalating target does not survive navigation.** Same bug
   fixed on tablet arcade in v12.1 (2026-08-22), still present on phone:
   `difficultyBonus` is in-memory React state at
