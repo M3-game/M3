@@ -201,6 +201,81 @@ The bonus round ends when regular moves reach 0. At that point:
 
 ---
 
+### Escalating Target (Arcade)
+
+Arcade has no authored levels, so difficulty comes from the target score rising
+across a run of consecutive wins. Each won round adds a random increment to an
+accumulated `difficultyBonus`, which is added to the next round's target
+(`BASE_TARGET 5000 + random(0–1500) + difficultyBonus`, rounded to the nearest
+100). **A loss resets the accumulation to 0.** Nothing else lowers it.
+
+**The accumulation is persistent** (`match3_difficultyBonus`, tablet arcade
+v12.1, 2026-08-22). Before v12.1 it lived only in memory, so any page load reset
+it — including the `tablet.html` ↔ `verses.html` round trip added in v12.0.
+That produced a visible contradiction, because the run counter
+(`match3_currentRun`) was already persistent: the game could report a six-win run
+beside a beginner target.
+
+#### Increment tiers
+
+| Consecutive wins | Increment per win |
+|---|---|
+| 1–11 | 200–500 |
+| 12–23 | 200–400 |
+| 24–35 | 100–300 |
+| 36+ | 100–200 |
+
+Three decisions are encoded here and should not be changed casually:
+
+- **Tapering, not capping.** There is no ceiling. The taper exists so that later
+  wins in a long run feel like an achievement rather than an accelerating
+  punishment; the actual limiter on runaway targets is the loss reset. Resulting
+  targets: ~9,600 after 11 wins, ~13,200 after 23, ~15,600 after 35.
+- **Boundaries at 12 / 24 / 36, not 10 / 20 / 40.** Reward levels (planned)
+  arrive every 5 wins. 5 and 12 share no common factor, so a tier step and a
+  reward level cannot land on the same round until win 60. On 10/20/40 *every*
+  boundary collided.
+- **A floor of 100 on the later bands.** The final target is rounded to the
+  nearest 100, so an increment below ~50 is frequently invisible — a win that
+  appears to change nothing. This also sets a hard bottom on how flat the curve
+  can get: any tier with a 100 floor climbs at least 100 per win, so 100–200 is
+  close to the gentlest meaningful band available.
+
+#### Self-balancing property
+
+A rising target does not simply get harder, because bonus moves are earned per
+10,000 points scored. A won round at a 15,000 target banks ~1.5 bonus moves
+against ~0.6 at 6,000, so the compensation scales with the difficulty. **The
+break-even point is 10,000 points in a single move** — above that a move funds
+its own replacement. Deep multi-move planning produces 6,000–8,000+ point turns
+(see "Optimize for Fun"), so even elite play runs at roughly 60–80% of
+break-even and the wallet still drains. That is what keeps runs finite.
+
+Anything that pushes a good player past break-even — notably reward-level
+generosity — would make the target stop functioning as a constraint, with runs
+ending from fatigue rather than difficulty. This is the number reward-mode
+tuning has to be checked against.
+
+**One asymmetry to remember:** the raised target is sticky until a loss, but the
+bonus moves that paid for it are liquid and live in a wallet shared with verses.
+A player can bank moves in arcade, spend them memorizing passages, and return to
+the raised target with an empty wallet.
+
+#### Highest target reached
+
+`match3_highestTarget` records the highest target ever **beaten** — not merely
+faced, so the round that ends a run does not count. Shown on the end-game screen
+grouped with the run stats, and marked in-game only by a 5-second "↑ Highest
+target yet" flag beside the target at the start of a qualifying round.
+
+Two reasons it is not on the in-game header beside high score: **high score is
+always ≥ highest target** (winning requires scoring at least the target), so side
+by side the new number would be permanently smaller with no visible reason why;
+and the target is fixed for a whole round, so a persistent marker would stay lit
+for the rest of any record-breaking run and stop meaning anything.
+
+---
+
 ### Time Attack Levels (Campaign — Levels 3 & 6)
 
 On time attack levels, the regular move counter is unused. Time is the resource.

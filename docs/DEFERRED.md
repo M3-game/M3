@@ -76,6 +76,24 @@ touches it next.
 
 ## Cross-platform parity
 
+- **Phone arcade: escalating target does not survive navigation.** Same bug
+  fixed on tablet arcade in v12.1 (2026-08-22), still present on phone:
+  `difficultyBonus` is in-memory React state at
+  `platforms/phone/match3-v14.0-phone.jsx:1174`, so it resets on every page
+  load — including the "Go to Verses" round trip to `phone-verses.html`, and an
+  ordinary refresh. Held out of Session 20 as a separate decision rather than
+  bundled. The tablet fix is the template: persist under a storage key, restore
+  it in **both** the initial `levelTarget` initializer and `restartGame` (only
+  doing the latter leaves the first round after each load at the base target),
+  and route the four win paths through one shared increment helper. Whether
+  phone should also take the 12/24/36 tiers and the "highest target reached"
+  stat is part of that decision, not assumed.
+- **Header stat row uses `#888` on tablet arcade.** `match3-v12.1-tablet.jsx`
+  hardcodes `color: '#888'` for the high-score / best-combo fallback row and for
+  "✨ Specials on board", regardless of dark mode — below the #ccc contrast floor
+  on a dark background. Noticed 2026-08-22 while adding the target marker;
+  deliberately not bundled. Small fix, wants a check of every hardcoded grey in
+  that header at the same time.
 - **Tablet hypernova behavior audit** — user suspects tablet arcade
   `activateSpecialTile` hypernova branch diverges from campaign (half-board
   clear + preserve specials + min-tiles floor). Audit both, converge on
@@ -491,6 +509,60 @@ touches it next.
 Implements the "Variety through amplification" corollary in DESIGN.md.
 Sequence matters: build the simulation harness (Session E) first so the
 sandbox (Session H) can be tuned against data rather than by guess.
+
+### Reward levels — decisions locked 2026-08-22 (Session 20 scoping)
+
+Scoped while designing the arcade escalating-target fix (tablet v12.1). None of
+this is built; it is recorded so Session I doesn't re-derive it or contradict it.
+The escalating-target rules these interlock with are in
+`DESIGN.md` → "Escalating Target (Arcade)".
+
+- **Cadence: every 5 wins.** Deliberately coprime with the difficulty tier
+  boundaries at 12/24/36, so a reward level and a tier step cannot coincide
+  until win 60. Reward levels per tier run 2, 2, 3, 2 — the pattern alternates
+  (12 ÷ 5 = 2.4) rather than settling.
+- **Reward levels have their own target scores**, drawn from their own table,
+  fully independent of the arcade ramp. The arcade sequence must skip over them:
+  if round 5 is a reward level, round 6's target derives from round 4's, never
+  from whatever the reward level showed.
+- **A reward win counts toward the run but NOT toward the difficulty ramp.**
+  User decision, 2026-08-22. Rationale: from inside the arcade sequence the
+  player would otherwise see the target climb two steps between consecutive
+  arcade rounds. Consequence: the ramp advances 9–10 times per 12-win tier
+  instead of 12, so targets run gentler than the DESIGN.md table (~13,700 rather
+  than ~15,600 by win 35). This is not the pre-v12.1 bug returning — the target
+  still rises on every arcade win, it just runs at a different exchange rate to
+  the run counter.
+- **Losing a reward level DOES break the run.** Considered exempting them;
+  rejected because 2–3 free failure passes per tier would become the main reason
+  long runs exist, inflating both the run counter and "highest target reached".
+  The intent is that generous mechanics plus a reasonable target make losses rare
+  but still possible.
+- **Implementation note for whoever builds this:** the tier lookup currently
+  keys off `currentRun`, which is correct only while every win is an arcade win.
+  Once reward levels count toward the run, the tiers need their own count of
+  *arcade* wins in the run, or boundaries will trip early.
+- **Bonus-move accrual on reward levels: 20k / 50k / 100k, then every
+  additional 50k**, one move per threshold — so a 100k reward round banks 3.
+  This is deliberately a **throttle**, not a boost, and reads as a contradiction
+  unless both halves are stated: reward levels are *more* generous in absolute
+  terms (a 100k reward round banks 3 moves vs. ~1 for a typical 15k arcade
+  round) but *less* generous per point (3 rather than the 10 that score would
+  bank at the flat arcade rate of 1 per 10,000). Do not "fix" either half.
+  Grounded in observed reward-mode sandbox scores reaching 100k.
+- **Separate stats.** Reward rounds keep their own records, and the in-game
+  header during a reward round should show reward-relevant stats — the regular
+  arcade stats are meaningless there. Reward records belong on the end screen,
+  labelled in words rather than parentheses, so a large reward number is never
+  read as beating a smaller arcade one. Check what the reward-mode sandbox
+  (v1.4) already tracks before building a second stats path.
+- **First-time tutorial.** The first time reward mode appears it needs a brief
+  explanation of what is changing: the reward mechanisms in play, the different
+  target score, and the adjusted bonus-move schedule. Panels live in
+  `core/Tutorial.jsx` (edit-in-place, shared).
+- **Watch "highest target reached" as the instrument.** If reward generosity
+  pushes players past the 10,000-points-per-move break-even (DESIGN.md), that
+  stat will climb well past where it sits today. That is the early warning.
 
 - **Progressive special-drop lever (arcade).** Starting at level 5, after
   a "big turn" (≥10 tiles cleared in a single event), roll once for a
