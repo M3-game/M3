@@ -38,8 +38,8 @@ playtest feel wins.
   supernova-class event per level.
 - **Bonus moves extend fun.** Moves earned per 10,000 points let players
   keep playing when they're in a cascading groove. Generosity here is the
-  success state, not an exploit. The 99 cap exists for UI sanity, not to
-  throttle the player.
+  success state, not an exploit. The cap (999 since tablet v11.17;
+  originally 25, then 99) exists for UI sanity, not to throttle the player.
 - **Variety extends fun too, when done right.** See "Variety through
   amplification, not interference" below.
 - **Variance is a feature, not a bug.** Even a Monte Carlo bot with

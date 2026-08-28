@@ -25,6 +25,18 @@ Update both docs as part of the same commit that ships the code:
 
 Without these updates, the docs go stale and future sessions lose their map.
 
+### The builder reference — keep it accurate
+
+`docs/builder-reference-YYYY-MM-DD.md` (highest-dated file) is written for the
+user, not for you: how to share the game with a play-tester, how to collect a
+tester's exported stats, how to check which version is live, how to run locally,
+and which storage key holds what. Don't read it at session start — but when a
+session changes something it documents (a URL, a storage key, an admin gesture,
+a build command, the export flow), update it in the same commit. It is the
+document most likely to drift silently, because nothing breaks when it's wrong.
+Rotate it the same way as the PROGRESS doc: archive the old dated copy, write a
+new dated one.
+
 ### Rotating the PROGRESS doc
 
 Rotate the PROGRESS doc when something ships on a date later than the current doc's date, or when there's another reason to start a fresh doc. Don't rotate just because the date has changed — a quiet day with no ship continues to use the existing doc.
