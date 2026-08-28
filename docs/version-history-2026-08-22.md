@@ -7,7 +7,7 @@ carried forward below.
 This document has two jobs:
 
 1. **Version history** — the per-platform change notes that used to live inside
-   the game-select screen (`index.html`). Those card descriptions had grown to
+   the game select screen (`index.html`). Those card descriptions had grown to
    as much as 2,300 characters each, burying the version number a reader
    actually wants behind a wall of history. As of 2026-08-22 each card shows one
    line — version number plus the most recent change — and the accumulated
@@ -29,7 +29,7 @@ Base: `https://m3-game.github.io/M3/`
 
 | Page | Platform | Version | URL |
 |---|---|---|---|
-| Menu | landing page | — | https://m3-game.github.io/M3/ |
+| Game select | `index.html` | — | https://m3-game.github.io/M3/ |
 | Arcade — Tablet | `platforms/tablet/` | v12.1 | https://m3-game.github.io/M3/tablet.html |
 | Arcade — Phone | `platforms/phone/` | v14.1 | https://m3-game.github.io/M3/phone.html |
 | Arcade — Desktop | `platforms/desktop/` | v12.3 | https://m3-game.github.io/M3/desktop.html |

@@ -492,6 +492,9 @@ No level has a real target score. All values in `PLACEHOLDER_TARGETS` in
 | **"End and carry moves forward"** | "End and save", "carry banked moves" | This is the actual button label in the code. Use it verbatim for clarity. |
 | **"Use bonus moves"** | "Use banked moves", "Use extra moves" | Consistent with the bonus-moves framing. |
 | **tile** (or "special tile") | "gem" | Only the diamond is gem-shaped; the other five tiles (hypocycloid, clover, star, candy, sun) are not gems. The code uses "tile" throughout (`tileType`, `TILE_COLORS`, `drawTile`). Locked 2026-06-23 during tutorial scoping. |
+| **game select** (screen) | "launcher", "menu", "landing page", "version select" | `index.html`, where the player chooses which build to play. Named 2026-08-22 after the live docs were found using five different names for it. "Version select" — what the page itself said until then — was inaccurate: the cards are different platforms and modes, not versions of one game. |
+| **passage select** (screen) | "picker", "verses picker" | The screen listing passages, in the Verses platforms. The code identifier `VersesPicker` is being renamed to `PassageSelect` — see DEFERRED. |
+| **level select** (screen) | "picker", "level picker" | The screen listing the levels within one passage. Distinct from passage select; naming them both "picker" is what made the distinction easy to lose. |
 | **cascade / combo / fusion** | "chain", overloaded "combo" | See "Scoring vocabulary" under Scoring & Stars. "Chain" is retired (it was a loose synonym for cascade). |
 
 ### Rename status: "bonus round" → "victory round" + `bankedMoves` → `bonusMoves`

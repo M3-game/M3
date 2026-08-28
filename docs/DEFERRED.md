@@ -325,6 +325,53 @@ touches it next.
     copies `public/` verbatim into `dist/` without requiring rollup inputs.
   - Or add `vite-plugin-static-copy` and glob the versioned files.
 
+## Agreed task order (set 2026-08-22)
+
+The user's chosen sequence. Recorded so a session picks up the next thing rather
+than re-deriving priorities.
+
+1. **`VersesPicker` → `PassageSelect` rename** — **bundled into item 2, not
+   shipped alone.** Three active platform files carry the identifier
+   (tablet-verses, phone-verses, phone-verses-sandbox), nine or ten occurrences
+   each, mostly comments; the real code is one component declaration and one
+   usage per file. Shipping it alone would cost three archives and three version
+   bumps for a change with no behavior; the core work below touches the same
+   three files anyway. Name chosen over `VersesSelect` because there are two
+   select screens in the Verses platforms and the name should say which one it
+   is. See DESIGN.md → Terminology for the settled screen names.
+2. **Core storage consolidation — the narrow slice.** One module in `core/`
+   owning the storage keys and the bonus-moves cap, with platforms reading from
+   it instead of defining their own. **Not** the full core extraction; game
+   logic stays where it is. This is stage 1 of "Multi-player and device linking"
+   below, cut down to the part that pays off immediately.
+3. **Reward-mode integration (Session I).** Decisions already locked — see
+   "Reward levels — decisions locked" above.
+4. **Simulation harness (E-2b).**
+
+**Why core comes before reward mode**, decided 2026-08-22 after the user
+proposed the reverse: reward mode is itself a storage-heavy feature. It needs
+its own target table, its own separate stats, its own bonus-move accrual
+schedule, a first-time-tutorial flag, and a separate count of *arcade* wins
+within a run (because reward wins count toward the run but not the ramp, so
+`currentRun` can no longer drive the tier lookup). That is roughly half a dozen
+new stored values. Added the current way, each is defined in its own file and
+each is a fresh chance to repeat the divergence that already cost real bonus
+moves. Consolidating first means they are defined once and correctly scoped.
+
+The usual argument for doing the player-facing work first does not apply here,
+because the reward-mode scoping is written down in detail rather than living in
+someone's head.
+
+**One note for when reward-mode tuning starts:** the simulation harness is what
+would show whether reward generosity has pushed a good player past the point
+where a bonus move funds its own replacement (10,000 points in one move — see
+DESIGN.md → "Escalating Target (Arcade)"). Tuning may want to wait for it, even
+though the build order stays as above.
+
+**Deferred by the user, 2026-08-22:** the tutorial port to campaign. Not
+abandoned — the user hasn't played campaign recently and wants other things in
+better shape first.
+
 ## Multi-player and device linking
 
 **Direction recorded 2026-08-22. Nothing here is scheduled.** Written down so
@@ -437,7 +484,7 @@ does not foreclose anything above.
   stepmode.html
   ```
   Fork of the then-current tablet version. Admin-gated card on the
-  version-select page. Use the scoring-history panel from v11.8+ plus
+  game select screen. Use the scoring-history panel from v11.8+ plus
   a "Next step →" button for advancing cascade phases manually. See also
   Session D (v11.8) which shipped slow-motion and history panel; step
   mode is the missing third mode.
@@ -977,7 +1024,7 @@ pending-edits pair are now landed; see Done section.
 
   **Picker screen (V-3a).**
   - Card grid: `repeat(auto-fill, minmax(220px, 1fr))`, same as
-    `index.html` landing page.
+    `index.html` game select screen.
   - Purple gradient background matching the in-game body (visual
     continuity across the stack).
   - Page header: "Verses" title + subtitle "Select a passage to

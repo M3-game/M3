@@ -48,7 +48,7 @@ M3/
   *.html                         One page per platform at the repo root
 ```
 
-Every platform is reached by its own HTML page: `index.html` (launcher),
+Every platform is reached by its own HTML page: `index.html` (the game select screen),
 `tablet.html`, `verses.html`, `phone.html`, `phone-verses.html`,
 `phone-verses-sandbox.html`, `campaign.html`, `desktop.html`, `timeattack.html`,
 `rewardmode.html`, `tablet-sim.html`. Each page loads its matching

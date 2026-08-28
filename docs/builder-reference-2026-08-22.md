@@ -15,8 +15,8 @@ rewritten, the old copy moves to `docs/archive/` under its own date.
 
 ## Sharing the game with someone
 
-**Send the direct page, not the menu.** The menu (`https://m3-game.github.io/M3/`)
-is a version-select screen listing seven playable builds — useful to you, a
+**Send the direct page, not the game select screen.** The game select screen
+(`https://m3-game.github.io/M3/`) lists seven playable builds — useful to you, a
 guessing game for anyone else.
 
 | Give them | If they're on |
@@ -58,7 +58,7 @@ isn't any to contain.
 **Alternative way in:** long-press the score in the game header for about 1.5
 seconds. Same panel, no URL editing, easier to describe over the phone.
 
-**Unlocking the admin cards on the menu page:** long-press the "🎮 M3" title for
+**Unlocking the admin cards on the game select screen:** long-press the "🎮 M3" title for
 1.5 seconds, or add `?admin=1`. This reveals the sandbox and sim entries, which
 are hidden by default — a tester will not stumble into them.
 
@@ -70,7 +70,7 @@ Three places, and they can disagree:
 
 1. **In the running game** — the small `vX.Y` beside the title in the header.
    This is the truth about what a player is actually using.
-2. **On the menu page** — each card's first line.
+2. **On the game select screen** — each card's first line.
 3. **In the repo** — the `match3-v*` filename imported by the page's entry file
    in `src/`.
 
