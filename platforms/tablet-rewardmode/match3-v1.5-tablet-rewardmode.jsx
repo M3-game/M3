@@ -8,8 +8,11 @@ import AdminPanel, { defaultStats, STATS_KEY, BONUS_MOVES_KEY } from '../../core
 // bonus moves and then playing knocked the total down to 99, and the reduced
 // number followed the player back into arcade and verses.
 //
-// Cause: every platform reads and writes ONE stored count
-// (`match3_bankedMoves`), so the cap has to be identical everywhere. Tablet
+// Cause: every platform in the TABLET family — arcade, verses, campaign,
+// reward mode, sim — reads and writes ONE stored count (`match3_bonusMoves`,
+// exported by core/AdminPanel.jsx), so the cap has to be identical in all of
+// them. (The phone family has its own separate pool, `match3_phone_bonusMoves`,
+// and is unaffected by this bug.) Tablet
 // v11.17 raised it 99 → 999 across the platforms that had been renamed to use
 // `BONUS_MOVES_CAP`. This file was never renamed — it still uses the older
 // `BANKED_MOVES_CAP` — so the bump passed it by. Tablet Sim was missed for the
@@ -420,8 +423,8 @@ const BONUS_MOVE_INTERVAL = 10000;
 // v11.2 / v11.9: Banked moves — persistent move savings across games.
 // v11.9 bumped cap 25 → 99 (match campaign v1.25) and warn threshold 20 → 90.
 // v1.5 (2026-08-22): cap 99 → 999, warn 90 → 900. These MUST match every other
-// platform that shares `match3_bankedMoves`, because they all read and write
-// one stored count. This file was missed by the tablet v11.17 bump (99 → 999)
+// tablet-family platform sharing `match3_bonusMoves`, because they all read and
+// write one stored count. This file was missed by the tablet v11.17 bump (99 → 999)
 // purely because it still uses the pre-rename identifier BANKED_MOVES_CAP,
 // while that bump was applied to files using BONUS_MOVES_CAP. The consequence
 // was real data loss: the earn path below caps the total, so scoring 10,000

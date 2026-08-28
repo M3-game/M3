@@ -186,6 +186,27 @@ is no reason to spend bonus moves. The prompt only fires when `moves = 0`.
 
 ---
 
+### Bonus-move pools are per device family
+
+**Player-visible, and easy to mistake for a bug.** Bonus moves are shared across
+every platform *within* a device family, but never across families:
+
+- **Tablet family** — tablet arcade, tablet-verses, campaign, reward-mode
+  sandbox, sim — share one pool (`match3_bonusMoves`).
+- **Phone family** — phone arcade, phone-verses — share a separate pool
+  (`match3_phone_bonusMoves`).
+
+So moving between arcade and verses on the same device carries your bonus moves;
+moving between a phone and a tablet does not, and the two totals will differ.
+There is no way to connect them today — there are no accounts and no server. See
+`DEFERRED.md` → "Multi-player and device linking".
+
+Run tracking (current run, longest run) is scoped the same way. High scores and
+combo records are **not** — they use unscoped keys shared by both families,
+which is an inconsistency rather than a decision.
+
+---
+
 ### Bonus Round (Campaign & Arcade)
 
 When the player reaches the target score while regular moves remain (`moves > 0`),

@@ -8,10 +8,11 @@ For game mechanics, scoring rules, bonus moves behavior, level unlock gates, kno
 
 ### At session start
 
-Before taking any action on a coding or design session, read these two docs:
+Before taking any action on a coding or design session, read these three docs:
 
-1. The latest `docs/PROGRESS-YYYY-MM-DD.md` — highest-dated file matching that glob. Contains the current session roster, platform status, rolling priority, and any starting-brief for the session about to run.
+1. The latest `docs/PROGRESS-YYYY-MM-DD.md` — highest-dated file matching that pattern. Contains the current session roster, platform status, rolling priority, and any starting-brief for the session about to run.
 2. `docs/DEFERRED.md` — full roster of planned and deferred work with scope details.
+3. The latest `docs/Architecture-YYYY-MM-DD.md` — highest-dated file matching that pattern. Repository layout, the storage and identity model (no accounts, no server, everything in browser `localStorage`), and the recorded direction toward multiple players and device linking. Rotate it the same way as the PROGRESS doc: archive the old dated copy, write a new dated one.
 
 These are load-bearing. Don't skip them; a fresh session without them will duplicate work, miss context, or ship code inconsistent with prior decisions.
 
@@ -55,6 +56,8 @@ Don't assume I'm a developer. Training biases you toward assuming a developer au
 Be precise when describing what you did, what you see, or what I should do. Don't use vague phrases like "I've been looser about X" or "things are a bit messy" — name specific files, specific behaviors, specific patterns. Avoid jargon shorthand when plain language is clearer.
 
 Prioritize clarity over conversational glibness. Don't try to sound like or match the argot and tone of any type of person (developer, manager, etc.) — being clear matters more than sounding fluent in a register.
+
+**Don't use words you have made up.** If no better word exists, present the invented one with a clear definition and get my agreement before using it. Otherwise use plain existing words, even if it takes more of them. Coinages built by bolting affixes onto ordinary words ("de-staling") read as errors or as something unrelated, and force me to spend a round asking what you meant — which costs a conversation turn and the context that goes with it.
 
 ## Response format
 

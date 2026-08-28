@@ -4,9 +4,11 @@ import AdminPanel, { defaultStats, STATS_KEY, BONUS_MOVES_KEY } from '../../core
 // =============================================================================
 // MATCH-3 GAME v1.6 - TABLET SIM (bonus-moves cap 99 → 999)
 //
-// Lockstep fix with reward-mode sandbox v1.5 (2026-08-22). Every platform
-// reads and writes one stored bonus-move count (`match3_bankedMoves`), so the
-// cap must be identical everywhere. Tablet v11.17 raised it 99 → 999 across
+// Lockstep fix with reward-mode sandbox v1.5 (2026-08-22). Every platform in
+// the TABLET family — arcade, verses, campaign, reward mode, sim — reads and
+// writes one stored bonus-move count (`match3_bonusMoves`, exported by
+// core/AdminPanel.jsx), so the cap must be identical in all of them. The phone
+// family has its own separate pool and is unaffected. Tablet v11.17 raised it 99 → 999 across
 // the files that had been renamed to `BONUS_MOVES_CAP`; this file still uses
 // the older `BANKED_MOVES_CAP`, so the bump missed it.
 //
@@ -334,8 +336,8 @@ const DIFFICULTY_INCREMENT_MAX = 500;
 // v11.2 / v11.9: Banked moves — persistent move savings across games.
 // v11.9 bumped cap 25 → 99 (match campaign v1.25) and warn threshold 20 → 90.
 // v1.6 (2026-08-22): cap 99 → 999, warn 90 → 900. These MUST match every other
-// platform that shares `match3_bankedMoves`, because they all read and write
-// one stored count. Missed by the tablet v11.17 bump (99 → 999) because this
+// tablet-family platform sharing `match3_bonusMoves`, because they all read and
+// write one stored count. Missed by the tablet v11.17 bump (99 → 999) because this
 // file still uses the pre-rename identifier BANKED_MOVES_CAP, while that bump
 // was applied to files using BONUS_MOVES_CAP. Same hazard the reward-mode
 // sandbox hit in the wild: the earn path caps the total, so scoring 10,000

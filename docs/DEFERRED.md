@@ -78,8 +78,9 @@ touches it next.
 
 - **Move `BONUS_MOVES_CAP` / `BONUS_MOVES_WARN` into `core/`.** Approved in
   principle and deferred by the user, 2026-08-22. Every platform reads and
-  writes one stored bonus-move count (`match3_bankedMoves`), so the cap must be
-  identical everywhere — but it is currently written out in **seven separate
+  writes one stored bonus-move count per device family (`match3_bonusMoves` for
+  the tablet family, `match3_phone_bonusMoves` for phone), so the cap must be
+  identical within each family — but it is currently written out in **seven separate
   platform files under two different names** (`BONUS_MOVES_CAP` post-rename,
   `BANKED_MOVES_CAP` pre-rename). That split has already caused real data loss
   once: the tablet v11.17 bump from 99 → 999 was applied by name, so it silently
@@ -310,6 +311,52 @@ touches it next.
   - Move `platforms/phone-418/` (or a subset of it) into `public/` — Vite
     copies `public/` verbatim into `dist/` without requiring rollup inputs.
   - Or add `vite-plugin-static-copy` and glob the versioned files.
+
+## Multi-player and device linking
+
+**Direction recorded 2026-08-22. Nothing here is scheduled.** Written down so
+that decisions about how new state is stored or scoped are made with the
+destination in view. Full context in the current `docs/Architecture-*.md` →
+"Storage & identity model" and "Direction: multiple players and optional device
+linking".
+
+**Goal (user, 2026-08-22):** different people can use the app on phones or
+tablets, and can connect their phone and tablet progress if they choose — or
+leave them separate.
+
+**Where things actually stand.** There is no concept of a person anywhere in the
+codebase: no accounts, no profiles, no login, no server, and no network calls of
+any kind. All progress is in browser `localStorage`, so two people sharing a
+device share one set of scores, runs and bonus moves; one person on a phone and a
+tablet has two unconnected sets; and clearing browser data deletes everything.
+The phone/tablet split that exists today is a key-prefix naming convention
+(`match3_bonusMoves` vs `match3_phone_bonusMoves`), not a designed boundary.
+
+The four stages, in dependency order:
+
+- **Stage 1 — centralize storage access.** One module in `core/` owns every
+  `localStorage` read and write; platform files stop calling it directly. Worth
+  doing on its own merits and a prerequisite for everything below — see the
+  related item under "Cross-platform parity" about moving the bonus-moves cap
+  into `core/`, which is the smallest slice of this. **This is the stage to do
+  first, and the only one that is straightforwardly beneficial today.**
+- **Stage 2 — local profiles.** A player-identity concept with keys namespaced
+  per profile, so several people can use one device. Still entirely local; no
+  server, no sign-in.
+- **Stage 3 — accounts and a backend.** The threshold decision. Needs a server,
+  sign-in, a database, and a hosting change, since GitHub Pages serves static
+  files only. Introduces user data, privacy obligations and running costs that
+  this project currently does not have at all. Do not start this without
+  deciding deliberately that the project is becoming a service.
+- **Stage 4 — linking and merging.** What happens when two devices disagree —
+  phone says 50 bonus moves, tablet says 120. Merge rules have to be chosen per
+  statistic (highest wins for records; unclear for spendable pools) and this is
+  harder design work than it appears.
+
+**Bearing on decisions available now:** whether the phone's escalating target is
+phone-scoped or shared with tablet is a stage-1-shaped question being answered
+today. Scoping it per device family matches how run tracking already works and
+does not foreclose anything above.
 
 ## Persistence & platform
 
