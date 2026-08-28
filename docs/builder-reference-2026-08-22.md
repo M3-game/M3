@@ -111,8 +111,10 @@ key you want. What each holds:
 
 | Key | Holds |
 |---|---|
-| `match3_bonusMoves` | Bonus-move pool — tablet family |
-| `match3_phone_bonusMoves` | Bonus-move pool — phone family |
+| `match3_bonusMoves` | Bonus-move pool — tablet family (arcade, verses, campaign, reward mode, sim) |
+| `match3_phone_bonusMoves` | Bonus-move pool — phone family (arcade, verses, sandbox) |
+| `match3_desktop_bonusMoves` | Bonus-move pool — desktop only |
+| `match3_timeattack_bonusMoves` | Bonus-move pool — time attack only |
 | `match3_currentRun` / `match3_longestRun` | Consecutive wins — tablet |
 | `match3_phone_currentRun` / `match3_phone_longestRun` | Consecutive wins — phone |
 | `match3_difficultyBonus` | Accumulated escalating target (tablet arcade) |

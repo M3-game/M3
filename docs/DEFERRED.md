@@ -339,7 +339,11 @@ than re-deriving priorities.
    three files anyway. Name chosen over `VersesSelect` because there are two
    select screens in the Verses platforms and the name should say which one it
    is. See DESIGN.md → Terminology for the settled screen names.
-2. **Core storage consolidation — the narrow slice.** One module in `core/`
+2. **Core storage consolidation — the narrow slice.** **Scoping brief written:
+   `docs/scoping-core-storage-2026-08-22.md`** — storage-call inventory (219 calls,
+   88 with literal string keys), the four bonus-move pools, six open decisions
+   with leanings, and the traps found in this codebase. Start there.
+   One module in `core/`
    owning the storage keys and the bonus-moves cap, with platforms reading from
    it instead of defining their own. **Not** the full core extraction; game
    logic stays where it is. This is stage 1 of "Multi-player and device linking"

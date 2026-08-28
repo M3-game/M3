@@ -193,8 +193,14 @@ every platform *within* a device family, but never across families:
 
 - **Tablet family** — tablet arcade, tablet-verses, campaign, reward-mode
   sandbox, sim — share one pool (`match3_bonusMoves`).
-- **Phone family** — phone arcade, phone-verses — share a separate pool
-  (`match3_phone_bonusMoves`).
+- **Phone family** — phone arcade, phone-verses, phone-verses-sandbox — share a
+  separate pool (`match3_phone_bonusMoves`).
+- **Desktop** — its own pool, shared with nothing (`match3_desktop_bonusMoves`).
+- **Time Attack** — its own pool, shared with nothing
+  (`match3_timeattack_bonusMoves`).
+
+Corrected 2026-08-22: an earlier version of this note said two pools. There are
+four.
 
 So moving between arcade and verses on the same device carries your bonus moves;
 moving between a phone and a tablet does not, and the two totals will differ.

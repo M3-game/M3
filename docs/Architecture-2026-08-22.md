@@ -86,13 +86,18 @@ profiles, no login, no server, and no network calls of any kind — `package.jso
 carries React and Vite and nothing else. All progress lives in the browser's
 `localStorage`, which belongs to one browser on one device.
 
-Storage is split into two families by key prefix, which is a naming convention
+Storage is split into four families by key prefix, which is a naming convention
 rather than a designed boundary:
 
 | Family | Platforms | Bonus moves | Run tracking |
 |---|---|---|---|
 | Tablet | tablet arcade, tablet-verses, campaign, reward mode, sim | `match3_bonusMoves` (from `core/AdminPanel.jsx`) | `match3_currentRun` / `match3_longestRun` |
-| Phone | phone arcade, phone-verses | `match3_phone_bonusMoves` (defined per file) | `match3_phone_currentRun` / `match3_phone_longestRun` |
+| Phone | phone arcade, phone-verses, phone-verses-sandbox | `match3_phone_bonusMoves` (defined per file) | `match3_phone_currentRun` / `match3_phone_longestRun` |
+| Desktop | desktop only | `match3_desktop_bonusMoves` (defined in file) | — |
+| Time Attack | time attack only | `match3_timeattack_bonusMoves` (defined in file) | — |
+
+Only the tablet pool comes from a shared import; the other three are local
+definitions, which is the shape of the bug that has already bitten once.
 
 Other keys in use include `match3_highScore`, `match3_highCombo`,
 `match3_highTurnScore`, `match3_stats`, `match3_difficultyBonus`,
