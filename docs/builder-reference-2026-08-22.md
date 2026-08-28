@@ -132,6 +132,53 @@ Then reload.
 
 ---
 
+## What makes each platform play differently
+
+Same match-3 engine everywhere, but three things differ by platform, and the
+differences are easy to forget when judging whether something "feels off".
+
+### Board size
+
+| Platform | Grid | Tiles |
+|---|---|---|
+| Tablet arcade, tablet-verses | 12 × 10 | 120 |
+| Phone arcade, phone-verses | 12 × 9 | 108 |
+
+A smaller board means fewer simultaneous match opportunities and shorter cascade
+chains — and cascades are where the big scores come from.
+
+### Difficulty numbers
+
+Phone arcade uses **tablet's numbers unchanged**: target 5,000–6,500, moves
+18–24, one bonus move per 10,000 points, and (from v14.1) the same escalating
+target tiers. Those values were inherited, not tuned for the smaller board, and
+have never been validated by play.
+
+Phone-verses is different again: authored per-level targets rather than a random
+range, and a bonus move per 25,000 points rather than 10,000.
+
+### Generosity mechanics — phone-verses only
+
+The small grid felt flat, so four mechanics were added to compensate. **They
+exist only in phone-verses and its sandbox** — not in phone arcade, not in
+either tablet platform. Constants at
+`platforms/phone-verses/match3-v2.6-phone-verses.jsx:2199-2290`.
+
+| Mechanic | What it does |
+|---|---|
+| **Neighbor-match bias — 13%** | Each refilled tile has a 13% chance of copying a random neighbour's colour, so clusters form more often and matches are easier to find. Tuned 10 → 14 → 13 across playtests. |
+| **Big-turn special drops** | Clear 12+ tiles in one swap and the game rolls 10% for a hypernova, then 15% for a supernova, dropping it into the next refill. |
+| **Floor-raise rescue** | If no big match has appeared by nine moves from the end, a rescue arms: 50% per turn for seven turns to drop a bomb, cross, supernova or hypernova (weighted 35/35/20/10). Bias spikes to 30% on the drop turn so the special lands somewhere useful. Silent — no popup. |
+| **Hypernova bias suppression** | After a hypernova fires, bias drops to 8% for the rest of that turn, stopping hypernovas from chaining into more hypernovas. |
+
+The reward-mode sandbox has adjustable versions of these ideas as tuning knobs
+(`tile_count`, `neighbor_bias`, `cluster_seed`, `cluster_drop_bias`, big-turn
+drops), all defaulting to off. That is where they were prototyped.
+
+**The practical upshot:** phone arcade is the platform with the smaller board
+*and* none of the compensations. If it feels harder than the tablet, that is the
+first place to look — not a bug, an untested inheritance.
+
 ## Where things are written down
 
 | Document | What it's for |

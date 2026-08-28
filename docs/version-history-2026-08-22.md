@@ -31,7 +31,7 @@ Base: `https://m3-game.github.io/M3/`
 |---|---|---|---|
 | Menu | landing page | — | https://m3-game.github.io/M3/ |
 | Arcade — Tablet | `platforms/tablet/` | v12.1 | https://m3-game.github.io/M3/tablet.html |
-| Arcade — Phone | `platforms/phone/` | v14.0 | https://m3-game.github.io/M3/phone.html |
+| Arcade — Phone | `platforms/phone/` | v14.1 | https://m3-game.github.io/M3/phone.html |
 | Arcade — Desktop | `platforms/desktop/` | v12.3 | https://m3-game.github.io/M3/desktop.html |
 | Arcade — Time Attack | `platforms/timeattack/` | v12.4 | https://m3-game.github.io/M3/timeattack.html |
 | Verses — Tablet | `platforms/tablet-verses/` | v2.4 | https://m3-game.github.io/M3/verses.html |
@@ -124,7 +124,7 @@ v12.4 · F-1 1.5s grace window after timer hits 0 (catches late cascade extensio
 
 **Track:** Arcade
 
-v14.0 · in-app Tutorial lands on the phone arcade (the eight shared match panels, opt-in button top-left) · header brought in line with tablet arcade — combo gets its own row with tier names, points multiplier and a high-score / best-combo fallback, and the ⭐/🎯 icons drop for plain "Score: / Moves: / Target:" labels · v13.7 · "Go to Verses" button on the end-game screen (reverse of the verses→arcade handoff; bonus moves carry via the shared wallet) · v13.6 · bonus-move cap 99 → 999 (shared wallet w/ Phone Verses) · v13.5 · T-3b storage-key migration (banked → bonus, lockstep w/ phone-verses) · v13.4 T-2 bundled terminology rename · v13.3.1 P-2 phone-418 → phone rename + header label fix · v13.3 P-1 responsive board (9×12, viewport-derived tile size, cap 40px) · v13.2 verses → arcade carry banner · v11.7 hypernova rework · cap 99 · end-confirm · run tracking
+v14.1 · escalating target now survives navigation (was reset to base by the phone-verses round trip and by any refresh) + tiered increments at 12/24/36 wins + "Highest target reached" stat on the end screen · v14.0 · in-app Tutorial lands on the phone arcade (the eight shared match panels, opt-in button top-left) · header brought in line with tablet arcade — combo gets its own row with tier names, points multiplier and a high-score / best-combo fallback, and the ⭐/🎯 icons drop for plain "Score: / Moves: / Target:" labels · v13.7 · "Go to Verses" button on the end-game screen (reverse of the verses→arcade handoff; bonus moves carry via the shared wallet) · v13.6 · bonus-move cap 99 → 999 (shared wallet w/ Phone Verses) · v13.5 · T-3b storage-key migration (banked → bonus, lockstep w/ phone-verses) · v13.4 T-2 bundled terminology rename · v13.3.1 P-2 phone-418 → phone rename + header label fix · v13.3 P-1 responsive board (9×12, viewport-derived tile size, cap 40px) · v13.2 verses → arcade carry banner · v11.7 hypernova rework · cap 99 · end-confirm · run tracking
 
 ### 🗺️ Campaign — Tablet — `campaign.html`
 

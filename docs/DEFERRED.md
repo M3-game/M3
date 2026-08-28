@@ -92,18 +92,31 @@ touches it next.
   time. Check the desktop, time-attack and campaign files while in there — they
   share the stored count but define no cap at all, which is safe today (they
   can't reduce it) but is its own inconsistency.
-- **Phone arcade: escalating target does not survive navigation.** Same bug
-  fixed on tablet arcade in v12.1 (2026-08-22), still present on phone:
-  `difficultyBonus` is in-memory React state at
-  `platforms/phone/match3-v14.0-phone.jsx:1174`, so it resets on every page
-  load — including the "Go to Verses" round trip to `phone-verses.html`, and an
-  ordinary refresh. Held out of Session 20 as a separate decision rather than
-  bundled. The tablet fix is the template: persist under a storage key, restore
-  it in **both** the initial `levelTarget` initializer and `restartGame` (only
-  doing the latter leaves the first round after each load at the base target),
-  and route the four win paths through one shared increment helper. Whether
-  phone should also take the 12/24/36 tiers and the "highest target reached"
-  stat is part of that decision, not assumed.
+- **Phone arcade difficulty is unvalidated on its own board.** Raised
+  2026-08-22 while shipping phone v14.1; **needs playtesting before any tuning
+  work.** Phone arcade runs tablet's difficulty constants unchanged —
+  `BASE_TARGET` 5000, `TARGET_VARIANCE` 1500, moves 18–24, a bonus move per
+  10,000 points, and now the same 12/24/36 escalating-target tiers — on a
+  **12×9 board (108 tiles) against tablet's 12×10 (120)**. Fewer tiles means
+  fewer simultaneous matches and shorter cascade chains, and DESIGN.md is
+  explicit that cascades are where big scores come from, so the gap likely
+  widens at the high end rather than staying proportional. The escalating ramp
+  now climbs at the same rate on the smaller board, so any mismatch compounds
+  across a run.
+  **It also has none of the compensating mechanics phone-verses received** —
+  neighbour-match bias (13%), big-turn special drops, floor-raise rescue, and
+  hypernova bias suppression all live only in phone-verses and its sandbox
+  (`platforms/phone-verses/match3-v2.6-phone-verses.jsx:2199-2290`; summarised
+  in the builder reference). Phone-verses got them because the small grid felt
+  flat; phone arcade never did.
+  **No evidence yet that it is actually too hard** — nobody has measured it, and
+  that is the point. Levers if playtesting says it is: lower `BASE_TARGET` on
+  phone; or port some subset of the verses mechanics. Porting mechanics is much
+  the larger job, so feel the problem first.
+  The tablet sim (E-2b) could answer this without playtesting by running the
+  bots against a 12×9 board and comparing win rates at the same target — a
+  number rather than a feel. User's call was that there is practical work to do
+  before reaching for the sim.
 - **Header stat row uses `#888` on tablet arcade.** `match3-v12.1-tablet.jsx`
   hardcodes `color: '#888'` for the high-score / best-combo fallback row and for
   "✨ Specials on board", regardless of dark mode — below the #ccc contrast floor
